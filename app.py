@@ -487,8 +487,6 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 
-server = app.server
-
 # Estilos y constantes (Se mantienen)
 COLORS = {
     'primary': '#1e88e5',
@@ -2134,6 +2132,40 @@ def display_questionnaire(selected_questionnaire):
     if not selected_questionnaire:
         return html.P("Selecciona un cuestionario para comenzar.", style={'color': COLORS['muted']})
     
+    # 1. Obtener el historial del usuario actual desde la base de datos global
+    # Usamos callback_context para identificar quién dispara la acción si es necesario, 
+    # pero aquí lo ideal es mirar el historial global filtrado por fecha.
+    from datetime import date
+    
+    # IMPORTANTE: Necesitamos el username. En Dash, lo más limpio es 
+    # que esta función reciba el 'username' como argumento, o leerlo de la DB global.
+    # Asumiendo que tenemos acceso a la sesión o que el historial está accesible:
+    
+    username = dash.callback_context.states.get('current-patient-username.data')
+    today_str = date.today().isoformat()
+    
+    # 2. Verificar si ya existe una entrada para hoy de este cuestionario específico
+    user_history = _QUESTIONNAIRE_HISTORY_DB.get(username, [])
+    ya_realizado = any(
+        q.get('questionnaire_id') == selected_questionnaire and 
+        q.get('timestamp', '').startswith(today_str) 
+        for q in user_history
+    )
+
+    # 3. Si ya lo hizo, mostramos un mensaje de bloqueo en lugar de las preguntas
+    if ya_realizado:
+        return dbc.Alert(
+            [
+                html.H5("✅ Tarea completada", className="alert-heading"),
+                html.P(f"Ya has realizado el cuestionario de '{selected_questionnaire.replace('_', ' ')}' hoy."),
+                html.Hr(),
+                html.P("Para mantener un seguimiento preciso, solo se permite un registro diario por categoría. ¡Vuelve mañana!", className="mb-0"),
+            ],
+            color="info",
+            style={'marginTop': '20px'}
+        )
+
+    # --- El resto de tu función original sigue igual ---
     questionnaire = QUESTIONNAIRES.get(selected_questionnaire)
     if not questionnaire:
         return html.P("Cuestionario no encontrado.", style={'color': 'red'})
@@ -2210,6 +2242,7 @@ def display_questionnaire(selected_questionnaire):
      State('reload-trigger', 'data')],
     prevent_initial_call=True
 )
+
 def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, options, dolor_rodilla_vals, funcionalidad_vals, reload_trigger):
     ctx = callback_context
     if not ctx.triggered or not n_clicks or n_clicks[0] == 0:
@@ -2217,13 +2250,35 @@ def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, optio
     
     if not questionnaire_id:
         return html.Div("❌ Error: No se ha seleccionado cuestionario", style={'color': 'red'}), dash.no_update
-    
+
+    # --- NUEVA LÓGICA DE CONTROL: Un cuestionario de cada tipo al día ---
+    try:
+        # Obtenemos el historial del paciente
+        user_history = _QUESTIONNAIRE_HISTORY_DB.get(username, [])
+        today_str = datetime.now().strftime('%Y-%m-%d') # Obtenemos la fecha de hoy "YYYY-MM-DD"
+
+        # Buscamos si ya existe un registro para este ID hoy
+        ya_realizado_hoy = any(
+            q.get('questionnaire_id') == questionnaire_id and 
+            q.get('timestamp', '').startswith(today_str) 
+            for q in user_history
+        )
+
+        if ya_realizado_hoy:
+            return html.Div(
+                "⚠️ Ya has completado este cuestionario hoy. Solo se permite uno al día por tipo.", 
+                style={'color': 'orange', 'fontWeight': 'bold', 'padding': '10px', 'border': '1px solid orange', 'borderRadius': '5px'}
+            ), dash.no_update
+    except Exception as e:
+        print(f"Error en la validación de fecha: {e}")
+    # --- FIN DE LA LÓGICA DE CONTROL ---
+
     try:
         responses = {}
         questionnaire = QUESTIONNAIRES.get(questionnaire_id)
         
+        # ... (Tu lógica original de recolección de valores)
         if questionnaire_id == 'dolor_rodilla':
-            # Aseguramos que los valores que llegan de ALL no sean dash.no_update
             values = [v for v in dolor_rodilla_vals if v is not dash.no_update and v is not None]
         elif questionnaire_id == 'funcionalidad':
             values = [v for v in funcionalidad_vals if v is not dash.no_update and v is not None]
@@ -2233,14 +2288,12 @@ def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, optio
         if questionnaire:
             question_ids = [q['id'] for q in questionnaire['questions']]
             
-            # Validación de cantidad de respuestas
             if len(values) != len(question_ids):
-                 return html.Div(f"⚠️ Error: Faltan {len(question_ids) - len(values)} respuestas en el cuestionario activo.", style={'color': 'orange'}), dash.no_update
+                 return html.Div(f"⚠️ Error: Faltan {len(question_ids) - len(values)} respuestas.", style={'color': 'orange'}), dash.no_update
 
             for q_id, value in zip(question_ids, values):
                  responses[q_id] = value
 
-        
         questionnaire_data = {
             'questionnaire_id': questionnaire_id,
             'responses': responses,
@@ -2255,6 +2308,7 @@ def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, optio
         
     except Exception as e:
         return html.Div(f"❌ Error al enviar cuestionario: {str(e)}", style={'color': 'red'}), dash.no_update
+
 
 # Callback: Iniciar ejercicio (abrir modal) (Se mantiene)
 @app.callback(
@@ -3581,6 +3635,5 @@ if __name__ == '__main__':
         port=8050, 
         use_reloader=False # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
     )
-
 
 
