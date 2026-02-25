@@ -1,0 +1,2365 @@
+{
+    "users": {
+        "dr.garcia": {
+            "password": "1234",
+            "role": "medico",
+            "full_name": "Dr. \u00c1ngel Garc\u00eda",
+            "member_since": "2025-12-01T14:48:27.957964"
+        },
+        "paciente.torn": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Torn Benson",
+            "member_since": "2025-12-01T14:48:27.958172",
+            "profile": {
+                "email": "paciente.torn@mail.com",
+                "phone": "666-000-001",
+                "address": "C/ Falsa 123",
+                "dni": "X0000000A",
+                "birth_date": "1995-10-20",
+                "emergency_contact": "Familiar Torn",
+                "emergency_phone": "666-111-111",
+                "blood_type": "O+",
+                "allergies": "Penicilina",
+                "current_medications": "Ibuprofeno 600mg",
+                "medical_conditions": "Osteoartritis leve"
+            }
+        },
+        "paciente1": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Paciente 1",
+            "member_since": "2025-12-01T14:49:27.040188",
+            "profile": {
+                "email": "paciente1@gmail.com",
+                "phone": "+34 566 222 112",
+                "address": "calle 1",
+                "dni": "22222222B",
+                "birth_date": "1990-01-01",
+                "emergency_contact": "Familiar 2",
+                "emergency_phone": "+34 122 222 333",
+                "blood_type": "B+",
+                "allergies": null,
+                "current_medications": null,
+                "medical_conditions": null
+            }
+        },
+        "medico1": {
+            "password": "1234",
+            "role": "medico",
+            "full_name": "M\u00e9dico 1",
+            "member_since": "2025-12-01T14:53:26.402010",
+            "profile": {
+                "email": "medico1@gmail.com",
+                "phone": "+34 566 222 112",
+                "address": "calle 2",
+                "dni": "33333333C",
+                "birth_date": "1990-01-04",
+                "emergency_contact": "Familiar medico",
+                "emergency_phone": "+91 122 222 222",
+                "blood_type": null,
+                "allergies": null,
+                "current_medications": null,
+                "medical_conditions": null
+            }
+        },
+        "marcos": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Marcos",
+            "member_since": "2025-12-12T10:30:06.574355",
+            "profile": {
+                "email": "marcos@gmail.com",
+                "phone": "uhhjkjn",
+                "address": "calle 3",
+                "dni": "jbhjv",
+                "birth_date": "1990-01-16",
+                "emergency_contact": "Familiar 3",
+                "emergency_phone": "kb",
+                "blood_type": "B+",
+                "allergies": null,
+                "current_medications": null,
+                "medical_conditions": null
+            }
+        },
+        "marco": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Juan",
+            "member_since": "2025-12-12T10:40:23.238621"
+        },
+        "paciente": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "paciente",
+            "member_since": "2025-12-12T10:50:24.561779",
+            "profile": {
+                "email": "paciente1@gmail.com",
+                "phone": "111111111",
+                "address": "bvb",
+                "dni": "12345678N",
+                "birth_date": "1990-01-02",
+                "emergency_contact": "Familiar 3",
+                "emergency_phone": "111111111",
+                "blood_type": null,
+                "allergies": null,
+                "current_medications": null,
+                "medical_conditions": null
+            }
+        },
+        "paciente3": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Paciente 3",
+            "member_since": "2025-12-19T18:59:05.484774",
+            "profile": {
+                "email": "paciente3@gmail.com",
+                "phone": "+34 566 222 111",
+                "address": "calle 3",
+                "dni": "22222222B",
+                "birth_date": "1990-01-25",
+                "emergency_contact": "Familiar 2",
+                "emergency_phone": "+34 122 222 333",
+                "blood_type": "B-",
+                "allergies": null,
+                "current_medications": null,
+                "medical_conditions": null
+            }
+        },
+        "paciente4": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Paciente 4",
+            "member_since": "2025-12-19T19:29:32.227135",
+            "profile": {
+                "email": "medico2@gmail.com",
+                "phone": "+34 566 222 333",
+                "address": "calle 2",
+                "dni": "22222222B",
+                "birth_date": "1990-01-16",
+                "emergency_contact": "Familiar 3",
+                "emergency_phone": "+34 122 222 222",
+                "blood_type": "AB+",
+                "allergies": null,
+                "current_medications": null,
+                "medical_conditions": null
+            }
+        },
+        "paciente0": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Paciente 0",
+            "member_since": "2025-12-19T19:37:15.982308",
+            "profile": {
+                "email": "medico2@gmail.com",
+                "phone": "+34 566 222 333",
+                "address": "calle 2",
+                "dni": "33333333D",
+                "birth_date": "1990-01-16",
+                "emergency_contact": "Familiar 2",
+                "emergency_phone": "+34 122 222 333",
+                "blood_type": "B+",
+                "allergies": null,
+                "current_medications": null,
+                "medical_conditions": null
+            }
+        },
+        "paciente7": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Paciente 7",
+            "member_since": "2025-12-19T19:59:37.190281",
+            "profile": {
+                "email": "paciente1@gmail.com",
+                "phone": "+34 566 222 111",
+                "address": "calle 2",
+                "dni": "22222222B",
+                "birth_date": "1990-01-17",
+                "emergency_contact": "Familiar 2",
+                "emergency_phone": "+34 122 222 222",
+                "blood_type": "B+",
+                "allergies": null,
+                "current_medications": null,
+                "medical_conditions": null
+            }
+        }
+    },
+    "appointments": [
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-17T10:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "Revisi\u00f3n lesi\u00f3n de rodilla",
+            "status": "cancelled",
+            "created_at": "2025-12-01T15:30:20.723028",
+            "id": "appt-1",
+            "patient_notes": "Acci\u00f3n del paciente."
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-01T13:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "Revisi\u00f3n ",
+            "status": "scheduled",
+            "created_at": "2025-12-01T15:38:31.674977",
+            "id": "appt-2"
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-01T17:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "confirmed",
+            "created_at": "2025-12-01T15:40:29.570210",
+            "id": "appt-3",
+            "patient_notes": "Acci\u00f3n del paciente: Cambio de estado."
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-12T13:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "scheduled",
+            "created_at": "2025-12-12T10:27:23.187586",
+            "id": "appt-5"
+        },
+        {
+            "patient_username": "marcos",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-24T10:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "scheduled",
+            "created_at": "2025-12-12T10:57:00.427321",
+            "id": "appt-5"
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-24T10:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "cancelled",
+            "created_at": "2025-12-15T11:43:35.625027",
+            "id": "appt-6",
+            "patient_notes": "Acci\u00f3n del paciente: Cambio de estado."
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-16T11:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "confirmed",
+            "created_at": "2025-12-15T15:08:19.306207",
+            "id": "appt-7",
+            "patient_notes": "Acci\u00f3n del paciente: Cambio de estado."
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-24T11:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "cancelled",
+            "created_at": "2025-12-15T15:34:32.769887",
+            "id": "appt-8",
+            "patient_notes": "Acci\u00f3n del paciente: Cambio de estado."
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-23T11:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "cancelled",
+            "created_at": "2025-12-19T16:59:00.627924",
+            "id": "appt-9",
+            "patient_notes": "Acci\u00f3n del paciente: Cambio de estado."
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-24T11:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "confirmed",
+            "created_at": "2025-12-19T19:41:12.125382",
+            "id": "appt-10",
+            "patient_notes": "Acci\u00f3n del paciente: Cambio de estado."
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2025-12-24T11:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "scheduled",
+            "created_at": "2025-12-19T20:03:20.414481",
+            "id": "appt-11"
+        },
+        {
+            "patient_username": "paciente1",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2026-02-18T08:00:00",
+            "hospital": "hospital1",
+            "office": "1",
+            "comments": "",
+            "status": "confirmed",
+            "created_at": "2026-02-11T19:34:35.964367",
+            "id": "appt-12",
+            "patient_notes": "Acci\u00f3n del paciente: Cambio de estado."
+        }
+    ],
+    "patient_info": {
+        "paciente.torn": {
+            "diagnosis": "Rodilla Derecha",
+            "doctor_user": "dr.garcia",
+            "physio_user": null,
+            "full_name": "Torn Benson"
+        },
+        "marco": {
+            "diagnosis": "Lesi\u00f3n rodilla",
+            "doctor_user": "medico1",
+            "physio_user": null,
+            "full_name": "Juan"
+        },
+        "marcos": {
+            "diagnosis": "Lesi\u00f3n de rodilla",
+            "doctor_user": "medico1",
+            "physio_user": null,
+            "full_name": "Marcos"
+        },
+        "paciente1": {
+            "diagnosis": "Lesi\u00f3n rodilla",
+            "doctor_user": "medico1",
+            "physio_user": null,
+            "full_name": "Paciente 1"
+        },
+        "paciente": {
+            "diagnosis": "lesi\u00f3n rodilla",
+            "doctor_user": "medico1",
+            "physio_user": null,
+            "full_name": "paciente"
+        }
+    },
+    "questionnaire_history": {
+        "paciente.torn": [
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-11-21T14:48:27.958279",
+                "responses": {
+                    "q1": 7,
+                    "q2": 5,
+                    "q3": "moderado"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-11-28T14:48:27.958279",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "leve"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T12:54:44.364531",
+                "responses": {
+                    "q1": 3,
+                    "q2": 2,
+                    "q3": "poco"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T12:55:29.463996",
+                "responses": {
+                    "q1": 2,
+                    "q2": 1,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T12:56:14.556027",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T12:56:44.612774",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T12:57:29.695916",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T12:57:59.747894",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T12:58:44.815161",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T12:59:29.897539",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:00:30.004995",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:01:36.625542",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:02:21.691610",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:03:21.794699",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:04:06.872324",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:05:06.993093",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:05:37.050431",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:06:52.205997",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:12:08.063828",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:13:08.357022",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:13:38.496113",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:14:08.628343",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:15:08.866287",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:15:54.021607",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:16:39.164757",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:17:39.425322",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:18:39.683986",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:24:26.799014",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:27:47.686179",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:28:32.887075",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:29:03.016109",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:29:48.202717",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:30:18.378596",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:31:18.654524",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:31:48.776310",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:32:18.895070",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:33:04.044926",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:34:04.255549",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:35:30.667476",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:36:15.885433",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:37:16.143322",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:38:16.416208",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:39:01.608578",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:39:46.786253",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:40:16.897145",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:41:17.125056",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:42:32.405859",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:48:30.115978",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:49:30.393546",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:50:00.533563",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:50:45.728116",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:51:15.832933",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:52:01.018069",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:53:07.389331",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:54:07.699083",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:54:52.914418",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:58:13.498587",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:58:43.587488",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T13:59:43.766537",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T14:00:43.959986",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T14:01:44.153991",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T14:02:59.369476",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T14:03:29.474949",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T14:04:29.693011",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T14:04:59.819995",
+                "responses": {
+                    "q1": 1,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-19T14:05:29.915114",
+                "responses": {
+                    "q1": 0,
+                    "q2": 0,
+                    "q3": "nada"
+                }
+            }
+        ],
+        "paciente1": [
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 6,
+                    "q2": 4,
+                    "q3": "mucho"
+                },
+                "timestamp": "2025-12-19T20:00:03.284654",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "necesita_ayuda",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2025-12-19T19:59:57.575845",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "necesita_ayuda",
+                    "q2": "dolor_severo"
+                },
+                "timestamp": "2025-12-19T19:37:46.210923",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 6,
+                    "q2": 4,
+                    "q3": "mucho"
+                },
+                "timestamp": "2025-12-19T19:37:40.520875",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "sin_dificultad",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2025-12-19T19:30:09.039749",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 6,
+                    "q2": 8,
+                    "q3": "mucho"
+                },
+                "timestamp": "2025-12-19T19:30:02.757638",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "sin_dificultad",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2025-12-19T18:59:48.116039",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 10,
+                    "q2": 8,
+                    "q3": "mucho"
+                },
+                "timestamp": "2025-12-19T17:45:41.178134",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 4,
+                    "q2": 8,
+                    "q3": "moderado"
+                },
+                "timestamp": "2025-12-19T17:01:21.853304",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "sin_dificultad",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2025-12-19T16:58:17.346271",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 8,
+                    "q2": 2,
+                    "q3": "moderado"
+                },
+                "timestamp": "2025-12-01T15:22:28.473770",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 4,
+                    "q2": 6,
+                    "q3": "mucho"
+                },
+                "timestamp": "2025-12-01T14:50:20.132007",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "necesita_ayuda",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2025-12-01T14:50:05.889543",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "sin_dificultad",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2025-12-01T14:49:57.970771",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 5,
+                    "q2": 6,
+                    "q3": "mucho"
+                },
+                "timestamp": "2026-02-11T19:35:16.208269",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            }
+        ],
+        "medico1": [
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-09T20:03:25.974992",
+                "responses": {
+                    "q1": 7,
+                    "q2": 5,
+                    "q3": "moderado"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2025-12-16T20:03:25.974992",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "leve"
+                }
+            }
+        ],
+        "marco": [
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2026-02-08T19:30:45.500323",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "leve"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2026-02-01T19:30:45.500323",
+                "responses": {
+                    "q1": 7,
+                    "q2": 5,
+                    "q3": "moderado"
+                }
+            }
+        ]
+    },
+    "exercise_history": {
+        "paciente.torn": [
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-11-22T14:48:27.958279",
+                "duration_seconds": 120,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-11-29T14:48:27.958279",
+                "duration_seconds": 180,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-15T15:50:52.053100",
+                "duration_seconds": 162,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:53:59.268028",
+                "duration_seconds": 177,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:54:14.303606",
+                "duration_seconds": 164,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:54:44.364881",
+                "duration_seconds": 226,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:55:29.464775",
+                "duration_seconds": 189,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:55:59.521650",
+                "duration_seconds": 222,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:56:29.584253",
+                "duration_seconds": 212,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:56:59.641263",
+                "duration_seconds": 250,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:57:14.669265",
+                "duration_seconds": 152,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:57:44.723037",
+                "duration_seconds": 113,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:58:14.774409",
+                "duration_seconds": 108,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:58:29.800224",
+                "duration_seconds": 106,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:58:44.815405",
+                "duration_seconds": 166,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:58:59.836950",
+                "duration_seconds": 179,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:59:29.898432",
+                "duration_seconds": 227,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T12:59:59.960572",
+                "duration_seconds": 135,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:00:14.978103",
+                "duration_seconds": 121,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:01:06.599190",
+                "duration_seconds": 206,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:01:36.625938",
+                "duration_seconds": 166,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:01:51.639825",
+                "duration_seconds": 131,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:02:21.692023",
+                "duration_seconds": 115,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:03:06.765662",
+                "duration_seconds": 157,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:03:21.795087",
+                "duration_seconds": 223,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:04:06.872748",
+                "duration_seconds": 198,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:04:21.901588",
+                "duration_seconds": 100,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:05:06.994093",
+                "duration_seconds": 235,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:05:22.023381",
+                "duration_seconds": 103,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:05:37.051557",
+                "duration_seconds": 161,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:06:22.130957",
+                "duration_seconds": 104,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:06:52.206268",
+                "duration_seconds": 204,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:12:23.155061",
+                "duration_seconds": 238,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:12:53.295444",
+                "duration_seconds": 169,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:13:23.424563",
+                "duration_seconds": 175,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:13:38.496858",
+                "duration_seconds": 126,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:14:08.628817",
+                "duration_seconds": 197,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:14:23.702549",
+                "duration_seconds": 216,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:14:53.822657",
+                "duration_seconds": 186,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:15:08.866525",
+                "duration_seconds": 244,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:15:54.021947",
+                "duration_seconds": 231,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:16:09.062586",
+                "duration_seconds": 234,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:16:54.231120",
+                "duration_seconds": 143,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:17:09.284970",
+                "duration_seconds": 106,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:17:39.425790",
+                "duration_seconds": 114,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:18:24.609535",
+                "duration_seconds": 202,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:18:39.684587",
+                "duration_seconds": 217,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:19:09.812090",
+                "duration_seconds": 114,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:24:11.741299",
+                "duration_seconds": 134,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:24:41.854688",
+                "duration_seconds": 222,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:27:47.686453",
+                "duration_seconds": 238,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:28:02.759050",
+                "duration_seconds": 185,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:28:32.887345",
+                "duration_seconds": 178,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:28:47.950221",
+                "duration_seconds": 229,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:29:03.016621",
+                "duration_seconds": 101,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:29:33.137187",
+                "duration_seconds": 109,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:30:03.284996",
+                "duration_seconds": 200,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:30:18.378884",
+                "duration_seconds": 168,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:30:33.442413",
+                "duration_seconds": 235,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:30:48.505929",
+                "duration_seconds": 118,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:31:03.582228",
+                "duration_seconds": 244,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:31:48.777393",
+                "duration_seconds": 136,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:32:33.940484",
+                "duration_seconds": 112,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:33:19.098871",
+                "duration_seconds": 176,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:33:49.188202",
+                "duration_seconds": 134,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:35:30.668315",
+                "duration_seconds": 225,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:35:45.753451",
+                "duration_seconds": 166,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:36:15.886061",
+                "duration_seconds": 166,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:36:30.950798",
+                "duration_seconds": 203,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:37:16.143815",
+                "duration_seconds": 165,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:37:46.273209",
+                "duration_seconds": 194,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:38:01.336449",
+                "duration_seconds": 160,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:38:16.416576",
+                "duration_seconds": 185,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:38:46.545282",
+                "duration_seconds": 185,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:39:31.737449",
+                "duration_seconds": 136,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:40:01.833082",
+                "duration_seconds": 246,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:40:47.014832",
+                "duration_seconds": 206,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:41:02.074848",
+                "duration_seconds": 222,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:41:17.125719",
+                "duration_seconds": 145,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:41:47.251424",
+                "duration_seconds": 166,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:42:32.406347",
+                "duration_seconds": 117,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:48:15.007088",
+                "duration_seconds": 161,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:48:30.119002",
+                "duration_seconds": 124,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:49:15.316415",
+                "duration_seconds": 236,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:50:00.534320",
+                "duration_seconds": 196,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:50:15.593532",
+                "duration_seconds": 131,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:50:45.728371",
+                "duration_seconds": 109,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:51:30.886494",
+                "duration_seconds": 195,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:52:01.018489",
+                "duration_seconds": 202,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:53:07.390337",
+                "duration_seconds": 175,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:53:22.460007",
+                "duration_seconds": 158,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:53:37.547884",
+                "duration_seconds": 164,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:54:07.699599",
+                "duration_seconds": 160,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:54:22.766968",
+                "duration_seconds": 212,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:54:52.914953",
+                "duration_seconds": 114,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:57:58.453439",
+                "duration_seconds": 235,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:58:28.541642",
+                "duration_seconds": 210,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:58:58.637343",
+                "duration_seconds": 179,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:59:28.728540",
+                "duration_seconds": 169,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T13:59:58.829143",
+                "duration_seconds": 117,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:00:13.870360",
+                "duration_seconds": 245,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:00:28.916941",
+                "duration_seconds": 229,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:00:43.960263",
+                "duration_seconds": 178,
+                "sets": 3,
+                "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:01:14.065128",
+                "duration_seconds": 127,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:01:44.154332",
+                "duration_seconds": 147,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:01:59.212427",
+                "duration_seconds": 158,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:02:29.293439",
+                "duration_seconds": 193,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:02:44.334823",
+                "duration_seconds": 166,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:03:14.418172",
+                "duration_seconds": 164,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:03:44.524087",
+                "duration_seconds": 115,
+                "sets": 3,
+                "reps": 11
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:03:59.596965",
+                "duration_seconds": 241,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:04:14.649109",
+                "duration_seconds": 187,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:04:29.693291",
+                "duration_seconds": 127,
+                "sets": 3,
+                "reps": 9
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:04:59.820213",
+                "duration_seconds": 246,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-19T14:05:29.915452",
+                "duration_seconds": 188,
+                "sets": 3,
+                "reps": 11
+            }
+        ],
+        "paciente1": [
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-19T20:00:31.951228",
+                "end_time": "2025-12-19T20:01:00.807872",
+                "duration_seconds": 28,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-19T20:01:00.807872",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-19T19:38:23.709735",
+                "end_time": "2025-12-19T19:38:46.880316",
+                "duration_seconds": 23,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-19T19:38:46.880316",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-19T19:30:39.237040",
+                "end_time": "2025-12-19T19:31:06.974220",
+                "duration_seconds": 27,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-19T19:31:06.974220",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-19T18:04:01.011284",
+                "end_time": "2025-12-19T18:04:08.987706",
+                "duration_seconds": 7,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-19T18:04:08.987706",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-19T16:57:18.446551",
+                "end_time": "2025-12-19T16:57:21.459147",
+                "duration_seconds": 3,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-19T16:57:21.459147",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-19T16:39:38.358461",
+                "end_time": "2025-12-19T16:39:49.747877",
+                "duration_seconds": 11,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-19T16:39:49.747877",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-15T15:32:24.861339",
+                "end_time": "2025-12-15T15:32:37.051260",
+                "duration_seconds": 12,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-15T15:32:37.051260",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "start_time": "2025-12-15T15:17:58.670539",
+                "end_time": "2025-12-15T15:18:01.507886",
+                "duration_seconds": 2,
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-15T15:18:01.507886",
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "start_time": "2025-12-15T11:44:30.069285",
+                "end_time": "2025-12-15T11:44:44.695205",
+                "duration_seconds": 14,
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-15T11:44:44.695205",
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-03T18:47:05.344665",
+                "end_time": "2025-12-03T18:47:16.935487",
+                "duration_seconds": 11,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-03T18:47:16.935487",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "start_time": "2025-12-01T15:22:35.686238",
+                "end_time": "2025-12-01T15:22:48.746357",
+                "duration_seconds": 13,
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-01T15:22:48.746357",
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2025-12-01T14:50:29.695460",
+                "end_time": "2025-12-01T14:50:35.915140",
+                "duration_seconds": 6,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2025-12-01T14:50:35.915140",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "start_time": "2026-02-11T19:36:11.007281",
+                "end_time": "2026-02-11T19:36:14.597918",
+                "duration_seconds": 3,
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2026-02-11T19:36:14.597918",
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "start_time": "2026-02-11T19:36:56.511300",
+                "end_time": "2026-02-11T19:37:05.068184",
+                "duration_seconds": 8,
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2026-02-11T19:37:05.068184",
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2026-02-25T12:32:36.277587",
+                "end_time": "2026-02-25T12:32:40.243340",
+                "duration_seconds": 3,
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2026-02-25T12:32:40.243340",
+                "sets": 3,
+                "reps": 10
+            }
+        ],
+        "medico1": [
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2025-12-10T20:03:25.974992",
+                "duration_seconds": 120,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2025-12-17T20:03:25.974992",
+                "duration_seconds": 180,
+                "sets": 3,
+                "reps": 12
+            }
+        ],
+        "marco": [
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2026-02-09T19:30:45.500323",
+                "duration_seconds": 180,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2026-02-02T19:30:45.500323",
+                "duration_seconds": 120,
+                "sets": 3,
+                "reps": 10
+            }
+        ]
+    }
+}
