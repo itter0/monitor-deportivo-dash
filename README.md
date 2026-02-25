@@ -21,7 +21,7 @@ Este proyecto ha sido desarrollado puramente en Python utilizando las siguientes
 ## 🌐 Despliegue en Vivo
 
 Puedes acceder a la versión en vivo de la aplicación aquí:
-🔗 
+🔗 https://monitor-deportivo-dash-5h69.onrender.com/
 
 ## 💻 Instalación y Uso Local
 
