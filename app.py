@@ -487,6 +487,8 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 
+server = app.server
+
 # Estilos y constantes (Se mantienen)
 COLORS = {
     'primary': '#1e88e5',
@@ -3579,5 +3581,6 @@ if __name__ == '__main__':
         port=8050, 
         use_reloader=False # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
     )
+
 
 
