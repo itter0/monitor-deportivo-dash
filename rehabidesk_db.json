@@ -182,6 +182,22 @@
                 "current_medications": null,
                 "medical_conditions": null
             }
+        },
+        "luchador": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "luchador",
+            "member_since": "2026-03-06T12:38:16.960256",
+            "profile": {
+                "email": "luchador@ejemplo.com",
+                "phone": "600123456",
+                "address": null,
+                "dni": "12345678X",
+                "birth_date": "1900-01-23",
+                "emergency_contact": "1",
+                "emergency_phone": "600123456",
+                "blood_type": "A-"
+            }
         }
     },
     "appointments": [

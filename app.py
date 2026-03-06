@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, Input, Output, State, callback_context
+from dash import dcc, html, Input, Output, State, callback_context, ALL
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
 import plotly.express as px
@@ -487,30 +487,92 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 
-# Estilos y constantes (Se mantienen)
+# --- CONFIGURACIÓN VISUAL ESTILO OCTAGON PRO ---
+# --- CONFIGURACIÓN VISUAL ESTILO TÁCTICO / OCTAGON (ACTUALIZADO) ---
 COLORS = {
-    'primary': '#1e88e5',
-    'secondary': '#2ebf7f',
-    'background': '#f6f8fb',
-    'card': '#ffffff',
-    'text': '#0f172a',
-    'muted': '#6b7280'
+    'primary': '#ff0000',      # Rojo neón para acentos
+    'secondary': '#0a0a0a',    # Fondo de tarjetas (casi negro)
+    'background_tactical': '#1a1b1e', # Gris muy oscuro para el fondo general
+    'text': '#ffffff',         # Blanco puro para legibilidad
+    'muted': '#888888',        
+    'text_muted': '#888888',
+    'border_neon': '#ff0000',  # Rojo para los bordes brillantes
+    'border_soft': '#333333',  # Gris oscuro para bordes secundarios
+    'card_bg': '#0a0a0a',      
+    'card': '#0a0a0a',
 }
+
 STYLES = {
+    'main_container': {
+        'backgroundColor': COLORS['background_tactical'], # Fondo gris oscuro de la imagen
+        'minHeight': '100vh',
+        'fontFamily': 'Segoe UI, Roboto, sans-serif',
+        'color': COLORS['text'],
+        'padding': '20px'
+    },
     'login_container': {
-        'maxWidth': '420px','margin': '80px auto','padding': '32px','background': 'white',
-        'borderRadius': '16px','boxShadow': '0 10px 30px rgba(2,6,23,0.08)'
+        'maxWidth': '450px',
+        'margin': '80px auto',
+        'padding': '40px',
+        'background': COLORS['card_bg'],
+        'borderRadius': '10px',
+        'border': f'2px solid {COLORS["border_neon"]}', # Borde rojo más grueso
+        'boxShadow': '0 0 20px rgba(255, 0, 0, 0.4)', # Resplandor rojo neón
+        'color': COLORS['text'],
+        'textAlign': 'center'
     },
     'navbar': {
-        'background': 'linear-gradient(135deg, #1e88e5, #2ebf7f)','padding': '16px 24px','color': 'white',
-        'borderRadius': '0 0 12px 12px','marginBottom': '24px','boxShadow': '0 4px 12px rgba(30,136,229,0.15)',
-        'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'
+        'background': '#000000', # Negro puro para el navbar
+        'padding': '15px 40px', 
+        'borderBottom': f'2px solid {COLORS["border_neon"]}', # Línea roja inferior
+        'display': 'flex', 
+        'justifyContent': 'space-between', 
+        'alignItems': 'center',
+        'textTransform': 'uppercase',
+        'letterSpacing': '2px'
     },
     'card': {
-        'background': COLORS['card'],'borderRadius': '12px','padding': '20px',
-        'boxShadow': '0 6px 18px rgba(17,24,39,0.06)','marginBottom': '20px'
+        'background': COLORS['card_bg'],
+        'borderRadius': '10px', # Bordes más redondeados
+        'padding': '25px',
+        'border': f'2px solid {COLORS["border_neon"]}', # Borde rojo neón
+        'boxShadow': '0 0 15px rgba(255, 0, 0, 0.3)', # Brillo rojo neón
+        'marginBottom': '20px',
+        'position': 'relative',
+        'overflow': 'hidden'
+    },
+    'card_header_tactical': {
+        'color': COLORS['primary'],
+        'textTransform': 'uppercase',
+        'fontWeight': 'bold',
+        'fontSize': '1.2rem',
+        'marginBottom': '15px',
+        'letterSpacing': '1px'
+    },
+    'input': {
+        'background': '#111111', # Fondo casi negro
+        'border': '1px solid #ff0000', # Borde rojo neón para combinar
+        'color': '#ffffff', # Texto blanco puro
+        'padding': '12px',
+        'borderRadius': '5px',
+        'width': '100%',
+        'caretColor': '#ff0000' # El cursor al escribir será rojo
+    },
+    'button_primary': {
+        'background': 'transparent',
+        'border': f'2px solid {COLORS["primary"]}',
+        'color': 'white',
+        'textTransform': 'uppercase',
+        'fontWeight': 'bold',
+        'padding': '12px 25px',
+        'letterSpacing': '2px',
+        'boxShadow': '0 0 10px rgba(255, 0, 0, 0.2)', # Pequeño brillo en botones
+        'cursor': 'pointer',
+        'transition': 'all 0.3s ease',
+        'width': '100%'
     }
 }
+
 REHAB_STYLES = {
     'label': {
         'fontWeight': '600',
@@ -563,6 +625,163 @@ KNEE_EXERCISES = [
           'benefits': "Fortalece isquiotibiales, mejora flexibilidad"
       },
 ]
+
+# EJERCICIOS PARA LESIÓN DE CODO
+ELBOW_EXERCISES = [
+      {
+          'id': 'ext_codo',
+          'title': 'Extensión de Codo',
+          'description': 'Extender el codo completamente manteniendo la posición por 5 segundos.',
+          'reps': 12,
+          'sets': 3,
+          'rest_sec': 30,
+          'difficulty': 'Principiante',
+          'weight': 'Sin peso / 1-3kg',
+          'images': ['https://images.unsplash.com/photo-1578722969876-2c0b6b8b5d6f?w=300&h=200&fit=crop'],
+          'video_url': 'https://www.youtube.com/embed/elbow1',
+          'muscles': ['Tríceps'],
+          'instructions': [
+              "Siéntese con la espalda recta",
+              "Levante el brazo y flexione el codo a 90 grados",
+              "Extienda el codo completamente",
+              "Mantenga la posición 5 segundos",
+              "Regrese lentamente a la posición inicial"
+          ],
+          'benefits': "Fortalece tríceps y flexores del codo"
+      },
+    {
+          'id': 'flex_codo',
+          'title': 'Flexión de Codo',
+          'description': 'Flexionar el codo hacia arriba manteniendo el brazo estable.',
+          'reps': 12,
+          'sets': 3,
+          'rest_sec': 30,
+          'difficulty': 'Principiante',
+          'weight': 'Sin peso / 2-4kg',
+          'images': ['https://images.unsplash.com/photo-1580828343064-fde4fc206bc6?w=300&h=200&fit=crop'],
+          'video_url': 'https://www.youtube.com/embed/elbow2',
+          'muscles': ['Bíceps'],
+          'instructions': [
+              "De pie con brazos relajados a los lados",
+              "Flexione el codo levantando el antebrazo",
+              "Mantenga la parte superior del brazo inmóvil",
+              "Controle el descenso lentamente"
+          ],
+          'benefits': "Fortalece bíceps y mejora movilidad del codo"
+      },
+]
+
+# EJERCICIOS PARA LESIÓN DE HOMBRO
+SHOULDER_EXERCISES = [
+      {
+          'id': 'abd_hombro',
+          'title': 'Abducción de Hombro',
+          'description': 'Levantar el brazo lateralmente hasta la altura del hombro.',
+          'reps': 10,
+          'sets': 3,
+          'rest_sec': 30,
+          'difficulty': 'Principiante',
+          'weight': 'Sin peso / 1-2kg',
+          'images': ['https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&h=200&fit=crop'],
+          'video_url': 'https://www.youtube.com/embed/shoulder1',
+          'muscles': ['Deltoides'],
+          'instructions': [
+              "De pie con brazos relajados",
+              "Levante los brazos lateralmente lentamente",
+              "Suba hasta la altura de los hombros",
+              "Mantenga 2 segundos",
+              "Baje lentamente controlando el movimiento"
+          ],
+          'benefits': "Fortalece deltoides y mejora estabilidad del hombro"
+      },
+    {
+          'id': 'flex_hombro',
+          'title': 'Flexión de Hombro',
+          'description': 'Levantar el brazo hacia adelante hasta la altura del hombro.',
+          'reps': 12,
+          'sets': 3,
+          'rest_sec': 30,
+          'difficulty': 'Principiante',
+          'weight': 'Sin peso / 1-2kg',
+          'images': ['https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=300&h=200&fit=crop'],
+          'video_url': 'https://www.youtube.com/embed/shoulder2',
+          'muscles': ['Deltoides anterior'],
+          'instructions': [
+              "De pie con brazos a los lados",
+              "Levante los brazos hacia adelante lentamente",
+              "Suba hasta la altura de los hombros",
+              "Baje controlando el movimiento"
+          ],
+          'benefits': "Fortalece deltoides anterior y mejora movilidad"
+      },
+]
+
+# EJERCICIOS PARA LUCHADORES SANOS
+HEALTHY_FIGHTER_EXERCISES = [
+      {
+          'id': 'burpees',
+          'title': 'Burpees (Sentadillas de Potencia)',
+          'description': 'Ejercicio explosivo que combina sentadilla, plancha y salto.',
+          'reps': 8,
+          'sets': 4,
+          'rest_sec': 60,
+          'difficulty': 'Intermedio',
+          'weight': 'Peso corporal',
+          'images': ['https://images.unsplash.com/photo-1613121883033-95d88b4c04cf?w=300&h=200&fit=crop'],
+          'video_url': 'https://www.youtube.com/embed/burpees',
+          'muscles': ['Piernas', 'Pecho', 'Core'],
+          'instructions': [
+              "De pie con pies separados al ancho de caderas",
+              "Baje a posición de sentadilla",
+              "Coloque las manos en el suelo y salte hacia atrás",
+              "Haga una plancha",
+              "Salte hacia adelante",
+              "Salte hacia arriba explosivamente"
+          ],
+          'benefits': "Mejora resistencia cardiovascular y potencia explosiva"
+      },
+    {
+          'id': 'shadow_boxing',
+          'title': 'Shadow Boxing',
+          'description': 'Practicar movimientos de combate sin oponente.',
+          'reps': 3,
+          'sets': 4,
+          'rest_sec': 45,
+          'difficulty': 'Intermedio',
+          'weight': 'Sin peso',
+          'images': ['https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&h=200&fit=crop'],
+          'video_url': 'https://www.youtube.com/embed/shadow_boxing',
+          'muscles': ['Todo el cuerpo'],
+          'instructions': [
+              "De pie con guardia de boxeo",
+              "Practique combinaciones de puños",
+              "Incluya movimientos defensivos",
+              "Mantenga la velocidad y precisión"
+          ],
+          'benefits': "Mejora técnica de combate y acondicionamiento cardiovascular"
+      },
+    {
+          'id': 'wrestling_takedown',
+          'title': 'Práctica de Derribos',
+          'description': 'Trabajar técnicas de derribo y control.',
+          'reps': 5,
+          'sets': 5,
+          'rest_sec': 60,
+          'difficulty': 'Avanzado',
+          'weight': 'Sin peso',
+          'images': ['https://images.unsplash.com/photo-1606107557491-f2b2adc4baa0?w=300&h=200&fit=crop'],
+          'video_url': 'https://www.youtube.com/embed/wrestling',
+          'muscles': ['Piernas', 'Core', 'Espalda'],
+          'instructions': [
+              "Practique con un compañero o maniquí",
+              "Ejecute diferentes técnicas de derribo",
+              "Trabaje control y posición",
+              "Repita las técnicas"
+          ],
+          'benefits': "Mejora técnica de lucha y control del oponente"
+      },
+]
+
 
 # CUESTIONARIOS ESPECIALIZADOS PARA PACIENTES (Se mantienen)
 QUESTIONNAIRES = {
@@ -628,6 +847,17 @@ QUESTIONNAIRES = {
     },
 }
 
+MMA_WEIGHT_CLASSES = [
+    {'label': 'Peso Mosca (56.7 kg)', 'value': 'flyweight'},
+    {'label': 'Peso Gallo (61.2 kg)', 'value': 'bantamweight'},
+    {'label': 'Peso Pluma (65.8 kg)', 'value': 'featherweight'},
+    {'label': 'Peso Ligero (70.3 kg)', 'value': 'lightweight'},
+    {'label': 'Peso Welter (77.1 kg)', 'value': 'welterweight'},
+    {'label': 'Peso Medio (83.9 kg)', 'value': 'middleweight'},
+    {'label': 'Peso Semipesado (93.0 kg)', 'value': 'light_heavyweight'},
+    {'label': 'Peso Pesado (120.2 kg)', 'value': 'heavyweight'},
+]
+
 # --- FUNCIONES AUXILIARES PARA GRÁFICAS ---
 def create_questionnaire_plot(questionnaires):
     """Genera dos gráficas independientes para Dolor en Reposo y al Caminar"""
@@ -658,21 +888,70 @@ def create_questionnaire_plot(questionnaires):
     # Función interna para dar formato consistente a ambas gráficas
     def format_fig(data, title, line_color):
         if not data:
-            return go.Figure().add_annotation(text="Pregunta sin respuestas").update_layout(height=320)
+            # Versión oscura para el estado vacío
+            fig_empty = go.Figure().add_annotation(
+                text="Sin respuestas", 
+                font=dict(color="#555555", size=14),
+                showarrow=False
+            )
+            fig_empty.update_layout(
+                height=320, 
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False)
+            )
+            return fig_empty
         
         df = pd.DataFrame(data).sort_values('timestamp')
         fig = px.line(df, x='timestamp', y='Valor', markers=True, title=title)
         
-        # Estética médica
-        fig.update_traces(line=dict(width=3, color=line_color), marker=dict(size=8))
+        # --- ESTÉTICA OCTAGON PRO (MEJORADA) ---
+        fig.update_traces(
+            line=dict(width=2, color=line_color), 
+            marker=dict(
+                size=10, 
+                color=line_color, 
+                symbol='circle',
+                line=dict(width=1, color='white') # Pequeño brillo en el punto
+            ),
+            mode='lines+markers'
+        )
+        
         fig.update_layout(
-            yaxis=dict(range=[-0.5, 10.5], dtick=1, gridcolor="#f0f0f0"),
-            xaxis=dict(gridcolor="#f0f0f0"),
+            # Configuración de Ejes Estilo Médico/Táctico
+            yaxis=dict(
+                range=[-0.2, 10.2], 
+                dtick=1, 
+                gridcolor="#1a1a1a",   # Cuadrícula muy sutil
+                zerolinecolor="#333333",
+                color="#666666",       # Números en gris tenue
+                title_text="Valor",
+                fixedrange=True        # Evita que el usuario mueva la gráfica
+            ),
+            xaxis=dict(
+                gridcolor="#1a1a1a", 
+                zerolinecolor="#333333",
+                color="#666666",
+                title_text="timestamp",
+                fixedrange=True
+            ),
+            
             height=320,
-            margin=dict(l=40, r=20, t=60, b=40),
-            template="plotly_white",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
+            margin=dict(l=40, r=10, t=50, b=40), # Márgenes ajustados
+            
+            # Estilo de Fondo (Oscuro total)
+            template="plotly_dark", 
+            paper_bgcolor='black',      # Fondo negro sólido como la imagen
+            plot_bgcolor='black',
+            
+            # Título minimalista
+            title={
+                'text': title.upper(),  # Mayúsculas para look Octagon
+                'x': 0.05,
+                'xanchor': 'left',
+                'font': {'size': 14, 'color': '#888888', 'family': 'Arial Black'}
+            }
         )
         return fig
 
@@ -684,10 +963,19 @@ def create_questionnaire_plot(questionnaires):
 
 def create_exercise_plot(exercises):
     if not exercises:
-        return go.Figure().add_annotation(
-            text="No hay registros de ejercicios para graficar.",
-            xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font={'color': COLORS['muted']}
-        ).update_layout(height=300, margin=dict(t=50, b=50))
+        # Versión táctica del mensaje de "sin datos"
+        fig_empty = go.Figure().add_annotation(
+            text="NO HAY REGISTROS DE EJERCICIOS",
+            xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, 
+            font={'color': '#444444', 'size': 14}
+        ).update_layout(
+            height=400, 
+            paper_bgcolor='rgba(0,0,0,0)', # Transparente para usar el fondo del contenedor
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False)
+        )
+        return fig_empty
 
     df = pd.DataFrame(exercises)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -695,19 +983,50 @@ def create_exercise_plot(exercises):
 
     df_pivot = df.groupby(['exercise_name', 'timestamp'])['duration_seconds'].sum().reset_index()
 
+    # Colores cian y amarillo neón para que contrasten con el fondo oscuro
     fig = px.bar(df_pivot, x='timestamp', y='duration_seconds', color='exercise_name',
-                      title='Duración de Ejercicios Completados (Segundos)',
-                      color_discrete_sequence=px.colors.qualitative.Vivid)
+                      color_discrete_sequence=['#00f2ff', '#fbff00'])
 
     fig.update_layout(
-        plot_bgcolor=COLORS['background'],
-        paper_bgcolor=COLORS['card'],
-        font_color=COLORS['text'],
-        margin=dict(t=50, b=50, l=50, r=20),
-        xaxis_title="Fecha de Ejecución",
-        yaxis_title="Duración (segundos)",
+        # --- ESTÉTICA TÁCTICA GRIS / ROJO ---
+        template="plotly_dark",
+        plot_bgcolor='#0a0a0a',   # Gris casi negro para el área del gráfico
+        paper_bgcolor='#0a0a0a',  # Gris casi negro para el fondo del papel
+        font_color='#888888',
+        margin=dict(t=60, b=50, l=50, r=20),
+        
+        xaxis=dict(
+            title_text="FECHA DE EJECUCIÓN",
+            gridcolor="#222222", # Cuadrícula muy sutil
+            linecolor="#444444",
+            showgrid=True
+        ),
+        yaxis=dict(
+            title_text="DURACIÓN (SEG)",
+            gridcolor="#222222",
+            linecolor="#444444",
+            showgrid=True,
+            zerolinecolor="#444444"
+        ),
+        
+        title={
+            'text': "DURACIÓN DE EJERCICIOS COMPLETADOS (SEGUNDOS)",
+            'x': 0.02,
+            'xanchor': 'left',
+            'font': {'size': 13, 'color': '#ffffff', 'family': 'Arial'}
+        },
+        
         barmode='stack',
-        height=400
+        height=400,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3, # Movida abajo para dejar espacio al diseño
+            xanchor="center",
+            x=0.5,
+            title_text=""
+        )
     )
 
     return fig
@@ -731,8 +1050,8 @@ def create_initial_ecg_figure(filepath="data/ecg_example.csv"):
             title="✅ Señal ECG de Ritmo Normal",
             xaxis_title="Tiempo (s)",
             yaxis_title="Amplitud (mV)",
-            plot_bgcolor=COLORS['background'],
-            paper_bgcolor=COLORS['card'],
+            plot_bgcolor=COLORS['background_tactical'],
+            paper_bgcolor=COLORS['card_bg'],
             font_color=COLORS['text'],
             height=350,
             margin=dict(l=40,r=20,t=50,b=40),
@@ -882,169 +1201,210 @@ def get_edit_profile_modal():
     )
 
 
-# --- LAYOUTS ---
 def get_login_layout():
     return html.Div([
         html.Div([
-            html.H2("🏥 RehabiDesk", style={'textAlign': 'center', 'color': COLORS['primary'], 'marginBottom': '8px'}),
-            html.P("Sistema de Rehabilitación Integral", style={'textAlign': 'center', 'color': COLORS['muted'], 'marginBottom': '32px'}),
-            
-            html.Label("👤 Usuario", style={'fontWeight': '600', 'marginBottom': '8px'}),
-            # 1. Corrección texto cortado: boxSizing
-            dcc.Input(id='login-username', type='text', placeholder='Ingresa tu usuario (ej: dr.garcia)', 
-                      style={'width': '100%', 'padding': '12px', 'boxSizing': 'border-box', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("🔒 Contraseña", style={'fontWeight': '600', 'marginBottom': '8px'}),
-            
-            # 2. Corrección del ojo: Contenedor Flex para alinear Input + Botón
+            # Título Estilo Octagon
             html.Div([
-                dcc.Input(id="login-password", type="password", placeholder="Ingresa tu contraseña",
-                          style={'flex': '1', 'padding': '12px', 'boxSizing': 'border-box', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px 0 0 8px', 'outline': 'none'}),
-                html.Button("👁️", id="password-eye", n_clicks=0, 
-                            style={'padding': '0 15px', 'background': 'white', 'border': f'1px solid {COLORS["muted"]}', 'borderLeft': 'none', 'borderRadius': '0 8px 8px 0', 'cursor': 'pointer', 'fontSize': '20px', 'display': 'flex', 'alignItems': 'center'})
-            ], style={'display': 'flex', 'width': '100%', 'marginBottom': '24px'}),
+                html.Span("OCTAGON", style={'color': 'white', 'fontSize': '32px', 'fontWeight': '900', 'letterSpacing': '2px'}),
+                html.Span(" PRO", style={'color': COLORS['primary'], 'fontSize': '32px', 'fontWeight': '900'})
+            ], style={'textAlign': 'center', 'marginBottom': '40px'}),
             
-            html.Label("🎭 Rol", style={'fontWeight': '600', 'marginBottom': '8px'}),
-            dcc.Dropdown(
-                id='login-role',
-                options=[
-                    {'label': '👨‍⚕️ Médico', 'value': 'medico'},
-                    {'label': '🧑‍🦽 Paciente', 'value': 'paciente'}
-                ],
-                placeholder='Selecciona tu rol',
-                style={'marginBottom': '24px'}
-            ),
+            html.H3("LOGIN / REGISTER", style={'textAlign': 'center', 'color': 'white', 'fontSize': '24px', 'fontWeight': '700', 'marginBottom': '5px'}),
+            html.P("READY FOR THE CAGE?", style={'textAlign': 'center', 'color': COLORS['text_muted'], 'fontSize': '14px', 'marginBottom': '40px'}),
             
-            html.Button('🚀 Iniciar Sesión', id='login-button', n_clicks=0,
-                        style={'width': '100%', 'padding': '12px', 'background': COLORS['primary'], 'color': 'white', 
-                               'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer', 'fontWeight': '600', 'marginBottom': '16px'}),
+            # Campo Email
+            html.Div([
+                html.Label("EMAIL O TELÉFONO", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
+                dcc.Input(id='login-username', type='text', placeholder='Email o Teléfono', 
+                          style={'width': '100%', 'padding': '15px', 'background': '#1a1a1a', 'border': f'1px solid {COLORS["border_soft"]}', 'color': 'white', 'marginBottom': '20px'})
+            ]),
+            
+            # Campo Password
+            html.Div([
+                html.Label("CONTRASEÑA", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
+                dcc.Input(id="login-password", type="password", placeholder="Contraseña",
+                          style={'width': '100%', 'padding': '15px', 'background': '#1a1a1a', 'border': f'1px solid {COLORS["border_soft"]}', 'color': 'white', 'marginBottom': '20px'})
+            ]),
+
+            # --- ESTO ES LO QUE FALTABA: Selector de Rol ---
+            html.Div([
+                html.Label("MODALIDAD DE ACCESO", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
+                dcc.Dropdown(
+                    id='login-role', # <--- AQUÍ ESTÁ EL ID QUE PIDE EL ERROR
+                    options=[
+                        {'label': 'Médico', 'value': 'medico'},
+                        {'label': 'Luchador', 'value': 'paciente'}
+                    ],
+                    placeholder='Selecciona Rol',
+                    # Estilo oscuro para que no desentone
+                    style={'marginBottom': '30px', 'backgroundColor': '#1a1a1a', 'color': 'black'}
+                ),
+            ]),
+            
+            # Botón Principal con resplandor
+            html.Button('ENTRAR AL GYM', id='login-button', n_clicks=0,
+                        style={
+                            'width': '100%', 'padding': '16px', 'background': 'transparent', 
+                            'color': 'white', 'border': f'2px solid {COLORS["primary"]}', 
+                            'fontWeight': '900', 'fontSize': '16px', 'cursor': 'pointer',
+                            'boxShadow': f'inset 0 0 10px {COLORS["primary"]}, 0 0 15px rgba(255,0,0,0.3)',
+                            'marginBottom': '30px'
+                        }),
             
             html.Div(id='login-feedback'),
             
-            html.Hr(style={'margin': '24px 0'}),
+            # Links inferiores
+            html.Div([
+                dcc.Link('¿Olvidaste tu contraseña?', href='#', style={'color': COLORS['text_muted'], 'fontSize': '13px', 'textDecoration': 'underline', 'display': 'block', 'marginBottom': '15px'}),
+                html.P([
+                    "¿Eres nuevo? ", 
+                    dcc.Link('Regístrate aquí', href='/register', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'})
+                ], style={'fontSize': '14px', 'color': 'white'})
+            ], style={'textAlign': 'center'})
             
-            html.P("¿No tienes cuenta?", style={'textAlign': 'center', 'color': COLORS['muted']}),
-            dcc.Link('📝 Regístrate aquí', href='/register', 
-                     style={'textAlign': 'center', 'display': 'block', 'color': COLORS['secondary'], 'textDecoration': 'none', 'fontWeight': '600'})
         ], style=STYLES['login_container'])
-    ], style={'background': COLORS['background'], 'minHeight': '100vh', 'padding': '20px'})
-
-
+    ], style={'background': COLORS['background_tactical'], 'minHeight': '100vh', 'padding': '20px', 'fontFamily': 'Arial, sans-serif'})
 
 def get_register_layout():
     return html.Div([
         html.Div([
-            html.H2("📝 Registro Completo", style={'textAlign': 'center', 'color': COLORS['primary'], 'marginBottom': '8px'}),
-            html.P("Crea tu cuenta en RehabiDesk - Completa tu información médica", style={'textAlign': 'center', 'color': COLORS['muted'], 'marginBottom': '32px'}),
+            html.H2("Registro Completo", style={'textAlign': 'center', 'color': COLORS['primary'], 'marginBottom': '8px'}),
+            html.P("Crea tu cuenta en RehabiDesk - Perfil Octagon Pro", style={'textAlign': 'center', 'color': COLORS['muted'], 'marginBottom': '32px'}),
+
+            html.H4("Información de Cuenta", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px'}),
             
-            html.H4("👤 Información de Cuenta", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px'}),
-            
-            html.Label("👤 Nombre Completo *", style=REHAB_STYLES['label']),
+            html.Label("Nombre Completo *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-fullname', type='text', placeholder='Ingresa tu nombre completo', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
-            html.Label("👤 Usuario *", style=REHAB_STYLES['label']),
+            html.Label("Usuario *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-username', type='text', placeholder='Crea un nombre de usuario', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
-            html.Label("🔒 Contraseña *", style=REHAB_STYLES['label']),
+            html.Label("Contraseña *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-password', type='password', placeholder='Crea una contraseña segura', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
-            html.Label("🎭 Rol *", style=REHAB_STYLES['label']),
+            html.Label("Rol *", style=REHAB_STYLES['label']),
             dcc.Dropdown(
                 id='register-role',
                 options=[
-                    {'label': '👨‍⚕️ Médico', 'value': 'medico'},
-                    {'label': '🧑‍🦽 Paciente', 'value': 'paciente'}
+                    {'label': 'Médico', 'value': 'medico'},
+                    {'label': 'Luchador', 'value': 'paciente'}
                 ],
                 placeholder='Selecciona tu rol',
                 style={'marginBottom': '24px'}
             ),
             
-            html.H4("📋 Información Personal", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
+            html.H4("Información Personal", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
             
-            html.Label("📧 Email *", style=REHAB_STYLES['label']),
+            html.Label("Email *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-email', type='email', placeholder='tu.email@ejemplo.com', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
-            html.Label("📞 Teléfono *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-phone', type='tel', placeholder='+34 600 000 000 (Formato: +XX XXX XXX XXX)', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
+            html.Label("Teléfono *", style=REHAB_STYLES['label']),
+            dcc.Input(id='register-phone', type='tel', placeholder='+34 600 000 000', 
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
-            html.Label("🏠 Dirección", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-address', type='text', placeholder='Calle, número, ciudad, código postal', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
+            html.Label("Dirección", style=REHAB_STYLES['label']),
+            dcc.Input(id='register-address', type='text', placeholder='Calle, número, ciudad', 
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
-            html.Label("🆔 DNI/NIE *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-dni', type='text', placeholder='12345678X o Y0000000A', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
+            html.Label("DNI/NIE *", style=REHAB_STYLES['label']),
+            dcc.Input(id='register-dni', type='text', placeholder='12345678X', 
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
-            html.Label("🎂 Fecha de Nacimiento *", style=REHAB_STYLES['label']),
+            html.Label("Fecha de Nacimiento *", style=REHAB_STYLES['label']),
             dcc.DatePickerSingle(
                 id='register-birthdate',
                 min_date_allowed=datetime(1900, 1, 1),
                 max_date_allowed=datetime.today(),
-                initial_visible_month=datetime(1990, 1, 1),
                 style={'width': '100%', 'marginBottom': '16px'}
             ),
             
+            # --- SECCIÓN MÉDICA Y DE COMBATE (CONDICIONAL) ---
             html.Div(id='medical-info-section', children=[
-                html.H4("🏥 Información Médica", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
+                html.H4("Perfil de Luchador y Salud", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
                 
-                html.Label("🩸 Tipo de Sangre", style=REHAB_STYLES['label']),
+                # PESO MMA
+                html.Label("Categoría de Peso MMA *", style=REHAB_STYLES['label']),
+                dcc.Dropdown(
+                    id='register-weight-class',
+                    options=MMA_WEIGHT_CLASSES,
+                    placeholder='Selecciona categoría...',
+                    style={'marginBottom': '16px', 'color': 'black'}
+                ),
+
+                # ESPECIALIDAD
+                html.Label("Especialidad *", style=REHAB_STYLES['label']),
+                dcc.Dropdown(
+                    id='register-specialty',
+                    options=[
+                        {'label': 'Sparring', 'value': 'Sparring'},
+                        {'label': 'Grappling', 'value': 'Grappling'},
+                        {'label': 'Balanceado', 'value': 'Balanceado'}
+                    ],
+                    placeholder='Selecciona especialidad...',
+                    style={'marginBottom': '16px', 'color': 'black'}
+                ),
+
+                # ESTADO DE SALUD
+                html.Label("Estado de Salud Actual *", style=REHAB_STYLES['label']),
+                dcc.Dropdown(
+                    id='register-health-status',
+                    options=[
+                        {'label': 'Listo para pelear', 'value': 'listo'},
+                        {'label': 'Lesionado', 'value': 'lesionado'}
+                    ],
+                    placeholder='¿Cómo te encuentras?',
+                    style={'marginBottom': '16px', 'color': 'black'}
+                ),
+
+                # DESPLEGABLE CONDICIONAL DE LESIÓN (Se mostrará vía callback)
+                html.Div(id='injury-type-container', children=[
+                    html.Label("Tipo de Lesión", style=REHAB_STYLES['label']),
+                    dcc.Dropdown(
+                        id='register-injury-type',
+                        options=[
+                            {'label': 'Rodilla', 'value': 'rodilla'},
+                            {'label': 'Codo', 'value': 'codo'},
+                            {'label': 'Hombro', 'value': 'hombro'}
+                        ],
+                        placeholder='Selecciona zona...',
+                        style={'marginBottom': '16px', 'color': 'black'}
+                    ),
+                ], style={'display': 'none'}), # Oculto por defecto
+
+                html.Label("Tipo de Sangre", style=REHAB_STYLES['label']),
                 dcc.Dropdown(
                     id='register-blood-type',
-                    options=[
-                        {'label': 'A+', 'value': 'A+'},
-                        {'label': 'A-', 'value': 'A-'},
-                        {'label': 'B+', 'value': 'B+'},
-                        {'label': 'B-', 'value': 'B-'},
-                        {'label': 'AB+', 'value': 'AB+'},
-                        {'label': 'AB-', 'value': 'AB-'},
-                        {'label': 'O+', 'value': 'O+'},
-                        {'label': 'O-', 'value': 'O-'}
-                    ],
-                    placeholder='Selecciona tu tipo de sangre',
-                    style={'marginBottom': '16px'}
+                    options=[{'label': b, 'value': b} for b in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']],
+                    placeholder='Selecciona tipo de sangre',
+                    style={'marginBottom': '16px', 'color': 'black'}
                 ),
-                
-                html.Label("⚠️ Alergias", style=REHAB_STYLES['label']),
-                dcc.Textarea(id='register-allergies', placeholder='Lista de alergias conocidas (medicamentos, alimentos, etc.)', 
-                              style={'width': '100%', 'height': '80px', 'borderRadius': '8px', 'padding': '12px', 'marginBottom': '16px'}),
-                
-                html.Label("💊 Medicamentos Actuales", style=REHAB_STYLES['label']),
-                dcc.Textarea(id='register-medications', placeholder='Medicamentos que tomas actualmente', 
-                              style={'width': '100%', 'height': '80px', 'borderRadius': '8px', 'padding': '12px', 'marginBottom': '16px'}),
-                
-                html.Label("📋 Condiciones Médicas", style=REHAB_STYLES['label']),
-                dcc.Textarea(id='register-conditions', placeholder='Enfermedades crónicas o condiciones médicas relevantes', 
-                              style={'width': '100%', 'height': '80px', 'borderRadius': '8px', 'padding': '12px', 'marginBottom': '16px'}),
             ]),
             
-            html.H4("🚨 Contacto de Emergencia", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
+            html.H4("Contacto de Emergencia", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
             
-            html.Label("👤 Nombre del Contacto *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-emergency-contact', type='text', placeholder='Nombre completo del contacto de emergencia', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
+            html.Label("Nombre del Contacto *", style=REHAB_STYLES['label']),
+            dcc.Input(id='register-emergency-contact', type='text', placeholder='Nombre completo', 
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
-            html.Label("📞 Teléfono del Contacto *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-emergency-phone', type='tel', placeholder='+34 600 000 000 (Formato: +XX XXX XXX XXX)', 
-                      style={'width': '100%', 'padding': '12px', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '32px'}),
+            html.Label("Teléfono del Contacto *", style=REHAB_STYLES['label']),
+            dcc.Input(id='register-emergency-phone', type='tel', placeholder='+34 600 000 000', 
+                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '32px'}),
             
-            html.Button('✅ Registrar Cuenta Completa', id='register-button', n_clicks=0,
+            html.Button('Registrar Cuenta Completa', id='register-button', n_clicks=0,
                         style={'width': '100%', 'padding': '14px', 'background': COLORS['secondary'], 'color': 'white', 
                                'border': 'none', 'borderRadius': '10px', 'cursor': 'pointer', 'fontWeight': '600', 'marginBottom': '16px', 'fontSize': '16px'}),
             
             html.Div(id='register-feedback'),
             
-            html.Hr(style={'margin': '24px 0'}),
-            
-            html.P("¿Ya tienes cuenta?", style={'textAlign': 'center', 'color': COLORS['muted']}),
-            dcc.Link('🚀 Inicia sesión aquí', href='/login', 
-                     style={'textAlign': 'center', 'display': 'block', 'color': COLORS['primary'], 'textDecoration': 'none', 'fontWeight': '600'})
+            html.P("¿Ya tienes cuenta? ", style={'textAlign': 'center', 'color': COLORS['muted']}),
+            dcc.Link('Inicia sesión aquí', href='/login', style={'textAlign': 'center', 'display': 'block', 'color': COLORS['primary']})
         ], style=STYLES['login_container'])
-    ], style={'background': COLORS['background'], 'minHeight': '100vh', 'padding': '20px'})
+    ], style={'background': COLORS['background_tactical'], 'minHeight': '100vh', 'padding': '20px'})
 
 # --- NAV BAR ---
 def get_user_navbar(role_symbol, full_name, role_name, current_search=""): 
@@ -1065,19 +1425,19 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search=""):
         if not is_doctor_dashboard:
             user_menu_items.extend([
                 dbc.DropdownMenuItem(divider=True),
-                dbc.DropdownMenuItem("🔬 Datos del Paciente", id="nav-patient-viewer-btn", n_clicks=0, href=get_full_href("/patient-data-viewer")),
+                dbc.DropdownMenuItem("Datos del Paciente", id="nav-patient-viewer-btn", n_clicks=0, href=get_full_href("/patient-data-viewer")),
                 # Usamos un ID único para el botón del menú desplegable para evitar conflictos.
-                dbc.DropdownMenuItem("📅 Agendar Cita", id="schedule-appointment-btn-modal-trigger", n_clicks=0),
-                dbc.DropdownMenuItem("📅 Ver Citas", id="nav-view-appointments-btn", n_clicks=0, href=get_full_href("/view-appointments")),
+                dbc.DropdownMenuItem("Agendar Cita", id="schedule-appointment-btn-modal-trigger", n_clicks=0),
+                dbc.DropdownMenuItem("Ver Citas", id="nav-view-appointments-btn", n_clicks=0, href=get_full_href("/view-appointments")),
             ])
     
     if 'paciente' in role_name.lower():
         user_menu_items.extend([
-            dbc.DropdownMenuItem("📊 Ver Cuestionarios", id="nav-my-questionnaires-btn", n_clicks=0, href=get_full_href("/my-questionnaires")),
-            dbc.DropdownMenuItem("📅 Ver Citas", id="nav-view-patient-appointments-btn", n_clicks=0, href=get_full_href("/view-patient-appointments"))
+            dbc.DropdownMenuItem("Ver Cuestionarios", id="nav-my-questionnaires-btn", n_clicks=0, href=get_full_href("/my-questionnaires")),
+            dbc.DropdownMenuItem("Ver Citas", id="nav-view-patient-appointments-btn", n_clicks=0, href=get_full_href("/view-patient-appointments"))
         ])
 
-    user_menu_items.append(dbc.DropdownMenuItem("🚪 Cerrar Sesión", id="logout-button", style={'color': 'red'}))
+    user_menu_items.append(dbc.DropdownMenuItem("Cerrar Sesión", id="logout-button", style={'color': 'red'}))
     
     user_menu = dbc.DropdownMenu(
         user_menu_items,
@@ -1103,167 +1463,228 @@ def get_patient_dashboard(username, full_name, current_search=""):
     
     try:
         patient_data = db.get_complete_user_data(username) or {}
-        exercises = db.get_rodillo_exercises() or KNEE_EXERCISES
+        # Obtener ejercicios dinámicamente según lesión(es)
+        health_status = patient_data.get('profile', {}).get('health_status', 'listo')
+        injury_types = patient_data.get('profile', {}).get('injury_types', [])
+        exercises = get_recommended_exercises(health_status, injury_types)
+        if not exercises:
+            exercises = HEALTHY_FIGHTER_EXERCISES if health_status == 'listo' else KNEE_EXERCISES
     except Exception:
         patient_data = {}
-        exercises = KNEE_EXERCISES
+        exercises = HEALTHY_FIGHTER_EXERCISES
+        health_status = 'listo'
+        injury_types = []
     
     questionnaires_data = patient_data.get('questionnaires', [])
     exercises_data = patient_data.get('exercises', [])
     
-    # --- CAMBIO CLAVE: create_questionnaire_plot ahora devuelve dos figuras ---
     fig_q1, fig_q2 = create_questionnaire_plot(questionnaires_data)
     exercise_fig = create_exercise_plot(exercises_data)
+    
+    # Determinar el título del ejercicio según el estado de salud
+    if health_status == 'lesionado' and injury_types:
+        injury_names = []
+        for injury in injury_types:
+            if injury == 'rodilla':
+                injury_names.append('Rodilla')
+            elif injury == 'codo':
+                injury_names.append('Codo')
+            elif injury == 'hombro':
+                injury_names.append('Hombro')
+        exercise_title = f"Ejercicios de {' y '.join(injury_names)}"
+    else:
+        exercise_title = 'Ejercicios para Luchador Sano'
 
-    # Tarjeta de citas pendientes
+    # Tarjeta de citas con estilo táctico
     appointments_card = html.Div([
-        html.H4("📅 Mis Citas Pendientes", style={'color':COLORS['primary'], 'marginBottom': '15px'}),
-        html.Div(id='patient-appointments-list') 
+        html.Div([
+            html.Span("📅 ", style={'fontSize': '1.2em'}),
+            "Mis Citas Pendientes"
+        ], style=STYLES['card_header_tactical']),
+        html.Div(id='patient-appointments-list', style={'textAlign': 'center', 'padding': '10px'}) 
     ], style=STYLES['card'])
 
-    # Grid de ejercicios
-    exercise_grid = html.Div([
-        html.H4('💪 Ejercicios de Rodilla', style={'color':COLORS['primary'], 'marginBottom': '20px'}),
-        html.P("Selecciona un ejercicio para comenzar:", style={'color': COLORS['muted'], 'marginBottom': '20px'}),
-        html.Div(
-            [
-                html.Div([
-                    html.Img(
-                        src=ex['images'][0],
-                        style={
-                            'width': '100%',
-                            'height': '150px',
-                            'objectFit': 'cover',
-                            'borderRadius': '8px',
-                            'marginBottom': '10px',
-                            'cursor': 'pointer'
-                        },
-                        id={'type': 'exercise-image', 'index': ex['id']}
-                    ),
-                    html.H6(ex['title'], style={'marginBottom': '5px', 'color': COLORS['text']}),
-                    html.P(f"💪 {ex['difficulty']}", style={'color': COLORS['muted'], 'fontSize': '0.8em', 'marginBottom': '5px'}),
-                    html.P(f"📊 {ex['sets']} series × {ex['reps']} repes", style={'color': COLORS['muted'], 'fontSize': '0.8em', 'marginBottom': '10px'}),
-                    html.Button(
-                        '▶️ Iniciar Ejercicio',
-                        id={'type': 'start-exercise-btn', 'index': ex['id']},
-                        n_clicks=0,
-                        style={
-                            'width': '100%',
-                            'padding': '8px',
-                            'background': COLORS['primary'],
-                            'color': 'white',
-                            'border': 'none',
-                            'borderRadius': '6px',
-                            'cursor': 'pointer',
-                            'fontSize': '0.9em'
-                        }
-                    )
-                ], style={
-                    'background': 'white',
-                    'padding': '15px',
-                    'borderRadius': '10px',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.1)',
-                    'textAlign': 'center',
-                    'transition': 'transform 0.2s',
-                    ':hover': {
-                        'transform': 'translateY(-2px)'
-                    }
-                }) for ex in exercises
-            ],
-            style={
-                'display': 'grid',
-                'gridTemplateColumns': 'repeat(auto-fill, minmax(250px, 1fr))',
-                'gap': '20px',
-                'marginBottom': '20px'
-            }
-        )
-    ], style=STYLES['card'])
+    # Grid de ejercicios con tarjetas internas oscurecidas
+    exercise_grid = html.Div(
+        [
+            html.Div([
+                html.Span("💪 ", style={'fontSize': '1.2em'}),
+                exercise_title
+            ], style=STYLES['card_header_tactical']),
+            
+            html.Div(
+                [
+                    html.Div([
+                        html.Img(
+                            src=ex['images'][0],
+                            style={
+                                'width': '100%', 'height': '150px', 'objectFit': 'cover',
+                                'borderRadius': '4px', 'marginBottom': '10px', 'filter': 'brightness(0.8)'
+                            },
+                            id={'type': 'exercise-image', 'index': ex['id']}
+                        ),
+                        html.H6(ex['title'].upper(), style={'color': 'white', 'fontWeight': 'bold'}),
+                        html.P(f"DIFICULTAD: {ex['difficulty'].upper()}", style={'color': COLORS['muted'], 'fontSize': '0.7em'}),
+                        html.Button(
+                            'INICIAR',
+                            id={'type': 'start-exercise-btn', 'index': ex['id']},
+                            n_clicks=0,
+                            style=STYLES['button_primary'] # Usar el botón neón rojo
+                        )
+                    ], style={
+                        'background': '#111111', # Fondo interno oscuro para cada ejercicio
+                        'padding': '15px', 'border': '1px solid #222', 'borderRadius': '4px',
+                        'textAlign': 'center'
+                    }) for ex in exercises
+                ],
+                style={
+                    'display': 'grid',
+                    'gridTemplateColumns': 'repeat(auto-fill, minmax(220px, 1fr))',
+                    'gap': '15px'
+                }
+            )
+        ],
+        id='exercise-grid',
+        style=STYLES['card']
+    )
 
     return html.Div([
-        get_user_navbar("🧑‍🦽", full_name, "Panel Paciente", current_search), 
+        get_user_navbar("🧑‍🦽", full_name.upper(), "PANEL PACIENTE", current_search), 
 
         html.Div([
-            # Columna izquierda: Cuestionarios y Citas
+            # COLUMNA IZQUIERDA
             html.Div([
+                # Cuestionarios
                 html.Div([
-                    html.H4("📝 Cuestionarios Especializados", style={'color':COLORS['primary'], 'marginBottom': '15px'}),
-                    html.P("Complete estos cuestionarios para evaluar su progreso:", style={'color': COLORS['muted'], 'marginBottom': '15px'}),
+                    html.Div([
+                        html.Span("📋 ", style={'fontSize': '1.2em'}),
+                        "Cuestionarios Especializados"
+                    ], style=STYLES['card_header_tactical']),
+                    
+                    html.P("Complete para evaluar su progreso:", style={'color': COLORS['muted'], 'fontSize': '0.9em'}),
+                    
                     dcc.Dropdown(
                         id='questionnaire-select',
                         options=[
                             {'label': QUESTIONNAIRES['dolor_rodilla']['title'], 'value': 'dolor_rodilla'},
                             {'label': QUESTIONNAIRES['funcionalidad']['title'], 'value': 'funcionalidad'},
                         ],
-                        placeholder='Seleccione un cuestionario...',
-                        style={'marginBottom': '15px'}
+                        placeholder='Seleccione...',
+                        style={'marginBottom': '15px', 'backgroundColor': '#000', 'color': '#fff'}
                     ),
                     html.Div(id='selected-questionnaire-content'),
-                    html.Div(id='questionnaire-submission-feedback', style={'marginTop': '15px'})
+                    html.Div(id='questionnaire-submission-feedback')
                 ], style=STYLES['card']),
 
                 appointments_card,
             ], style={'flex': 1, 'minWidth': '320px'}),
 
-            # Columna derecha: Gráficas y Ejercicios
+            # COLUMNA DERECHA
             html.Div([
-                # --- NUEVA TARJETA DE EVOLUCIÓN DEL DOLOR (Doble Gráfica) ---
+                # Evolución del Dolor
                 html.Div([
-                    html.H4("📈 Evolución del Dolor", style={'color':COLORS['primary'], 'marginBottom': '15px'}),
+                    html.Div([
+                        html.Span("📈 ", style={'fontSize': '1.2em'}),
+                        "Evolución del Dolor"
+                    ], style=STYLES['card_header_tactical']),
+                    
                     dbc.Row([
                         dbc.Col(dcc.Graph(id="questionnaire-q1-graph", figure=fig_q1, config={'displayModeBar': False}), width=12, lg=6),
                         dbc.Col(dcc.Graph(id="questionnaire-q2-graph", figure=fig_q2, config={'displayModeBar': False}), width=12, lg=6),
                     ]),
                 ], style=STYLES['card']),
 
+                # Gráfica de Barras (Progreso)
                 html.Div([
-                    html.H4("📊 Progreso de Ejecución de Ejercicios", style={'color':COLORS['primary'], 'marginBottom': '15px'}),
+                    html.Div([
+                        html.Span("📊 ", style={'fontSize': '1.2em'}),
+                        "Progreso de Ejecución"
+                    ], style=STYLES['card_header_tactical']),
                     dcc.Graph(id="exercise-history-graph", figure=exercise_fig),
                 ], style=STYLES['card']),
                 
+                # Monitoreo ECG
                 html.Div([
-                    html.H4("❤️ Monitorización ECG en Tiempo Real", style={'color':COLORS['primary'], 'marginBottom': '15px'}),
+                    html.Div([
+                        html.Span("❤️ ", style={'fontSize': '1.2em'}),
+                        "Monitorización en Tiempo Real"
+                    ], style=STYLES['card_header_tactical']),
                     dcc.Graph(id="ecg-graph", config={'displayModeBar': False}),
-                    html.Div(id="bpm-output", className="mt-2 fw-bold", style={'color': COLORS['secondary']}),
+                    html.Div(id="bpm-output", className="mt-2", style={'color': COLORS['primary'], 'fontWeight': '900', 'fontSize': '1.2em'}),
                 ], style=STYLES['card']),
 
                 exercise_grid,
             ], style={'flex': 2, 'minWidth': '400px'})
-        ], style={'display': 'flex', 'gap': '20px', 'padding': '24px', 'flexWrap': 'wrap', 'alignItems': 'flex-start'}),
+        ], style={'display': 'flex', 'gap': '20px', 'padding': '10px 24px', 'flexWrap': 'wrap'})
 
-        dcc.Store(id='current-patient-username', data=username),
-        dcc.Store(id='available-exercises', data=exercises),
-        dcc.Store(id='current-exercise-id', data=None),
-        dcc.Store(id='exercise-start-time', data=None),
-        get_exercise_execution_modal(),
-        get_exercise_survey_modal(),
-    ])
+    ], style=STYLES['main_container']) # Fondo gris oscuro general
 
 def get_doctor_dashboard(username, full_name, current_search=""): 
     
     # NUEVA ESTRUCTURA PARA ASOCIAR PACIENTES
     patient_management_card = html.Div([
-        html.H4("👥 Asociación de Pacientes", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
+        html.H4("👥 Asociación de Pacientes", style=STYLES['card_header_tactical']),
         
-        html.H5("🔗 Asociar Paciente Existente", style={'marginBottom': '15px'}),
-        html.P("Selecciona un paciente no asignado o reasigna uno a tu cargo:", style={'color': COLORS['muted'], 'fontSize': '0.9em'}),
+        html.H5("🔗 Asociar Paciente Existente", style={'marginBottom': '15px', 'color': 'white'}),
+        html.P("Selecciona un paciente no asignado o reasigna uno a tu cargo:", style={'color': COLORS['text_muted'], 'fontSize': '0.9em'}),
         
         html.Label("👤 Seleccionar Paciente"),
         dcc.Dropdown(
             id='unassigned-patient-select',
-            placeholder='Buscar paciente por nombre o usuario...',
-            options=[], # Se llena por callback
-            style={'width': '100%', 'marginBottom': '10px'}
+            placeholder='Buscar paciente...',
+            options=[], 
+            style={'width': '100%', 'marginBottom': '10px', 'color': 'black'}
         ),
         
-        html.Label("🏥 Diagnóstico (Si es paciente nuevo)"),
-        dcc.Input(id='patient-diagnosis-input', type='text', placeholder='Diagnóstico inicial (ej: Lesión de rodilla)', 
-                  style={'width': '100%', 'marginBottom': '10px'}),
+        html.Label("🏥 Diagnóstico"),
+        dcc.Input(id='patient-diagnosis-input', type='text', placeholder='Diagnóstico inicial...', 
+                  style=STYLES['input']), # Usamos el nuevo estilo de input
         
         html.Button('✅ Asociar Paciente', id='associate-patient-button', n_clicks=0, 
-                        style={'width': '100%', 'padding': '10px', 'background': COLORS['secondary'], 'color': 'white', 'border': 'none', 'borderRadius': '6px', 'marginTop': '15px'}),
+                        style=STYLES['button_primary']),
         
         html.Div(id='associate-patient-feedback', style={'marginTop': '15px'})
+    ], style=STYLES['card']) # <--- Aplicamos el borde neón rojo
+    
+    # CARD DE DESASOCIACIÓN
+    disassociate_patient_card = html.Div([
+        html.H4("🗑️ Desasociar Paciente", style=STYLES['card_header_tactical']),
+        
+        html.P("Selecciona un paciente para removerlo de tu supervisión.", style={'color': COLORS['text_muted'], 'fontSize': '0.9em'}),
+        
+        html.Label("👤 Paciente Asignado"),
+        dcc.Dropdown(
+            id='assigned-patient-select-disassociate',
+            options=[], 
+            style={'width': '100%', 'marginBottom': '15px', 'color': 'black'}
+        ),
+        
+        dbc.Button('🗑️ Eliminar Paciente Asignado', id='disassociate-patient-button', n_clicks=0, 
+                             color='danger', style={'width': '100%', 'borderRadius': '4px', 'fontWeight': 'bold'}),
+        
+        html.Div(id='disassociate-patient-feedback', style={'marginTop': '15px'})
     ], style=STYLES['card'])
+
+    # CARD DE NAVEGACIÓN
+    doctor_navigation_card = html.Div([
+        html.H4("⚡ Navegación Rápida", style=STYLES['card_header_tactical']),
+        dbc.Row([
+            dbc.Col(dbc.Button("🔬 Visor de Pacientes", href=f"/patient-data-viewer{current_search}", color="primary", className="w-100")),
+            dbc.Col(dbc.Button("📅 Ver Citas", href=f"/view-appointments{current_search}", color="info", className="w-100")),
+            dbc.Col(dbc.Button("➕ Agendar Cita", id="schedule-appointment-btn", color="success", className="w-100")),
+        ], className="g-2"),
+    ], style=STYLES['card'])
+
+    return html.Div([
+        get_user_navbar("👨‍⚕️", full_name, "Panel Médico", current_search), 
+        
+        html.Div([
+            dbc.Row([
+                dbc.Col([doctor_navigation_card, patient_management_card], width=12, lg=6), 
+                dbc.Col([disassociate_patient_card], width=12, lg=6),
+            ], className="g-4"),
+        ], style={'padding': '24px'})
+    ], style=STYLES['main_container'])
     
     # NUEVA ESTRUCTURA PARA ELIMINAR/DESASOCIAR PACIENTES
     disassociate_patient_card = html.Div([
@@ -1337,137 +1758,172 @@ def get_user_data_layout(username, full_name, role, current_search=""):
     try:
         user_data = db.get_complete_user_data(username)
     except Exception as e:
-        print(f"Error cargando datos de usuario dummy: {e}")
+        print(f"Error cargando datos: {e}")
         user_data = {
             'basic_info': {'full_name': full_name, 'role': role, 'member_since': datetime.now().strftime('%d/%m/%Y')},
-            'profile': {'email': 'test@example.com', 'phone': '666-000-000', 'dni': '12345678X', 'birth_date': '1980-01-01', 'emergency_contact': 'Familiar', 'emergency_phone': '666-111-111'},
-            'patient_info': {'diagnosis': 'Lesión de ligamento cruzado anterior'},
-            'questionnaires': [{'questionnaire_title': 'Dolor Rodilla', 'timestamp': '2023-11-20T10:00:00', 'responses': {'q1': 8, 'q2': 5, 'q3': 'moderado'}}]
+            'profile': {},
+            'patient_info': {},
+            'questionnaires': [],
+            'exercises': []
         }
     
     return html.Div([
-        get_user_navbar("👤", full_name, f"Mis Datos - {role.capitalize()}", current_search), 
+        get_user_navbar("👤", full_name, f"MIS DATOS - {role.upper()}", current_search), 
         
         html.Div([
             dbc.Row([
                 dbc.Col(
-                    dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn", href=f"/{current_search}", color="primary", className="me-3"),
+                    dbc.Button("← VOLVER AL DASHBOARD", id="nav-dashboard-btn", href=f"/{current_search}", 
+                               style=STYLES['button_primary'], className="me-3"),
                     width="auto"
                 ),
                 dbc.Col(
-                    # BOTÓN DE ACTIVACIÓN DEL MODAL
-                    dbc.Button("✏️ Actualizar Datos", id="open-edit-profile-modal-btn", n_clicks=0, color="warning"),
+                    dbc.Button("✏️ ACTUALIZAR DATOS", id="open-edit-profile-modal-btn", n_clicks=0, 
+                               color="warning", style={'fontWeight': 'bold', 'borderRadius': '5px'}),
                     width="auto"
                 ),
-            ], style={'marginBottom': '20px'}),
+            ], style={'marginBottom': '30px'}),
             
             html.Div([
+                # --- COLUMNA IZQUIERDA: INFORMACIÓN FIJA ---
                 html.Div([
+                    # Información Personal
                     html.Div([
-                        html.H4("📋 Información Personal", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
-                        
+                        html.H4("📋 INFORMACIÓN PERSONAL", style=STYLES['card_header_tactical']),
                         dbc.Row([
                             dbc.Col([
-                                html.P([html.Strong("👤 Nombre: "), user_data.get('basic_info', {}).get('full_name', full_name)]),
-                                html.P([html.Strong("🎭 Rol: "), user_data.get('basic_info', {}).get('role', role)]),
-                                html.P([html.Strong("📧 Email: "), user_data.get('profile', {}).get('email', 'No especificado')]),
-                                html.P([html.Strong("📞 Teléfono: "), user_data.get('profile', {}).get('phone', 'No especificado')]),
+                                html.P([html.Strong("👤 NOMBRE: "), user_data.get('basic_info', {}).get('full_name', full_name)]),
+                                html.P([html.Strong("🎭 ROL: "), role.upper()]),
+                                html.P([html.Strong("📧 EMAIL: "), user_data.get('profile', {}).get('email', 'N/A')]),
                             ], width=6),
                             dbc.Col([
-                                html.P([html.Strong("🆔 DNI: "), user_data.get('profile', {}).get('dni', 'No especificado')]),
-                                html.P([html.Strong("🎂 Fecha Nacimiento: "), user_data.get('profile', {}).get('birth_date', 'No especificado')]),
-                                html.P([html.Strong("🏠 Dirección: "), user_data.get('profile', {}).get('address', 'No especificado')]),
-                                html.P([html.Strong("📅 Miembro desde: "), user_data.get('basic_info', {}).get('member_since', 'No disponible')]),
+                                html.P([html.Strong("🆔 DNI: "), user_data.get('profile', {}).get('dni', 'N/A')]),
+                                html.P([html.Strong("🎂 NACIMIENTO: "), user_data.get('profile', {}).get('birth_date', 'N/A')]),
+                                html.P([html.Strong("📅 MIEMBRO DESDE: "), user_data.get('basic_info', {}).get('member_since', 'N/A')]),
                             ], width=6)
                         ])
                     ], style=STYLES['card']),
                     
+                    # Información Médica (Solo Pacientes)
                     html.Div([
-                        html.H4("🏥 Información Médica", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
-                        
+                        html.H4("🏥 INFORMACIÓN MÉDICA", style=STYLES['card_header_tactical']),
                         dbc.Row([
                             dbc.Col([
-                                html.P([html.Strong("📝 Diagnóstico: "), user_data.get('patient_info', {}).get('diagnosis', 'No especificado')]),
-                                html.P([html.Strong("👨‍⚕️ Médico: "), user_data.get('patient_info', {}).get('doctor_user', 'No asignado')]),
-                                html.P([html.Strong("🩸 Tipo de Sangre: "), user_data.get('profile', {}).get('blood_type', 'No especificado')]),
+                                html.P([html.Strong("📝 DIAGNÓSTICO: "), user_data.get('patient_info', {}).get('diagnosis', 'N/A')]),
+                                html.P([html.Strong("👨‍⚕️ MÉDICO: "), user_data.get('patient_info', {}).get('doctor_user', 'N/A')]),
+                                html.P([html.Strong("💪 ESTADO SALUD: "), 
+                                    ('SANO - Listo para entrenar' if user_data.get('profile', {}).get('health_status') == 'listo' else 'LESIONADO')]),
                             ], width=6),
                             dbc.Col([
-                                html.P([html.Strong("⚠️ Alergias: "), user_data.get('profile', {}).get('allergies', 'Ninguna especificada')]),
-                                html.P([html.Strong("💊 Medicamentos: "), user_data.get('profile', {}).get('current_medications', 'Ninguno especificado')]),
-                                html.P([html.Strong("📋 Condiciones: "), user_data.get('profile', {}).get('medical_conditions', 'Ninguna especificada')]),
+                                html.P([html.Strong("🩸 TIPO SANGRE: "), user_data.get('profile', {}).get('blood_type', 'N/A')]),
+                                html.P([html.Strong("👤 LESIONES: "), 
+                                    (', '.join([l.capitalize() for l in user_data.get('profile', {}).get('injury_types', [])]) if user_data.get('profile', {}).get('injury_types') else 'NINGUNA')]),
                             ], width=6)
                         ])
                     ], style=STYLES['card']) if role == 'paciente' else None,
                     
+                    # Gestión de Lesiones Interactiva (Solo Pacientes)
                     html.Div([
-                        html.H4("🚨 Contacto de Emergencia", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
+                        html.H4("⚕️ GESTIONAR LESIONES", style=STYLES['card_header_tactical']),
                         
-                        html.P([html.Strong("👤 Contacto: "), user_data.get('profile', {}).get('emergency_contact', 'No especificado')]),
-                        html.P([html.Strong("📞 Teléfono: "), user_data.get('profile', {}).get('emergency_phone', 'No especificado')]),
-                    ], style=STYLES['card']),
+                        # Lesiones actuales
+                        html.Div([
+                            html.P("Lesiones registradas:", style={'fontWeight': 'bold', 'marginBottom': '10px'}),
+                            html.Div(id='injuries-list-display', children=[
+                                html.Span(
+                                    f"{injury.capitalize()}  ",
+                                    id={'type': 'injury-badge', 'index': injury},
+                                    style={
+                                        'display': 'inline-block',
+                                        'background': COLORS['primary'],
+                                        'color': 'white',
+                                        'padding': '8px 12px',
+                                        'borderRadius': '20px',
+                                        'marginRight': '8px',
+                                        'marginBottom': '8px',
+                                        'fontSize': '0.9em',
+                                        'cursor': 'pointer',
+                                        'position': 'relative'
+                                    }
+                                ) if (user_data.get('profile', {}).get('injury_types')) else
+                                html.Span("No hay lesiones registradas", style={'color': COLORS['muted'], 'fontStyle': 'italic'})
+                                for injury in user_data.get('profile', {}).get('injury_types', [])
+                            ], style={'marginBottom': '15px'})
+                        ]),
+                        
+                        # Agregar nueva lesión
+                        html.Div([
+                            html.Label("Añadir nueva lesión:", style={'fontWeight': 'bold', 'marginBottom': '8px', 'display': 'block'}),
+                            dbc.Row([
+                                dbc.Col([
+                                    dcc.Dropdown(
+                                        id='add-injury-select',
+                                        options=[
+                                            {'label': '🦵 Rodilla', 'value': 'rodilla'},
+                                            {'label': '💪 Codo', 'value': 'codo'},
+                                            {'label': '🏋️ Hombro', 'value': 'hombro'}
+                                        ],
+                                        placeholder='Selecciona una lesión...',
+                                        style={'width': '100%', 'color': 'black'}
+                                    )
+                                ], width=9),
+                                dbc.Col([
+                                    dbc.Button(
+                                        "➕ AÑADIR",
+                                        id='add-injury-btn',
+                                        n_clicks=0,
+                                        color='success',
+                                        className='w-100'
+                                    )
+                                ], width=3)
+                            ], className='g-2'),
+                            html.Div(id='add-injury-feedback', style={'marginTop': '10px'})
+                        ]),
+                        
+                        dcc.Store(id='current-username-store', data=username)
+                    ], style=STYLES['card']) if role == 'paciente' else None,
                     
                 ], style={'flex': 1, 'minWidth': '400px'}),
                 
+                # --- COLUMNA DERECHA: HISTORIALES ---
                 html.Div([
-                    # Historial de cuestionarios
+                    # Historial Cuestionarios
                     html.Div([
-                        html.H4("📊 Historial de Cuestionarios", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
-                        
+                        html.H4("📊 HISTORIAL DE CUESTIONARIOS", style=STYLES['card_header_tactical']),
                         html.Div([
                             html.Div([
-                                html.H5(f"📋 {q.get('questionnaire_title', 'Cuestionario')}", 
-                                                style={'color': COLORS['primary'], 'marginBottom': '8px', 'fontSize': '16px'}),
-                                html.P(f"🕒 {q.get('timestamp', 'Fecha no disponible')}", 
-                                                style={'color': COLORS['muted'], 'fontSize': '14px', 'marginBottom': '10px'}),
-                                
-                                html.Ul([
-                                    html.Li([
-                                        html.Strong(f"{key.replace('_', ' ').title()}: "),
-                                        html.Span(str(value))
-                                    ], style={'marginBottom': '4px', 'fontSize': '13px', 'color': COLORS['text']})
-                                    for key, value in q.get('responses', {}).items()
-                                ], style={'paddingLeft': '20px'}),
-                                
-                                html.Hr(style={'margin': '15px 0'})
-                            ]) for q in user_data.get('questionnaires', [])[:10]
-                        ]) if user_data.get('questionnaires') else html.P("📭 No hay cuestionarios completados.", 
-                                                                    style={'textAlign': 'center', 'color': COLORS['muted'], 'padding': '20px'})
+                                html.H5(f"📋 {q.get('questionnaire_title', 'Cuestionario').upper()}", 
+                                        style={'color': COLORS['primary'], 'fontSize': '14px', 'fontWeight': 'bold'}),
+                                html.P(f"🕒 {q.get('timestamp', '')}", style={'color': '#888', 'fontSize': '12px'}),
+                                html.Hr(style={'borderColor': '#333'})
+                            ]) for q in user_data.get('questionnaires', [])[:5]
+                        ]) if user_data.get('questionnaires') else html.P("SIN REGISTROS", style={'color': '#555'})
                     ], style=STYLES['card']),
 
-                    # Historial de ejercicios
+                    # Historial Ejercicios
                     html.Div([
-                        html.H4("💪 Historial de Ejercicios", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
-                        
+                        html.H4("💪 ÚLTIMOS EJERCICIOS", style=STYLES['card_header_tactical']),
                         html.Div([
                             html.Div([
                                 html.P([
-                                    html.Strong(f"Ejercicio: "),
-                                    html.Span(ex.get('exercise_name', ex['exercise_id'])),
+                                    html.Strong(ex.get('exercise_name', '').upper()),
                                     html.Br(),
-                                    html.Strong(f"Fecha: "),
-                                    html.Span(ex['timestamp']),
-                                    html.Br(),
-                                    html.Strong(f"Series: "),
-                                    html.Span(f"{ex.get('sets', 'N/A')} × {ex.get('reps', 'N/A')} repeticiones"),
-                                    html.Br(),
-                                    html.Strong(f"Duración: "),
-                                    html.Span(f"{ex['duration_seconds']} segundos" if ex['duration_seconds'] else "No registrada")
-                                ], style={'marginBottom': '15px', 'padding': '10px', 'background': '#f8f9fa', 'borderRadius': '8px'})
-                            ]) for ex in user_data.get('exercises', [])[:5]
-                        ]) if user_data.get('exercises') else html.P("📭 No hay ejercicios registrados.", 
-                                                                    style={'textAlign': 'center', 'color': COLORS['muted'], 'padding': '20px'})
+                                    html.Span(f"⏱️ {ex.get('duration_seconds', 0)} SEG | 🔄 {ex.get('sets', 'N/A')} SERIES", 
+                                              style={'fontSize': '12px', 'color': COLORS['primary']})
+                                ], style={'padding': '10px', 'background': '#111', 'borderRadius': '5px', 'marginBottom': '10px', 'border': '1px solid #222'})
+                            ]) for ex in user_data.get('exercises', [])[:4]
+                        ]) if user_data.get('exercises') else html.P("SIN REGISTROS", style={'color': '#555'})
                     ], style=STYLES['card']),
                     
-                ], style={'flex': 1, 'minWidth': '500px'}) if role == 'paciente' else None,
+                ], style={'flex': 1, 'minWidth': '400px'}) if role == 'paciente' else None,
                 
-            ], style={'display': 'flex', 'gap': '20px', 'padding': '24px', 'flexWrap': 'wrap', 'alignItems': 'flex-start'}),
+            ], style={'display': 'flex', 'gap': '20px', 'flexWrap': 'wrap'}),
             
             dcc.Store(id='user-complete-data', data=user_data)
-        ]),
+        ], style={'padding': '24px'}),
         
-        get_edit_profile_modal() # Añadir el modal de edición
-    ])
-
+        get_edit_profile_modal()
+    ], style=STYLES['main_container']) # Fondo gris oscuro táctico
 # FUNCIÓN AÑADIDA: Historial de Cuestionarios
 def get_questionnaire_history_layout(username, full_name, current_search=""): 
     try:
@@ -2113,17 +2569,23 @@ def control_patient_refresh_interval(pathname, user_data):
 
 # --- RESTO DE CALLBACKS ---
 
-# Callback para mostrar/ocultar sección médica según el rol (Se mantiene)
+# Callback: Mostrar contenido del cuestionario seleccionado (Se mantiene)
 @app.callback(
     Output('medical-info-section', 'style'),
     Input('register-role', 'value')
 )
-def toggle_medical_section(role):
+def handle_registration_visibility(role):
+    # Por defecto, ocultamos todo
+    hidden = {'display': 'none'}
+    visible = {'display': 'block'}
+    
     if role == 'paciente':
-        return {'display': 'block'}
-    return {'display': 'none'}
+        # Si es paciente, mostramos la sección médica
+        return visible
+    else:
+        # Para médicos o si no hay selección, ocultamos la sección médica
+        return hidden
 
-# Callback: Mostrar contenido del cuestionario seleccionado (Se mantiene)
 @app.callback(
     Output('selected-questionnaire-content', 'children'),
     Input('questionnaire-select', 'value')
@@ -2748,7 +3210,7 @@ def open_edit_profile_modal(n_clicks, user_session, is_open):
         
         # --- Información Médica (Solo para paciente) ---
         html.Div(id='edit-medical-info-section', children=[
-            html.H4("🏥 Información Médica", style={'color': COLORS['primary'], 'marginBottom': '16px', 'marginTop': '20px'}),
+            html.H4("🏥 Información Médica y de Salud", style={'color': COLORS['primary'], 'marginBottom': '16px', 'marginTop': '20px'}),
             
             html.Label("🩸 Tipo de Sangre"),
             dcc.Dropdown(
@@ -2758,15 +3220,32 @@ def open_edit_profile_modal(n_clicks, user_session, is_open):
                 style={'marginBottom': '10px'}
             ),
             
-            html.Label("⚠️ Alergias"),
-            dcc.Textarea(id='edit-allergies', value=profile.get('allergies', ''), style={'width': '100%', 'height': '60px', 'marginBottom': '10px'}),
+            html.Label("💪 Estado de Salud *"),
+            dcc.Dropdown(
+                id='edit-health-status',
+                options=[
+                    {'label': '✅ Sano - Listo para entrenar', 'value': 'listo'},
+                    {'label': '⚠️ Lesionado', 'value': 'lesionado'}
+                ],
+                value=profile.get('health_status', 'listo'),
+                style={'marginBottom': '10px'}
+            ),
             
-            html.Label("💊 Medicamentos Actuales"),
-            dcc.Textarea(id='edit-medications', value=profile.get('current_medications', ''), style={'width': '100%', 'height': '60px', 'marginBottom': '10px'}),
-            
-            html.Label("📋 Condiciones Médicas"),
-            dcc.Textarea(id='edit-conditions', value=profile.get('medical_conditions', ''), style={'width': '100%', 'height': '60px', 'marginBottom': '20px'}),
-        ]) if role == 'paciente' else None, # CORRECCIÓN: Solo renderiza la sección médica para pacientes
+            html.Div(id='edit-injury-types-container', children=[
+                html.Label("🏥 Lesiones (Selecciona una o varias) *"),
+                dcc.Checklist(
+                    id='edit-injury-types',
+                    options=[
+                        {'label': ' Rodilla', 'value': 'rodilla'},
+                        {'label': ' Codo', 'value': 'codo'},
+                        {'label': ' Hombro', 'value': 'hombro'}
+                    ],
+                    value=profile.get('injury_types', []),
+                    inline=False,
+                    style={'marginBottom': '20px'}
+                ),
+            ], style={'display': 'block' if profile.get('health_status') == 'lesionado' else 'none'})
+        ]) if role == 'paciente' else None,
         
         # --- Contacto de Emergencia ---
         html.H4("🚨 Contacto de Emergencia", style={'color': COLORS['primary'], 'marginBottom': '16px', 'marginTop': '20px'}),
@@ -2799,19 +3278,22 @@ def open_edit_profile_modal(n_clicks, user_session, is_open):
       State('edit-emergency-phone', 'value'),
       # Los siguientes States solo existirán si role == 'paciente' (si el componente se renderiza)
       State('edit-blood-type', 'value'), 
-      State('edit-allergies', 'value'), 
-      State('edit-medications', 'value'), 
-      State('edit-conditions', 'value'), 
+      State('edit-health-status', 'value'), 
+      State('edit-injury-types', 'value'), 
       State('profile-user-role', 'data')], # Rol guardado en el Store
     prevent_initial_call=True
 )
-def save_profile_changes(n_clicks, user_session, fullname, email, phone, address, dni, birthdate, emergency_contact, emergency_phone, blood_type, allergies, medications, conditions, role):
+def save_profile_changes(n_clicks, user_session, fullname, email, phone, address, dni, birthdate, emergency_contact, emergency_phone, blood_type, health_status, injury_types, role):
     if not n_clicks or n_clicks == 0:
         return dash.no_update, dash.no_update, dash.no_update
 
     # Validación mínima de campos requeridos
     if not all([email, phone, dni, birthdate, emergency_contact, emergency_phone, fullname]): # CORRECCIÓN: Añadir fullname a la validación
         return dash.no_update, html.Div("⚠️ Completa todos los campos obligatorios marcados con *.", style={'color': 'red'}), dash.no_update
+    
+    # Validar que si está lesionado, tenga al menos una lesión seleccionada
+    if role == 'paciente' and health_status == 'lesionado' and not injury_types:
+        return dash.no_update, html.Div("⚠️ Si está lesionado, debe seleccionar al menos una lesión.", style={'color': 'red'}), dash.no_update
 
     username = user_session['username']
     
@@ -2833,9 +3315,8 @@ def save_profile_changes(n_clicks, user_session, fullname, email, phone, address
             # Solo si el rol es 'paciente', intentará leer los States de los campos médicos
             profile_data.update({
                 'blood_type': blood_type,
-                'allergies': allergies,
-                'current_medications': medications,
-                'medical_conditions': conditions
+                'health_status': health_status,
+                'injury_types': injury_types if isinstance(injury_types, list) else ([] if not injury_types else [injury_types])
             })
         
         # CORRECCIÓN: La función db.save_user_profile se modificó para manejar la actualización de full_name
@@ -2862,6 +3343,17 @@ def close_edit_profile_modal(n_clicks):
     if n_clicks:
         return False, html.Div()
     return dash.no_update, dash.no_update
+
+
+# Callback: Mostrar/Ocultar lesiones en modal de edición
+@app.callback(
+    Output('edit-injury-types-container', 'style'),
+    Input('edit-health-status', 'value')
+)
+def toggle_edit_injury_types(health_status):
+    if health_status == 'lesionado':
+        return {'display': 'block'}
+    return {'display': 'none'}
 
 
 # Callback de navegación principal (Se mantiene)
@@ -3002,7 +3494,51 @@ def handle_internal_navigation(pathname, user_data, current_search):
         return new_search
             
     return dash.no_update
-# Callback: Registro (VALIDACIONES DE FORMATO APLICADAS)
+
+# Función auxiliar para obtener ejercicios según estado de salud y lesión
+def get_recommended_exercises(health_status, injury_types=None):
+    """
+    Retorna ejercicios según el estado de salud y lesiones.
+    injury_types puede ser una lista de lesiones o None
+    """
+    if health_status == 'listo':
+        return HEALTHY_FIGHTER_EXERCISES
+    elif health_status == 'lesionado' and injury_types:
+        # Si es una lista, combinar ejercicios de todas las lesiones
+        if not isinstance(injury_types, list):
+            injury_types = [injury_types]
+        
+        combined_exercises = []
+        seen_ids = set()
+        
+        for injury_type in injury_types:
+            exercises = []
+            if injury_type == 'rodilla':
+                exercises = KNEE_EXERCISES
+            elif injury_type == 'codo':
+                exercises = ELBOW_EXERCISES
+            elif injury_type == 'hombro':
+                exercises = SHOULDER_EXERCISES
+            
+            # Evitar duplicados
+            for ex in exercises:
+                if ex['id'] not in seen_ids:
+                    combined_exercises.append(ex)
+                    seen_ids.add(ex['id'])
+        
+        return combined_exercises
+    return []
+
+# Callback para mostrar/ocultar el desplegable de tipo de lesión
+@app.callback(
+    Output('injury-type-container', 'style'),
+    Input('register-health-status', 'value')
+)
+def toggle_injury_dropdown(status):
+    if status == 'lesionado':
+        return {'display': 'block'}
+    return {'display': 'none'}
+
 @app.callback(
     Output('register-feedback','children'), 
     Input('register-button','n_clicks'),
@@ -3016,38 +3552,76 @@ def handle_internal_navigation(pathname, user_data, current_search):
      State('register-dni','value'),
      State('register-birthdate','date'),
      State('register-blood-type','value'),
-     State('register-allergies','value'),
-     State('register-medications','value'),
-     State('register-conditions','value'),
      State('register-emergency-contact','value'),
-     State('register-emergency-phone','value')],
+     State('register-emergency-phone','value'),
+     State('register-health-status','value'),
+     State('register-injury-type','value')],
     prevent_initial_call=True
 )
-def register_user_complete(n_clicks, username, password, role, fullname, email, phone, address, dni, birthdate, blood_type, allergies, medications, conditions, emergency_contact, emergency_phone):
+def register_user_complete(n_clicks, username, password, role, fullname, email, phone, address, dni, birthdate, blood_type, emergency_contact, emergency_phone, health_status, injury_type):
     if n_clicks is None or n_clicks == 0:
         return html.Div("⚠️ Haz clic en el botón para registrar", style={'color':'orange'})
-        
-    required_fields = [username, password, role, fullname, email, phone, dni, birthdate, emergency_contact, emergency_phone]
-    if not all(required_fields):
-        return html.Div("⚠️ Completa todos los campos obligatorios (*)", style={'color':'red'})
     
-    # ------------------ VALIDACIONES DE FORMATO ------------------
-    # 1. Email
+    # Validar campos obligatorios con mensajes específicos
+    field_names = {
+        'username': 'Usuario',
+        'password': 'Contraseña',
+        'role': 'Rol',
+        'fullname': 'Nombre Completo',
+        'email': 'Email',
+        'phone': 'Teléfono',
+        'dni': 'DNI/NIE',
+        'birthdate': 'Fecha de Nacimiento',
+        'emergency_contact': 'Nombre del Contacto de Emergencia',
+        'emergency_phone': 'Teléfono del Contacto de Emergencia'
+    }
+    
+    missing_fields = []
+    if not username:
+        missing_fields.append(field_names['username'])
+    if not password:
+        missing_fields.append(field_names['password'])
+    if not role:
+        missing_fields.append(field_names['role'])
+    if not fullname:
+        missing_fields.append(field_names['fullname'])
+    if not email:
+        missing_fields.append(field_names['email'])
+    if not phone:
+        missing_fields.append(field_names['phone'])
+    if not dni:
+        missing_fields.append(field_names['dni'])
+    if not birthdate:
+        missing_fields.append(field_names['birthdate'])
+    if not emergency_contact:
+        missing_fields.append(field_names['emergency_contact'])
+    if not emergency_phone:
+        missing_fields.append(field_names['emergency_phone'])
+    
+    if missing_fields:
+        missing_text = ', '.join(missing_fields)
+        return html.Div(f"⚠️ Faltan campos obligatorios: {missing_text}", style={'color':'red'})
+    
+    # Validar formato de Email
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        return html.Div("❌ Error de formato: El email no es válido.", style={'color':'red'})
+        return html.Div("❌ Error de formato: El email no es válido (ej: usuario@ejemplo.com).", style={'color':'red'})
+    
+    # Validar DNI/NIE (8 dígitos + 1 letra o X/Y/Z + 7 dígitos + 1 letra)
+    dni_clean = dni.strip().replace('-', '').replace(' ', '').upper()
+    dni_pattern = re.compile(r"^[XYZ]?\d{7,8}[A-Z]$")
+    if not dni_pattern.match(dni_clean):
+        return html.Div("❌ Error de formato DNI/NIE: Debe ser 8 números + 1 letra (ej: 12345678X o Y0000000A). No incluyas guiones ni espacios.", style={'color':'red'})
+    
+    # Validar Teléfono del usuario (9-12 dígitos, con o sin prefijo +)
+    phone_clean = phone.strip().replace('-', '').replace(' ', '').replace('+', '')
+    if not phone_clean.isdigit() or len(phone_clean) < 9 or len(phone_clean) > 12:
+        return html.Div("❌ Error de formato Teléfono: Debe tener 9-12 dígitos. Puedes incluir + al inicio y espacios/guiones (ej: +34 600 123 456 o 600123456).", style={'color':'red'})
+    
+    # Validar Teléfono del contacto de emergencia
+    emergency_phone_clean = emergency_phone.strip().replace('-', '').replace(' ', '').replace('+', '')
+    if not emergency_phone_clean.isdigit() or len(emergency_phone_clean) < 9 or len(emergency_phone_clean) > 12:
+        return html.Div("❌ Error de formato Teléfono de Emergencia: Debe tener 9-12 dígitos. Puedes incluir + al inicio y espacios/guiones (ej: +34 600 123 456 o 600123456).", style={'color':'red'})
         
-    # 2. DNI/NIE (8 dígitos + 1 letra o X/Y/Z + 7 dígitos + 1 letra, opcionalmente con guiones/espacios)
-    dni_pattern = re.compile(r"^[XYZ]?\d{7,8}[A-Z]$", re.IGNORECASE)
-    if not dni_pattern.match(dni.strip().replace('-', '').replace(' ', '')):
-        return html.Div("❌ Error de formato: DNI/NIE debe ser 8 números + letra (ej: 12345678X o Y0000000A).", style={'color':'red'})
-
-    # 3. Teléfono (Permite formatos internacionales comunes: +XX XXX XXX XXX o 9-12 dígitos)
-    phone_pattern = re.compile(r"^\+?\s?(\d{1,3})?\s?(\d{2,4}\s?){2,5}\d{1,4}$")
-    if not phone_pattern.match(phone.strip()) or not phone_pattern.match(emergency_phone.strip()):
-            return html.Div("❌ Error de formato: Teléfono debe tener 9-12 dígitos, opcionalmente con prefijo + y espacios.", style={'color':'red'})
-        
-    # ------------------ FIN VALIDACIONES DE FORMATO ------------------
-
     if _USER_DB.get(username): 
         return html.Div("❌ El usuario ya existe", style={'color':'red'})
     
@@ -3063,9 +3637,8 @@ def register_user_complete(n_clicks, username, password, role, fullname, email, 
             'emergency_contact': emergency_contact,
             'emergency_phone': emergency_phone,
             'blood_type': blood_type,
-            'allergies': allergies,
-            'current_medications': medications,
-            'medical_conditions': conditions
+            'health_status': health_status,
+            'injury_types': [injury_type] if injury_type else []
         }
         
         db.save_user_profile(username, profile_data)
@@ -3558,6 +4131,229 @@ def update_sensor_charts(n, is_open):
         print(f"Error en sensores: {e}")
         return dash.no_update, dash.no_update, "❌ Error", "❌ Error"
 
+# --- CALLBACKS PARA GESTIÓN DE LESIONES ---
+
+@app.callback(
+    [Output('injuries-list-display', 'children', allow_duplicate=True),
+     Output('add-injury-feedback', 'children', allow_duplicate=True),
+     Output('add-injury-select', 'value', allow_duplicate=True)],
+    Input('add-injury-btn', 'n_clicks'),
+    [State('add-injury-select', 'value'),
+     State('current-username-store', 'data')],
+    prevent_initial_call=True
+)
+def add_injury(n_clicks, selected_injury, username):
+    """Callback para añadir una lesión al perfil del usuario."""
+    if not selected_injury:
+        return dash.no_update, html.Div("⚠️ Por favor selecciona una lesión.", style={'color': 'orange', 'fontSize': '0.9em'}), None
+    
+    try:
+        user_data = db.get_complete_user_data(username)
+        injury_types = user_data.get('profile', {}).get('injury_types', [])
+        
+        # Evitar duplicados
+        if selected_injury in injury_types:
+            return dash.no_update, html.Div(f"⚠️ {selected_injury.capitalize()} ya está registrada.", style={'color': 'orange'}), None
+        
+        # Añadir lesión
+        injury_types.append(selected_injury)
+        
+        # Actualizar perfil
+        profile_data = user_data.get('profile', {})
+        profile_data['injury_types'] = injury_types
+        profile_data['health_status'] = 'lesionado'  # Actualizar estado
+        
+        db.save_user_profile(username, profile_data)
+        
+        # Regenerar la lista de lesiones
+        updated_injuries = [
+            html.Span(
+                f"{injury.capitalize()}  ×",
+                id={'type': 'injury-badge', 'index': injury},
+                style={
+                    'display': 'inline-block',
+                    'background': COLORS['primary'],
+                    'color': 'white',
+                    'padding': '8px 12px',
+                    'borderRadius': '20px',
+                    'marginRight': '8px',
+                    'marginBottom': '8px',
+                    'fontSize': '0.9em',
+                    'cursor': 'pointer',
+                    'position': 'relative'
+                }
+            ) for injury in injury_types
+        ]
+        
+        feedback = html.Div(
+            f"✅ {selected_injury.capitalize()} añadida correctamente.",
+            style={'color': 'green', 'fontSize': '0.9em', 'marginBottom': '10px'}
+        )
+        
+        return updated_injuries, feedback, None
+    
+    except Exception as e:
+        print(f"Error adding injury: {e}")
+        return dash.no_update, html.Div(f"❌ Error: {str(e)}", style={'color': 'red'}), None
+
+
+@app.callback(
+    [Output('injuries-list-display', 'children', allow_duplicate=True),
+     Output('add-injury-feedback', 'children', allow_duplicate=True)],
+    Input({'type': 'injury-badge', 'index': ALL}, 'n_clicks'),
+    [State({'type': 'injury-badge', 'index': ALL}, 'id'),
+     State('current-username-store', 'data')],
+    prevent_initial_call=True
+)
+def remove_injury(n_clicks_list, badge_ids, username):
+    """Callback para eliminar una lesión cuando hacen clic en su badge."""
+    if not callback_context.triggered:
+        return dash.no_update, dash.no_update
+    
+    try:
+        triggered_id = callback_context.triggered[0]['prop_id']
+        if not triggered_id.startswith('{'):
+            return dash.no_update, dash.no_update
+            
+        injury_to_remove = json.loads(triggered_id.split('.')[0])['index']
+        
+        user_data = db.get_complete_user_data(username)
+        injury_types = user_data.get('profile', {}).get('injury_types', [])
+        
+        # Remover lesión
+        if injury_to_remove in injury_types:
+            injury_types.remove(injury_to_remove)
+            
+            # Actualizar perfil
+            profile_data = user_data.get('profile', {})
+            profile_data['injury_types'] = injury_types
+            
+            # Si no hay más lesiones, actualizar estado
+            if not injury_types:
+                profile_data['health_status'] = 'listo'
+            
+            db.save_user_profile(username, profile_data)
+            
+            # Regenerar la lista
+            if injury_types:
+                updated_injuries = [
+                    html.Span(
+                        f"{injury.capitalize()}  ×",
+                        id={'type': 'injury-badge', 'index': injury},
+                        style={
+                            'display': 'inline-block',
+                            'background': COLORS['primary'],
+                            'color': 'white',
+                            'padding': '8px 12px',
+                            'borderRadius': '20px',
+                            'marginRight': '8px',
+                            'marginBottom': '8px',
+                            'fontSize': '0.9em',
+                            'cursor': 'pointer'
+                        }
+                    ) for injury in injury_types
+                ]
+            else:
+                updated_injuries = html.Span("No hay lesiones registradas", style={'color': COLORS['muted'], 'fontStyle': 'italic'})
+            
+            feedback = html.Div(
+                f"✅ {injury_to_remove.capitalize()} eliminada correctamente.",
+                style={'color': 'green', 'fontSize': '0.9em'}
+            )
+            
+            return updated_injuries, feedback
+    
+    except Exception as e:
+        print(f"Error removing injury: {e}")
+        return dash.no_update, html.Div(f"❌ Error: {str(e)}", style={'color': 'red'})
+
+
+@app.callback(
+    [Output('exercise-grid', 'children', allow_duplicate=True)],
+    [Input('add-injury-btn', 'n_clicks'),
+     Input({'type': 'injury-badge', 'index': ALL}, 'n_clicks')],
+    [State('current-patient-username', 'data'),
+     State('user-session-state', 'data')],
+    prevent_initial_call=True
+)
+def update_exercises_on_injury_change(add_clicks, remove_clicks, patient_username, user_session):
+    """Callback para actualizar los ejercicios mostrados cuando las lesiones cambian."""
+    
+    # Determinar cuál es el username correctamente
+    username = patient_username or (user_session.get('username') if user_session else None)
+    
+    if not username:
+        return dash.no_update
+    
+    try:
+        patient_data = db.get_complete_user_data(username)
+        health_status = patient_data.get('profile', {}).get('health_status', 'listo')
+        injury_types = patient_data.get('profile', {}).get('injury_types', [])
+        exercises = get_recommended_exercises(health_status, injury_types)
+        
+        if not exercises:
+            exercises = HEALTHY_FIGHTER_EXERCISES if health_status == 'listo' else KNEE_EXERCISES
+        
+        # Determinar el título del ejercicio
+        if health_status == 'lesionado' and injury_types:
+            injury_names = []
+            for injury in injury_types:
+                if injury == 'rodilla':
+                    injury_names.append('Rodilla')
+                elif injury == 'codo':
+                    injury_names.append('Codo')
+                elif injury == 'hombro':
+                    injury_names.append('Hombro')
+            exercise_title = f"Ejercicios de {' y '.join(injury_names)}"
+        else:
+            exercise_title = 'Ejercicios para Luchador Sano'
+        
+        # Crear el grid actualizado
+        exercise_grid = html.Div([
+            html.Div([
+                html.Span("💪 ", style={'fontSize': '1.2em'}),
+                exercise_title
+            ], style=STYLES['card_header_tactical']),
+            
+            html.Div(
+                [
+                    html.Div([
+                        html.Img(
+                            src=ex['images'][0],
+                            style={
+                                'width': '100%', 'height': '150px', 'objectFit': 'cover',
+                                'borderRadius': '4px', 'marginBottom': '10px', 'filter': 'brightness(0.8)'
+                            },
+                            id={'type': 'exercise-image', 'index': ex['id']}
+                        ),
+                        html.H6(ex['title'].upper(), style={'color': 'white', 'fontWeight': 'bold'}),
+                        html.P(f"DIFICULTAD: {ex['difficulty'].upper()}", style={'color': COLORS['muted'], 'fontSize': '0.7em'}),
+                        html.Button(
+                            'INICIAR',
+                            id={'type': 'start-exercise-btn', 'index': ex['id']},
+                            n_clicks=0,
+                            style=STYLES['button_primary']
+                        )
+                    ], style={
+                        'background': '#111111',
+                        'padding': '15px', 'border': '1px solid #222', 'borderRadius': '4px',
+                        'textAlign': 'center'
+                    }) for ex in exercises
+                ],
+                style={
+                    'display': 'grid',
+                    'gridTemplateColumns': 'repeat(auto-fill, minmax(220px, 1fr))',
+                    'gap': '15px'
+                }
+            )
+        ], style=STYLES['card'])
+        
+        return [exercise_grid]
+        
+    except Exception as e:
+        print(f"Error updating exercises: {e}")
+        return dash.no_update
+
 # --- FUNCIONES DEL SIMULADOR ---
 def generate_ecg_sample(t, base_bpm=75):
     heart_rate = base_bpm / 60.0
@@ -3622,8 +4418,7 @@ if __name__ == '__main__':
     simulation_thread = threading.Thread(target=run_simulator, daemon=True)
     simulation_thread.start()
     
-    # Pausa para asegurar que data/sensor_data_stream.csv existe antes de que Dash cargue
-    time.sleep(1.5) 
+    # Pausa para asegurar que data/sensor_data_stream.csv existe antes de que Dash cargue 
     
     print("🚀 Servidor RehabiDesk levantando en http://127.0.0.1:8050")
     
@@ -3635,5 +4430,3 @@ if __name__ == '__main__':
         port=8050, 
         use_reloader=False # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
     )
-
-
