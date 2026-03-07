@@ -1194,6 +1194,9 @@ def get_edit_profile_modal():
                 dbc.Button("✅ Guardar Cambios", id="save-profile-btn", color="primary", className="me-2"),
                 dbc.Button("❌ Cancelar", id="cancel-profile-btn", color="secondary"),
             ]),
+            # Stores para guardar valores médicos (evitan errores cuando componentes no existen)
+            dcc.Store(id='edit-health-status-store', data='listo'),
+            dcc.Store(id='edit-injury-types-store', data=[]),
         ],
         id="edit-profile-modal",
         is_open=False,
@@ -1829,26 +1832,27 @@ def get_user_data_layout(username, full_name, role, current_search=""):
                         # Lesiones actuales
                         html.Div([
                             html.P("Lesiones registradas:", style={'fontWeight': 'bold', 'marginBottom': '10px'}),
-                            html.Div(id='injuries-list-display', children=[
-                                html.Span(
-                                    f"{injury.capitalize()}  ",
-                                    id={'type': 'injury-badge', 'index': injury},
-                                    style={
-                                        'display': 'inline-block',
-                                        'background': COLORS['primary'],
-                                        'color': 'white',
-                                        'padding': '8px 12px',
-                                        'borderRadius': '20px',
-                                        'marginRight': '8px',
-                                        'marginBottom': '8px',
-                                        'fontSize': '0.9em',
-                                        'cursor': 'pointer',
-                                        'position': 'relative'
-                                    }
-                                ) if (user_data.get('profile', {}).get('injury_types')) else
-                                html.Span("No hay lesiones registradas", style={'color': COLORS['muted'], 'fontStyle': 'italic'})
-                                for injury in user_data.get('profile', {}).get('injury_types', [])
-                            ], style={'marginBottom': '15px'})
+                            html.Div(id='injuries-list-display', children=(
+                                [
+                                    html.Span(
+                                        f"{injury.capitalize()}  ",
+                                        id={'type': 'injury-badge', 'index': injury},
+                                        style={
+                                            'display': 'inline-block',
+                                            'background': COLORS['primary'],
+                                            'color': 'white',
+                                            'padding': '8px 12px',
+                                            'borderRadius': '20px',
+                                            'marginRight': '8px',
+                                            'marginBottom': '8px',
+                                            'fontSize': '0.9em',
+                                            'cursor': 'pointer',
+                                            'position': 'relative'
+                                        }
+                                    ) for injury in user_data.get('profile', {}).get('injury_types', [])
+                                ] if user_data.get('profile', {}).get('injury_types') else
+                                [html.Span("No hay lesiones registradas", style={'color': COLORS['muted'], 'fontStyle': 'italic'})]
+                            ), style={'marginBottom': '15px'})
                         ]),
                         
                         # Agregar nueva lesión
@@ -1879,6 +1883,38 @@ def get_user_data_layout(username, full_name, role, current_search=""):
                             ], className='g-2'),
                             html.Div(id='add-injury-feedback', style={'marginTop': '10px'})
                         ]),
+                        
+                        # Eliminar lesión mediante desplegable
+                        html.Div([
+                            html.Label("Eliminar lesión:", style={'fontWeight': 'bold', 'marginBottom': '8px', 'display': 'block'}),
+                            dbc.Row([
+                                dbc.Col([
+                                    dcc.Dropdown(
+                                        id='remove-injury-select',
+                                        options=[
+                                            {'label': f"❌ {injury.capitalize()}", 'value': injury}
+                                            for injury in user_data.get('profile', {}).get('injury_types', [])
+                                        ],
+                                        placeholder='Selecciona una lesión a eliminar...',
+                                        style={'width': '100%', 'color': 'black'},
+                                        disabled=len(user_data.get('profile', {}).get('injury_types', [])) == 0
+                                    )
+                                ], width=9),
+                                dbc.Col([
+                                    dbc.Button(
+                                        "🗑️ ELIMINAR",
+                                        id='remove-injury-btn',
+                                        n_clicks=0,
+                                        color='danger',
+                                        className='w-100',
+                                        disabled=len(user_data.get('profile', {}).get('injury_types', [])) == 0
+                                    )
+                                ], width=3)
+                            ], className='g-2'),
+                            html.Div(id='remove-injury-feedback', style={'marginTop': '10px'})
+                        ], style={'display': 'block' if user_data.get('profile', {}).get('injury_types') else 'none'}),
+                        
+                        html.Div(id='badge-click-feedback', style={'marginTop': '10px'}),
                         
                         dcc.Store(id='current-username-store', data=username)
                     ], style=STYLES['card']) if role == 'paciente' else None,
@@ -1924,6 +1960,7 @@ def get_user_data_layout(username, full_name, role, current_search=""):
         
         get_edit_profile_modal()
     ], style=STYLES['main_container']) # Fondo gris oscuro táctico
+
 # FUNCIÓN AÑADIDA: Historial de Cuestionarios
 def get_questionnaire_history_layout(username, full_name, current_search=""): 
     try:
@@ -3276,11 +3313,10 @@ def open_edit_profile_modal(n_clicks, user_session, is_open):
       State('edit-birthdate', 'date'),
       State('edit-emergency-contact', 'value'),
       State('edit-emergency-phone', 'value'),
-      # Los siguientes States solo existirán si role == 'paciente' (si el componente se renderiza)
-      State('edit-blood-type', 'value'), 
-      State('edit-health-status', 'value'), 
-      State('edit-injury-types', 'value'), 
-      State('profile-user-role', 'data')], # Rol guardado en el Store
+      State('edit-blood-type', 'value'),
+      State('edit-health-status-store', 'data'),  # Usar Store en lugar de State
+      State('edit-injury-types-store', 'data'),   # Usar Store en lugar de State
+      State('profile-user-role', 'data')],
     prevent_initial_call=True
 )
 def save_profile_changes(n_clicks, user_session, fullname, email, phone, address, dni, birthdate, emergency_contact, emergency_phone, blood_type, health_status, injury_types, role):
@@ -3312,10 +3348,10 @@ def save_profile_changes(n_clicks, user_session, fullname, email, phone, address
 
         # 2. Añadir datos médicos si es paciente
         if role == 'paciente':
-            # Solo si el rol es 'paciente', intentará leer los States de los campos médicos
+            # Solo si el rol es 'paciente', se incluyen los datos médicos del Store
             profile_data.update({
                 'blood_type': blood_type,
-                'health_status': health_status,
+                'health_status': health_status if health_status else 'listo',
                 'injury_types': injury_types if isinstance(injury_types, list) else ([] if not injury_types else [injury_types])
             })
         
@@ -3345,10 +3381,32 @@ def close_edit_profile_modal(n_clicks):
     return dash.no_update, dash.no_update
 
 
+# Callbacks para actualizar los Stores de valores médicos
+@app.callback(
+    Output('edit-health-status-store', 'data'),
+    Input('edit-health-status', 'value'),
+    prevent_initial_call=True
+)
+def update_health_status_store(health_status):
+    """Callback para guardar el estado de salud en el Store."""
+    return health_status if health_status else 'listo'
+
+
+@app.callback(
+    Output('edit-injury-types-store', 'data'),
+    Input('edit-injury-types', 'value'),
+    prevent_initial_call=True
+)
+def update_injury_types_store(injury_types):
+    """Callback para guardar los tipos de lesión en el Store."""
+    return injury_types if injury_types else []
+
+
 # Callback: Mostrar/Ocultar lesiones en modal de edición
 @app.callback(
     Output('edit-injury-types-container', 'style'),
-    Input('edit-health-status', 'value')
+    Input('edit-health-status', 'value'),
+    prevent_initial_call=True
 )
 def toggle_edit_injury_types(health_status):
     if health_status == 'lesionado':
@@ -4131,98 +4189,152 @@ def update_sensor_charts(n, is_open):
         print(f"Error en sensores: {e}")
         return dash.no_update, dash.no_update, "❌ Error", "❌ Error"
 
-# --- CALLBACKS PARA GESTIÓN DE LESIONES ---
+# --- CALLBACKS PARA GESTIÓN DE LESIONES (UNIFICADO) ---
 
 @app.callback(
-    [Output('injuries-list-display', 'children', allow_duplicate=True),
-     Output('add-injury-feedback', 'children', allow_duplicate=True),
-     Output('add-injury-select', 'value', allow_duplicate=True)],
-    Input('add-injury-btn', 'n_clicks'),
+    [Output('injuries-list-display', 'children'),
+     Output('add-injury-feedback', 'children'),
+     Output('add-injury-select', 'value'),
+     Output('badge-click-feedback', 'children')],
+    [Input('add-injury-btn', 'n_clicks'),
+     Input({'type': 'injury-badge', 'index': ALL}, 'n_clicks')],
     [State('add-injury-select', 'value'),
+     State({'type': 'injury-badge', 'index': ALL}, 'id'),
      State('current-username-store', 'data')],
     prevent_initial_call=True
 )
-def add_injury(n_clicks, selected_injury, username):
-    """Callback para añadir una lesión al perfil del usuario."""
-    if not selected_injury:
-        return dash.no_update, html.Div("⚠️ Por favor selecciona una lesión.", style={'color': 'orange', 'fontSize': '0.9em'}), None
+def manage_injuries_unified(add_clicks, badge_clicks, selected_injury, badge_ids, username):
+    """Callback unificado para gestionar la adición y eliminación de lesiones."""
+    
+    if not dash.callback_context.triggered:
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    
+    trigger_id = dash.callback_context.triggered[0]['prop_id']
+    print(f"[DEBUG] manage_injuries_unified triggered: {trigger_id}")
     
     try:
+        # 1. Cargar datos actuales (una sola lectura)
         user_data = db.get_complete_user_data(username)
         injury_types = user_data.get('profile', {}).get('injury_types', [])
+        print(f"[DEBUG] Current injuries: {injury_types}")
         
-        # Evitar duplicados
-        if selected_injury in injury_types:
-            return dash.no_update, html.Div(f"⚠️ {selected_injury.capitalize()} ya está registrada.", style={'color': 'orange'}), None
+        add_feedback = dash.no_update
+        badge_feedback = dash.no_update
+        clear_select = dash.no_update
         
-        # Añadir lesión
-        injury_types.append(selected_injury)
+        # 2. Detectar si es un clic en AÑADIR
+        if 'add-injury-btn' in trigger_id:
+            print(f"[DEBUG] ADD button clicked: {selected_injury}")
+            
+            if not selected_injury:
+                add_feedback = html.Div("⚠️ Por favor selecciona una lesión.", style={'color': 'orange', 'fontSize': '0.9em'})
+            elif selected_injury not in injury_types:
+                # Añadir lesión
+                injury_types.append(selected_injury)
+                print(f"[DEBUG] Added {selected_injury}. New list: {injury_types}")
+                add_feedback = html.Div(
+                    f"✅ {selected_injury.capitalize()} añadida correctamente.",
+                    style={'color': 'green', 'fontSize': '0.9em', 'marginBottom': '10px'}
+                )
+                clear_select = None
+            else:
+                add_feedback = html.Div(
+                    f"⚠️ {selected_injury.capitalize()} ya está registrada.",
+                    style={'color': 'orange', 'fontSize': '0.9em'}
+                )
         
-        # Actualizar perfil
+        # 3. Detectar si es un clic en un BADGE (eliminar)
+        elif 'injury-badge' in trigger_id:
+            print(f"[DEBUG] BADGE clicked")
+            
+            try:
+                prop_dict = json.loads(trigger_id.split('.')[0])
+                injury_to_remove = prop_dict['index']
+                print(f"[DEBUG] Removing {injury_to_remove}")
+                
+                if injury_to_remove in injury_types:
+                    injury_types.remove(injury_to_remove)
+                    print(f"[DEBUG] Removed {injury_to_remove}. New list: {injury_types}")
+                    badge_feedback = html.Div(
+                        f"✅ {injury_to_remove.capitalize()} eliminada correctamente.",
+                        style={'color': 'green', 'fontSize': '0.9em'}
+                    )
+            except Exception as e:
+                print(f"[ERROR] Error parsing badge ID: {e}")
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        
+        # 4. Guardar cambios UNA SOLA VEZ (crítico para evitar conflictos)
         profile_data = user_data.get('profile', {})
         profile_data['injury_types'] = injury_types
-        profile_data['health_status'] = 'lesionado'  # Actualizar estado
+        
+        # Actualizar estado de salud
+        if injury_types:
+            profile_data['health_status'] = 'lesionado'
+        else:
+            profile_data['health_status'] = 'listo'
         
         db.save_user_profile(username, profile_data)
+        print(f"[DEBUG] Profile saved. Injury types: {injury_types}")
         
-        # Regenerar la lista de lesiones
-        updated_injuries = [
-            html.Span(
-                f"{injury.capitalize()}  ×",
-                id={'type': 'injury-badge', 'index': injury},
-                style={
-                    'display': 'inline-block',
-                    'background': COLORS['primary'],
-                    'color': 'white',
-                    'padding': '8px 12px',
-                    'borderRadius': '20px',
-                    'marginRight': '8px',
-                    'marginBottom': '8px',
-                    'fontSize': '0.9em',
-                    'cursor': 'pointer',
-                    'position': 'relative'
-                }
-            ) for injury in injury_types
-        ]
+        # 5. Regenerar la lista de lesiones
+        if injury_types:
+            updated_injuries = [
+                html.Span(
+                    f"{injury.capitalize()}  ",
+                    id={'type': 'injury-badge', 'index': injury},
+                    style={
+                        'display': 'inline-block',
+                        'background': COLORS['primary'],
+                        'color': 'white',
+                        'padding': '8px 12px',
+                        'borderRadius': '20px',
+                        'marginRight': '8px',
+                        'marginBottom': '8px',
+                        'fontSize': '0.9em',
+                        'cursor': 'pointer',
+                        'position': 'relative'
+                    }
+                ) for injury in injury_types
+            ]
+        else:
+            updated_injuries = [html.Span("No hay lesiones registradas", style={'color': COLORS['muted'], 'fontStyle': 'italic'})]
         
-        feedback = html.Div(
-            f"✅ {selected_injury.capitalize()} añadida correctamente.",
-            style={'color': 'green', 'fontSize': '0.9em', 'marginBottom': '10px'}
-        )
+        print(f"[DEBUG] Returning updated injuries list")
+        return updated_injuries, add_feedback, clear_select, badge_feedback
         
-        return updated_injuries, feedback, None
-    
     except Exception as e:
-        print(f"Error adding injury: {e}")
-        return dash.no_update, html.Div(f"❌ Error: {str(e)}", style={'color': 'red'}), None
+        print(f"[ERROR] Error in manage_injuries_unified: {e}")
+        import traceback
+        traceback.print_exc()
+        error_msg = html.Div(f"❌ Error: {str(e)}", style={'color': 'red'})
+        return dash.no_update, error_msg, dash.no_update, dash.no_update
 
 
+# Callback para eliminar lesión desde el dropdown "Eliminar lesión"
 @app.callback(
-    [Output('injuries-list-display', 'children', allow_duplicate=True),
-     Output('add-injury-feedback', 'children', allow_duplicate=True)],
-    Input({'type': 'injury-badge', 'index': ALL}, 'n_clicks'),
-    [State({'type': 'injury-badge', 'index': ALL}, 'id'),
-     State('current-username-store', 'data')],
+    [Output('remove-injury-feedback', 'children'),
+     Output('remove-injury-select', 'value')],
+    Input('remove-injury-btn', 'n_clicks'),
+    State('remove-injury-select', 'value'),
+    State('current-username-store', 'data'),
     prevent_initial_call=True
 )
-def remove_injury(n_clicks_list, badge_ids, username):
-    """Callback para eliminar una lesión cuando hacen clic en su badge."""
-    if not callback_context.triggered:
-        return dash.no_update, dash.no_update
+def remove_injury_from_dropdown(n_clicks, selected_injury, username):
+    """Callback para eliminar una lesión mediante el desplegable de eliminar."""
+    print(f"[DEBUG] remove_injury_from_dropdown llamado: injury={selected_injury}")
+    
+    if not selected_injury:
+        return html.Div("⚠️ Por favor selecciona una lesión a eliminar.", style={'color': 'orange', 'fontSize': '0.9em'}), None
     
     try:
-        triggered_id = callback_context.triggered[0]['prop_id']
-        if not triggered_id.startswith('{'):
-            return dash.no_update, dash.no_update
-            
-        injury_to_remove = json.loads(triggered_id.split('.')[0])['index']
-        
         user_data = db.get_complete_user_data(username)
         injury_types = user_data.get('profile', {}).get('injury_types', [])
+        print(f"[DEBUG] Current injuries before removal: {injury_types}")
         
         # Remover lesión
-        if injury_to_remove in injury_types:
-            injury_types.remove(injury_to_remove)
+        if selected_injury in injury_types:
+            injury_types.remove(selected_injury)
+            print(f"[DEBUG] Removed {selected_injury}. New list: {injury_types}")
             
             # Actualizar perfil
             profile_data = user_data.get('profile', {})
@@ -4233,39 +4345,58 @@ def remove_injury(n_clicks_list, badge_ids, username):
                 profile_data['health_status'] = 'listo'
             
             db.save_user_profile(username, profile_data)
-            
-            # Regenerar la lista
-            if injury_types:
-                updated_injuries = [
-                    html.Span(
-                        f"{injury.capitalize()}  ×",
-                        id={'type': 'injury-badge', 'index': injury},
-                        style={
-                            'display': 'inline-block',
-                            'background': COLORS['primary'],
-                            'color': 'white',
-                            'padding': '8px 12px',
-                            'borderRadius': '20px',
-                            'marginRight': '8px',
-                            'marginBottom': '8px',
-                            'fontSize': '0.9em',
-                            'cursor': 'pointer'
-                        }
-                    ) for injury in injury_types
-                ]
-            else:
-                updated_injuries = html.Span("No hay lesiones registradas", style={'color': COLORS['muted'], 'fontStyle': 'italic'})
+            print(f"[DEBUG] Profile saved after dropdown removal")
             
             feedback = html.Div(
-                f"✅ {injury_to_remove.capitalize()} eliminada correctamente.",
-                style={'color': 'green', 'fontSize': '0.9em'}
+                f"✅ {selected_injury.capitalize()} eliminada correctamente.",
+                style={'color': 'green', 'fontSize': '0.9em', 'marginBottom': '10px'}
             )
+            print(f"[DEBUG] Returning success for dropdown removal")
             
-            return updated_injuries, feedback
+            return feedback, None
     
     except Exception as e:
-        print(f"Error removing injury: {e}")
-        return dash.no_update, html.Div(f"❌ Error: {str(e)}", style={'color': 'red'})
+        print(f"[ERROR] Error removing injury from dropdown: {e}")
+        import traceback
+        traceback.print_exc()
+        return html.Div(f"❌ Error: {str(e)}", style={'color': 'red'}), None
+
+
+@app.callback(
+    [Output('remove-injury-select', 'options'),
+     Output('remove-injury-select', 'disabled')],
+    [Input('add-injury-btn', 'n_clicks'),
+     Input('remove-injury-btn', 'n_clicks')],
+    State('current-username-store', 'data'),
+    prevent_initial_call=True
+)
+def sync_remove_injury_options(add_clicks, remove_clicks, username):
+    """Callback para sincronizar las opciones del dropdown de eliminar lesiones."""
+    print(f"[DEBUG] sync_remove_injury_options called")
+    
+    try:
+        user_data = db.get_complete_user_data(username)
+        injury_types = user_data.get('profile', {}).get('injury_types', [])
+        print(f"[DEBUG] Current injuries for sync: {injury_types}")
+        
+        # Generar opciones del dropdown
+        removal_options = [
+            {'label': f"❌ {injury.capitalize()}", 'value': injury}
+            for injury in injury_types
+        ]
+        
+        # Deshabilitar si no hay lesiones
+        is_disabled = len(injury_types) == 0
+        
+        print(f"[DEBUG] Sync options: {removal_options}, disabled={is_disabled}")
+        return removal_options, is_disabled
+        
+    except Exception as e:
+        print(f"[ERROR] Error in sync_remove_injury_options: {e}")
+        import traceback
+        traceback.print_exc()
+        return [], True
+
 
 
 @app.callback(
