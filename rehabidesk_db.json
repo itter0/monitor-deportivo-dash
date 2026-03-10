@@ -196,7 +196,11 @@
                 "birth_date": "1900-01-23",
                 "emergency_contact": "1",
                 "emergency_phone": "600123456",
-                "blood_type": "A-"
+                "blood_type": "A-",
+                "injury_types": [
+                    "hombro"
+                ],
+                "health_status": "lesionado"
             }
         }
     },
@@ -1243,6 +1247,28 @@
                 "questionnaire_title": "Dolor Rodilla",
                 "questionnaire_id": "dolor_rodilla",
                 "timestamp": "2026-02-01T19:30:45.500323",
+                "responses": {
+                    "q1": 7,
+                    "q2": 5,
+                    "q3": "moderado"
+                }
+            }
+        ],
+        "luchador": [
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2026-03-07T20:26:37.132211",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "leve"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2026-02-28T20:26:37.132211",
                 "responses": {
                     "q1": 7,
                     "q2": 5,
@@ -2375,6 +2401,24 @@
                 "duration_seconds": 120,
                 "sets": 3,
                 "reps": 10
+            }
+        ],
+        "luchador": [
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2026-03-01T20:26:37.132211",
+                "duration_seconds": 120,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2026-03-08T20:26:37.132211",
+                "duration_seconds": 180,
+                "sets": 3,
+                "reps": 12
             }
         ]
     }

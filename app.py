@@ -1564,7 +1564,7 @@ def get_patient_dashboard(username, full_name, current_search=""):
                         "Cuestionarios Especializados"
                     ], style=STYLES['card_header_tactical']),
                     
-                    html.P("Complete para evaluar su progreso:", style={'color': COLORS['muted'], 'fontSize': '0.9em'}),
+                    html.P("Complete para evaluar su progreso:", style={'color': '#ffffff', 'fontSize': '0.9em', 'fontWeight': '500'}),
                     
                     dcc.Dropdown(
                         id='questionnaire-select',
@@ -1573,7 +1573,7 @@ def get_patient_dashboard(username, full_name, current_search=""):
                             {'label': QUESTIONNAIRES['funcionalidad']['title'], 'value': 'funcionalidad'},
                         ],
                         placeholder='Seleccione...',
-                        style={'marginBottom': '15px', 'backgroundColor': '#000', 'color': '#fff'}
+                        style={'marginBottom': '15px', 'backgroundColor': '#000', 'color': '#fff', 'border': '1px solid #ff0000'}
                     ),
                     html.Div(id='selected-questionnaire-content'),
                     html.Div(id='questionnaire-submission-feedback')
@@ -2002,8 +2002,8 @@ def get_questionnaire_history_layout(username, full_name, current_search=""):
                 ]) if questionnaires else html.P("📭 No hay cuestionarios completados.", 
                                                  style={'textAlign': 'center', 'color': COLORS['muted'], 'padding': '40px'})
             ], style={'padding': '24px'})
-        ])
-    ])
+        ], style={'padding': '24px'})
+    ], style=STYLES['main_container'])
 
 # FUNCIÓN NUEVA: Vista de Citas para el Paciente (con categorías y acciones)
 def get_view_appointments_layout_patient(username, full_name, current_search=""):
@@ -2068,20 +2068,21 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
         notes_display = html.Div()
         if category == 'past':
             notes_display = html.Div([
-                html.P([html.Strong("Notas del Médico: "), html.Span(doctor_notes)]),
-                html.P([html.Strong("Estado: "), html.Span(status_text, className=f"text-{status_color}")])
-            ], className="mt-3 p-2 border rounded bg-light")
+                html.P([html.Strong("Notas del Médico: ", style={'color': '#ffffff'}), html.Span(doctor_notes, style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                html.P([html.Strong("Estado: ", style={'color': '#ffffff'}), html.Span(status_text, className=f"text-{status_color}")], style={'color': '#ffffff'})
+            ], style={'marginTop': '15px', 'padding': '12px', 'border': f'1px solid {COLORS["border_soft"]}', 'borderRadius': '5px', 'backgroundColor': '#111111'})
 
         return dbc.Card(
             dbc.CardBody([
-                html.H5(f"Consulta con {app['professional_name']}", className="card-title text-primary"),
-                html.P(f"📅 Fecha y Hora: {appt_dt.strftime('%d/%m/%Y %H:%M')}", className="card-text"),
-                html.P(f"🏥 Lugar: {app['hospital']} - {app['office']}", className="card-text"),
-                html.P(f"📝 Comentarios: {app['comments']}", className="card-text text-muted"),
+                html.H5(f"Consulta con {app['professional_name']}", className="card-title", style={'color': COLORS['primary']}),
+                html.P(f"📅 Fecha y Hora: {appt_dt.strftime('%d/%m/%Y %H:%M')}", className="card-text", style={'color': '#ffffff'}),
+                html.P(f"🏥 Lugar: {app['hospital']} - {app['office']}", className="card-text", style={'color': '#ffffff'}),
+                html.P(f"📝 Comentarios: {app['comments']}", className="card-text", style={'color': COLORS['muted']}),
                 notes_display,
-                html.Div(actions, className="mt-3")
+                html.Div(actions, className="mt-3 d-flex gap-2")
             ]),
-            className="mb-3"
+            className="mb-3",
+            style={'backgroundColor': '#0a0a0a', 'border': f'2px solid {COLORS["border_neon"]}', 'color': '#ffffff'}
         )
     
     return html.Div([
@@ -2095,7 +2096,7 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
                 html.H4("🚨 Citas Pendientes de Confirmación", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
                 html.Div(
                     [build_appointment_card(app, 'pending') for app in pending_apps]
-                ) if pending_apps else html.P("✅ No tienes citas pendientes de acción.", className="p-3 bg-light rounded text-muted")
+                ) if pending_apps else html.P("✅ No tienes citas pendientes de acción.", style={'padding': '20px', 'backgroundColor': '#1a1b1e', 'borderRadius': '5px', 'color': COLORS['muted']})
             ], style=STYLES['card']),
 
             # --- Próximas Citas Confirmadas ---
@@ -2103,7 +2104,7 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
                 html.H4("✅ Próximas Citas", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
                 html.Div(
                     [build_appointment_card(app, 'upcoming') for app in upcoming_apps]
-                ) if upcoming_apps else html.P("📅 No hay citas confirmadas próximas.", className="p-3 bg-light rounded text-muted")
+                ) if upcoming_apps else html.P("📅 No hay citas confirmadas próximas.", style={'padding': '20px', 'backgroundColor': '#1a1b1e', 'borderRadius': '5px', 'color': COLORS['muted']})
             ], style=STYLES['card']),
 
             # --- Citas Anteriores (Historial) ---
@@ -2111,13 +2112,13 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
                 html.H4("📜 Citas Anteriores", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
                 html.Div(
                     [build_appointment_card(app, 'past') for app in past_apps]
-                ) if past_apps else html.P("📭 No hay historial de citas.", className="p-3 bg-light rounded text-muted")
+                ) if past_apps else html.P("📭 No hay historial de citas.", style={'padding': '20px', 'backgroundColor': '#1a1b1e', 'borderRadius': '5px', 'color': COLORS['muted']})
             ], style=STYLES['card']),
             
             html.Div(id='patient-appt-action-feedback', className="mt-3") # Feedback de acciones
             
-        ], style={'padding': '24px'})
-    ])
+        ], style={'padding': '24px'}),
+    ], style=STYLES['main_container'])
 
 # FUNCIÓN AÑADIDA: Visor de Datos de Pacientes (MODIFICADA para incluir gráficos)
 def get_patient_data_viewer_layout(username, full_name, current_search=""): 
@@ -2137,18 +2138,18 @@ def get_patient_data_viewer_layout(username, full_name, current_search=""):
                 html.H4("🔬 Visor de Datos de Pacientes", 
                         style={'color': COLORS['primary'], 'marginBottom': '20px'}),
                 
-                html.Label("👤 Seleccionar Paciente", style={'fontWeight': '600', 'marginBottom': '10px'}),
+                html.Label("👤 Seleccionar Paciente", style={'fontWeight': '600', 'marginBottom': '10px', 'color': '#ffffff'}),
                 dcc.Dropdown(
                     id='doctor-patient-select',
                     placeholder='Buscar paciente...',
-                    style={'marginBottom': '20px'}
+                    style={'marginBottom': '20px', 'backgroundColor': '#000', 'color': '#fff', 'border': '1px solid #ff0000'}
                 ),
 
                 # --- BOTÓN DE EXPORTACIÓN CORREGIDO ---
                 html.Div([
                     dbc.Button([
                         html.I(className="bi bi-download me-2"), "📥 Exportar Historial (CSV)"
-                    ], id="btn-export-csv", color="success", className="mb-3", n_clicks=0),
+                    ], id="btn-export-csv", style=STYLES['button_primary'], className="mb-3", n_clicks=0),
                     dcc.Download(id="download-dataframe-csv"),
                 ]),
                 # ---------------------------------------
@@ -2159,18 +2160,20 @@ def get_patient_data_viewer_layout(username, full_name, current_search=""):
                     html.Div([
                         html.H4("❤️ Monitorización ECG", style={'color':COLORS['primary'], 'marginBottom': '15px'}),
                         dcc.Graph(id="doctor-ecg-graph", figure=initial_ecg_fig), 
-                        html.Div(id="doctor-bpm-output", children=initial_bpm_text, className="mt-2 fw-bold", style={'color': COLORS['secondary']}),
+                        html.Div(id="doctor-bpm-output", children=initial_bpm_text, className="mt-2 fw-bold", style={'color': COLORS['primary'], 'fontSize': '1.2em'}),
                     ], style=STYLES['card'])
                 ]),
                 dcc.Store(id='doctor-selected-patient-username', data=None)
 
             ], style=STYLES['card'])
         ], style={'padding': '24px'})
-    ])
+    ], style=STYLES['main_container'])
 
 # FUNCIÓN AUXILIAR MEJORADA: Construir Tabla de Citas (Soporta rol Médico y Paciente)
-def build_appointments_table(username, role):
-    """Construye la tabla de citas para un usuario (Médico o Paciente) sin columnas de acciones para el médico."""
+def build_appointments_table(username, role, filter_type='all'):
+    """Construye la tabla de citas para un usuario (Médico o Paciente) sin columnas de acciones para el médico.
+    filter_type puede ser: 'all' (todas), 'today' (hoy), 'past' (anteriores)
+    """
     try:
         if role == 'medico':
             appointments = db.get_doctor_appointments(username)
@@ -2178,7 +2181,27 @@ def build_appointments_table(username, role):
             appointments = db.get_patient_appointments(username)
         else:
             appointments = []
+        
+        # Filtrar según el tipo
+        now = datetime.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        if filter_type == 'today':
+            # Citas de hoy
+            appointments = [
+                app for app in appointments
+                if today_start <= datetime.fromisoformat(app['datetime']) <= today_end
+            ]
+        elif filter_type == 'past':
+            # Citas anteriores (pasado)
+            appointments = [
+                app for app in appointments
+                if datetime.fromisoformat(app['datetime']) < today_start
+            ]
+        # Si es 'all', no filtramos, mostramos todas
             
+        # Ordenar de más reciente a más antiguo
         appointments.sort(key=lambda x: x['datetime'], reverse=True)
         
         if not appointments:
@@ -2202,7 +2225,10 @@ def build_appointments_table(username, role):
             except ValueError:
                 appointment_datetime = datetime.now() 
             
-            patient_cell = html.Td(app['patient_username']) if role == 'medico' else html.Td(app['professional_name'])
+            # Cambiar colores según el rol
+            text_color = '#000000' if role == 'medico' else '#ffffff'
+            
+            patient_cell = html.Td(app['patient_username'], style={'color': text_color}) if role == 'medico' else html.Td(app['professional_name'], style={'color': '#ffffff'})
             
             # Obtener estado
             status_info = STATUS_MAP.get(app.get('status', 'default'), STATUS_MAP['default'])
@@ -2215,33 +2241,44 @@ def build_appointments_table(username, role):
             # No se añade actions_data_cell para cumplir con la solicitud
 
             row_content = [
-                html.Td(appointment_datetime.strftime('%d/%m/%Y')),
-                html.Td(appointment_datetime.strftime('%H:%M')),
+                html.Td(appointment_datetime.strftime('%d/%m/%Y'), style={'color': text_color}),
+                html.Td(appointment_datetime.strftime('%H:%M'), style={'color': text_color}),
                 patient_cell,
-                html.Td(f"{app['hospital']} - {app['office']}"),
-                html.Td(app['comments'][:50] + '...' if len(app.get('comments', '')) > 50 else app.get('comments', '')),
-                html.Td(status_badge) # El estado siempre se muestra como badge
+                html.Td(f"{app['hospital']} - {app['office']}", style={'color': text_color}),
+                html.Td(app['comments'][:50] + '...' if len(app.get('comments', '')) > 50 else app.get('comments', ''), style={'color': text_color if role == 'medico' else COLORS['muted']}),
+                html.Td(status_badge, style={'color': text_color}) # El estado siempre se muestra como badge
             ]
             
             # Solo añadir acciones si se definieron
             if actions_data_cell:
                 row_content.append(actions_data_cell)
 
-            table_rows.append(html.Tr(row_content))
+            table_rows.append(html.Tr(row_content, style={'borderBottom': f'1px solid {COLORS["border_soft"]}'}))
         
-        header = [html.Th("Fecha"), html.Th("Hora")]
+        header = [html.Th("Fecha", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'}), 
+                  html.Th("Hora", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'})]
         if role == 'medico':
             # Se eliminan las columnas de "Acciones" (que irían al final)
-            header.extend([html.Th("Paciente"), html.Th("Lugar"), html.Th("Comentarios"), html.Th("Estado")])
+            header.extend([
+                html.Th("Paciente", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'}), 
+                html.Th("Lugar", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'}), 
+                html.Th("Comentarios", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'}), 
+                html.Th("Estado", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'})
+            ])
         elif role == 'paciente':
-             header.extend([html.Th("Profesional"), html.Th("Lugar"), html.Th("Comentarios"), html.Th("Estado")])
+             header.extend([
+                 html.Th("Profesional", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'}), 
+                 html.Th("Lugar", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'}), 
+                 html.Th("Comentarios", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'}), 
+                 html.Th("Estado", style={'color': COLORS['primary'], 'textTransform': 'uppercase', 'fontWeight': 'bold'})
+             ])
              if actions_header_cell:
                  header.append(actions_header_cell)
         
         return dbc.Table([
-            html.Thead(html.Tr(header)),
-            html.Tbody(table_rows)
-        ], striped=True, hover=True)
+            html.Thead(html.Tr(header, style={'backgroundColor': '#111111', 'borderBottom': f'2px solid {COLORS["border_neon"]}'})),
+            html.Tbody(table_rows, style={'backgroundColor': '#0a0a0a'})
+        ], striped=False, hover=True, style={'color': text_color, 'border': f'2px solid {COLORS["border_neon"]}', 'borderRadius': '5px', 'overflow': 'hidden'})
         
     except Exception as e:
         return html.P(f"❌ Error al cargar citas: {str(e)}", style={'color': 'red'})
@@ -2251,24 +2288,60 @@ def get_view_appointments_layout(username, full_name, role, current_search=""):
     """Layout para ver todas las citas programadas"""
     role_symbol = "👨‍⚕️" if role == 'medico' else "🧑‍🦽"
     
-    return html.Div([
-        get_user_navbar(role_symbol, full_name, "Gestión de Citas", current_search), 
-        
-        html.Div([
-            dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-4", href=f"/{current_search}", color="primary", 
-                       style={'marginBottom': '20px'}),
+    # Si es médico, mostrar citas filtradas en diferentes secciones
+    if role == 'medico':
+        return html.Div([
+            get_user_navbar(role_symbol, full_name, "Gestión de Citas", current_search), 
             
             html.Div([
-                html.H4("📅 Historial de Citas", 
-                        style={'color': COLORS['primary'], 'marginBottom': '20px'}),
+                dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-4", href=f"/{current_search}", color="primary", 
+                           style={'marginBottom': '20px'}),
                 
-                # Este div se actualizará dinámicamente con el callback de recarga
-                html.Div(id='appointments-table-container', children=build_appointments_table(username, role))
-            ], style=STYLES['card'])
-        ], style={'padding': '24px'}),
-        
-        get_edit_appointment_modal(), # Mantenemos el modal para evitar problemas de componente inexistente en el layout global, aunque esté vacío.
-    ])
+                # Sección 1: Citas Generales
+                html.Div([
+                    html.H4("📅 Todas las Citas", 
+                            style={'color': COLORS['primary'], 'marginBottom': '20px'}),
+                    html.Div(id='appointments-table-container-all', children=build_appointments_table(username, role, 'all'))
+                ], style=STYLES['card']),
+                
+                # Sección 2: Citas de Hoy
+                html.Div([
+                    html.H4("🕐 Citas de Hoy", 
+                            style={'color': COLORS['primary'], 'marginBottom': '20px'}),
+                    html.Div(id='appointments-table-container-today', children=build_appointments_table(username, role, 'today'))
+                ], style=STYLES['card']),
+                
+                # Sección 3: Citas Anteriores
+                html.Div([
+                    html.H4("📜 Citas Anteriores", 
+                            style={'color': COLORS['primary'], 'marginBottom': '20px'}),
+                    html.Div(id='appointments-table-container-past', children=build_appointments_table(username, role, 'past'))
+                ], style=STYLES['card']),
+                
+            ], style={'padding': '24px'}),
+            
+            get_edit_appointment_modal(),
+        ], style=STYLES['main_container'])
+    else:
+        # Para otros roles, mostrar la vista anterior
+        return html.Div([
+            get_user_navbar(role_symbol, full_name, "Gestión de Citas", current_search), 
+            
+            html.Div([
+                dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-4", href=f"/{current_search}", color="primary", 
+                           style={'marginBottom': '20px'}),
+                
+                html.Div([
+                    html.H4("📅 Historial de Citas", 
+                            style={'color': COLORS['primary'], 'marginBottom': '20px'}),
+                    
+                    # Este div se actualizará dinámicamente con el callback de recarga
+                    html.Div(id='appointments-table-container', children=build_appointments_table(username, role, 'all'))
+                ], style=STYLES['card'])
+            ], style={'padding': '24px'}),
+            
+            get_edit_appointment_modal(),
+        ], style=STYLES['main_container'])
 
 
 # ---------- Layout principal MEJORADO con Divs Fantasma y Stores de control ----------
@@ -2357,6 +2430,9 @@ app.layout = html.Div([
         
         # Contenedores de layouts dinámicos
         html.Div(id='appointments-table-container'),
+        html.Div(id='appointments-table-container-all'),
+        html.Div(id='appointments-table-container-today'),
+        html.Div(id='appointments-table-container-past'),
         html.Div(id='patient-appointments-list'),
         html.Div(id='doctor-patient-display'),
         html.Div(id='doctor-ecg-container'),
@@ -2551,13 +2627,13 @@ def refresh_patient_appointments_list(n_intervals, username):
         
         content = html.Ul([
             html.Li([
-                html.Strong(f"{app['professional_name']} - "),
-                html.Span(f"{datetime.fromisoformat(app['datetime']).strftime('%d/%m/%Y %H:%M')}"),
+                html.Strong(f"{app['professional_name']} - ", style={'color': '#ffffff'}),
+                html.Span(f"{datetime.fromisoformat(app['datetime']).strftime('%d/%m/%Y %H:%M')}", style={'color': '#ffffff'}),
                 html.Br(),
                 html.Span(f"🏥 {app['hospital']} - {app['office']} ({app.get('status', 'Scheduled').capitalize()})", style={'fontSize': '0.9em', 'color': COLORS['muted']}),
                 html.Br(),
                 html.Span(f"📝 {app['comments']}", style={'fontSize': '0.9em', 'color': COLORS['muted']})
-            ], style={'marginBottom': '10px', 'padding': '10px', 'background': '#f8f9fa', 'borderRadius': '5px'})
+            ], style={'marginBottom': '10px', 'padding': '10px', 'background': '#111111', 'borderRadius': '5px', 'border': f'1px solid {COLORS["border_soft"]}'})
             for app in upcoming_appointments[:5]
         ], style={'paddingLeft': '20px'})
         
@@ -2573,7 +2649,10 @@ def refresh_patient_appointments_list(n_intervals, username):
 
 # NUEVO CALLBACK: Recarga la tabla de citas del médico/paciente cuando el trigger cambia
 @app.callback(
-    Output('appointments-table-container', 'children', allow_duplicate=True),
+    [Output('appointments-table-container', 'children', allow_duplicate=True),
+     Output('appointments-table-container-all', 'children', allow_duplicate=True),
+     Output('appointments-table-container-today', 'children', allow_duplicate=True),
+     Output('appointments-table-container-past', 'children', allow_duplicate=True)],
     Input('appointments-reload-trigger', 'data'),
     [State('user-session-state', 'data'),
      State('url', 'pathname')], 
@@ -2582,12 +2661,17 @@ def refresh_patient_appointments_list(n_intervals, username):
 def reload_appointments_table_on_trigger(trigger_value, user_data, pathname):
     # Solo recarga si estamos en la vista de citas del médico
     if pathname == '/view-appointments' and user_data.get('username') and user_data.get('role') == 'medico':
-        return build_appointments_table(user_data['username'], user_data['role'])
+        return (
+            dash.no_update,  # appointments-table-container (no usado para médico)
+            build_appointments_table(user_data['username'], user_data['role'], 'all'),
+            build_appointments_table(user_data['username'], user_data['role'], 'today'),
+            build_appointments_table(user_data['username'], user_data['role'], 'past')
+        )
     # Si estamos en la vista de citas del paciente, forzamos la recarga de esa vista
     if pathname == '/view-patient-appointments' and user_data.get('username') and user_data.get('role') == 'paciente':
          # Simplemente actualizamos el layout de citas del paciente si se confirma/cancela una cita
-         return dash.no_update 
-    return dash.no_update
+         return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 # NUEVO CALLBACK: Habilita/Deshabilita el intervalo de refresco de citas
 @app.callback(
@@ -2672,7 +2756,7 @@ def display_questionnaire(selected_questionnaire):
     questions_content = []
     for i, question in enumerate(questionnaire['questions']):
         question_html = html.Div([
-            html.H6(f"{i+1}. {question['question']}", style={'marginBottom': '10px', 'fontWeight': 'bold'}),
+            html.H6(f"{i+1}. {question['question']}", style={'marginBottom': '10px', 'fontWeight': 'bold', 'color': '#ffffff'}),
         ])
         
         component_id = {'type': f'q-{questionnaire["id"]}-input', 'index': question['id']}
@@ -2686,7 +2770,10 @@ def display_questionnaire(selected_questionnaire):
                     step=question.get('step', 1),
                     value=question.get('min', 0),
                     marks=question.get('marks', {i: str(i) for i in range(question['min'], question['max']+1, max(1, (question['max']-question['min'])//5))}),
-                    tooltip={"placement": "bottom", "always_visible": True}
+                    tooltip={"placement": "bottom", "always_visible": True},
+                    trackStyle={'backgroundColor': '#ff0000'},
+                    railStyle={'backgroundColor': '#333333'},
+                    markStyle={'color': '#ffffff'}
                 )
             )
         elif question['type'] == 'radio':
@@ -2696,7 +2783,7 @@ def display_questionnaire(selected_questionnaire):
                     options=question['options'],
                     value=question['options'][0]['value'] if question['options'] else None,
                     style={'marginBottom': '15px'},
-                    labelStyle={'display': 'block', 'marginBottom': '10px'} 
+                    labelStyle={'display': 'block', 'marginBottom': '10px', 'color': '#ffffff', 'fontWeight': '500'}
                 )
             )
             
@@ -2713,18 +2800,21 @@ def display_questionnaire(selected_questionnaire):
                 'padding': '12px',
                 'background': COLORS['primary'],
                 'color': 'white',
-                'border': 'none',
+                'border': '2px solid #ff0000',
                 'borderRadius': '8px',
                 'cursor': 'pointer',
                 'fontWeight': '600',
-                'marginTop': '15px'
+                'marginTop': '15px',
+                'textTransform': 'uppercase',
+                'letterSpacing': '1px',
+                'boxShadow': '0 0 10px rgba(255, 0, 0, 0.3)'
             }
         )
     )
     
     return html.Div([
         html.H5(questionnaire['title'], style={'color': COLORS['primary'], 'marginBottom': '10px'}),
-        html.P(questionnaire['description'], style={'color': COLORS['muted'], 'marginBottom': '20px'}),
+        html.P(questionnaire['description'], style={'color': '#ffffff', 'marginBottom': '20px', 'fontWeight': '500'}),
         *questions_content
     ])
 
@@ -3841,14 +3931,14 @@ def display_selected_patient_data(patient_username):
             html.H4("📋 Información Personal", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
             dbc.Row([
                 dbc.Col([
-                    html.P([html.Strong("👤 Nombre: "), user_data.get('basic_info', {}).get('full_name', 'N/A')]),
-                    html.P([html.Strong("📧 Email: "), user_data.get('profile', {}).get('email', 'N/A')]),
-                    html.P([html.Strong("📞 Teléfono: "), user_data.get('profile', {}).get('phone', 'N/A')]),
+                    html.P([html.Strong("👤 Nombre: ", style={'color': '#ffffff'}), html.Span(user_data.get('basic_info', {}).get('full_name', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("📧 Email: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('email', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("📞 Teléfono: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('phone', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 ], width=6),
                 dbc.Col([
-                    html.P([html.Strong("🆔 DNI: "), user_data.get('profile', {}).get('dni', 'N/A')]),
-                    html.P([html.Strong("🎂 Fecha Nacimiento: "), user_data.get('profile', {}).get('birth_date', 'N/A')]),
-                    html.P([html.Strong("🏠 Dirección: "), user_data.get('profile', {}).get('address', 'N/A')]),
+                    html.P([html.Strong("🆔 DNI: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('dni', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("🎂 Fecha Nacimiento: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('birth_date', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("🏠 Dirección: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('address', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 ], width=6)
             ])
         ], style=STYLES['card'])
@@ -3857,14 +3947,14 @@ def display_selected_patient_data(patient_username):
             html.H4("🏥 Información Médica", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
             dbc.Row([
                 dbc.Col([
-                    html.P([html.Strong("📝 Diagnóstico: "), user_data.get('patient_info', {}).get('diagnosis', 'N/A')]),
-                    html.P([html.Strong("👨‍⚕️ Médico: "), user_data.get('patient_info', {}).get('doctor_user', 'N/A')]),
-                    html.P([html.Strong("🩸 Tipo Sangre: "), user_data.get('profile', {}).get('blood_type', 'N/A')]),
+                    html.P([html.Strong("📝 Diagnóstico: ", style={'color': '#ffffff'}), html.Span(user_data.get('patient_info', {}).get('diagnosis', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("👨‍⚕️ Médico: ", style={'color': '#ffffff'}), html.Span(user_data.get('patient_info', {}).get('doctor_user', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("🩸 Tipo Sangre: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('blood_type', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 ], width=6),
                 dbc.Col([
-                    html.P([html.Strong("⚠️ Alergias: "), user_data.get('profile', {}).get('allergies', 'N/A')]),
-                    html.P([html.Strong("💊 Medicamentos: "), user_data.get('profile', {}).get('current_medications', 'N/A')]),
-                    html.P([html.Strong("📋 Condiciones: "), user_data.get('profile', {}).get('medical_conditions', 'N/A')]),
+                    html.P([html.Strong("⚠️ Alergias: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('allergies', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("💊 Medicamentos: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('current_medications', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("📋 Condiciones: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('medical_conditions', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 ], width=6)
             ])
         ], style=STYLES['card'])
@@ -3901,16 +3991,16 @@ def display_selected_patient_data(patient_username):
                     
                     html.Ul([
                         html.Li([
-                            html.Strong(f"{key.replace('_', ' ').title()}: "),
-                            html.Span(str(value))
-                        ], style={'marginBottom': '4px', 'fontSize': '13px', 'color': COLORS['text']})
+                            html.Strong(f"{key.replace('_', ' ').title()}: ", style={'color': '#ffffff'}),
+                            html.Span(str(value), style={'color': COLORS['muted']})
+                        ], style={'marginBottom': '4px', 'fontSize': '13px', 'color': '#ffffff'})
                         for key, value in q.get('responses', {}).items()
                     ], style={'paddingLeft': '20px'}),
                     
-                    html.Hr(style={'margin': '15px 0'})
+                    html.Hr(style={'margin': '15px 0', 'borderColor': COLORS['border_soft']})
                 ]) for q in quests_list
             ], style={'maxHeight': '400px', 'overflowY': 'auto'}) # Scroll para que no ocupe demasiado si hay muchos
-        ] if quests_list else html.P("📭 No hay cuestionarios completados."), style=STYLES['card'])
+        ] if quests_list else html.P("📭 No hay cuestionarios completados.", style={'color': COLORS['muted']}), style=STYLES['card'])
 
         # 2. Historial de Ejercicios (Texto)
         ex_list = user_data.get('exercises', [])
@@ -3932,10 +4022,10 @@ def display_selected_patient_data(patient_username):
                         html.Br(),
                         html.Strong(f"Duración: "),
                         html.Span(f"{ex['duration_seconds']} segundos" if ex.get('duration_seconds') else "No registrada")
-                    ], style={'marginBottom': '15px', 'padding': '10px', 'background': '#f8f9fa', 'borderRadius': '8px'})
+                    ], style={'marginBottom': '15px', 'padding': '10px', 'background': '#111111', 'borderRadius': '8px', 'border': f'1px solid {COLORS["border_soft"]}', 'color': '#ffffff'})
                 ]) for ex in ex_list
             ], style={'maxHeight': '400px', 'overflowY': 'auto'})
-        ] if ex_list else html.P("📭 No hay ejercicios registrados."), style=STYLES['card'])
+        ] if ex_list else html.P("📭 No hay ejercicios registrados.", style={'color': COLORS['muted']}), style=STYLES['card'])
         
         # --- RETORNO DEL LAYOUT COMPLETO ---
         return html.Div([
