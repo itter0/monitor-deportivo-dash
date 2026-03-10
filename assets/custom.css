@@ -1,0 +1,30 @@
+/* Estilos personalizados para los Sliders del cuestionario */
+
+/* Números y marcas debajo del slider en blanco */
+.rc-slider-mark-text {
+    color: #ffffff !important;
+}
+
+.rc-slider-mark {
+    color: #ffffff !important;
+}
+
+/* Valor mostrado en el tooltip en negro sobre fondo blanco */
+.rc-tooltip-inner {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    border: 1px solid #cccccc !important;
+}
+
+.rc-tooltip-arrow-inner {
+    border-top-color: #ffffff !important;
+}
+
+/* Actualización opcional para mejorar la visibilidad */
+.rc-slider-handle {
+    border-color: #ff0000 !important;
+}
+
+.rc-slider-track {
+    background-color: #ff0000 !important;
+}

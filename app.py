@@ -847,6 +847,154 @@ QUESTIONNAIRES = {
     },
 }
 
+QUESTIONNAIRES_BY_INJURY = {
+    'rodilla': ['dolor_rodilla', 'funcionalidad'],
+    'codo': ['dolor_codo', 'movilidad_codo'],
+    'hombro': ['dolor_hombro', 'movilidad_hombro'],
+}
+
+QUESTIONNAIRES['dolor_codo'] = {
+    'id': 'dolor_codo',
+    'title': '📋 Cuestionario de Dolor de Codo',
+    'description': 'Evalúa dolor y tolerancia funcional del codo.',
+    'questions': [
+        {
+            'id': 'q1',
+            'question': '¿Cómo calificaría su dolor de codo en reposo? (0 = sin dolor, 10 = dolor máximo)',
+            'type': 'slider',
+            'min': 0,
+            'max': 10,
+            'step': 1
+        },
+        {
+            'id': 'q2',
+            'question': '¿Cómo calificaría su dolor al agarrar o cargar objetos? (0 = sin dolor, 10 = dolor máximo)',
+            'type': 'slider',
+            'min': 0,
+            'max': 10,
+            'step': 1
+        },
+        {
+            'id': 'q3',
+            'question': '¿El dolor limita actividades como empujar/tirar?',
+            'type': 'radio',
+            'options': [
+                {'label': ' Sí, mucho', 'value': 'mucho'},
+                {'label': ' Sí, moderadamente', 'value': 'moderado'},
+                {'label': ' Sí, un poco', 'value': 'poco'},
+                {'label': ' No me limita', 'value': 'nada'}
+            ]
+        },
+    ]
+}
+
+QUESTIONNAIRES['movilidad_codo'] = {
+    'id': 'movilidad_codo',
+    'title': '📊 Cuestionario de Movilidad de Codo',
+    'description': 'Control de rango de movimiento y funcionalidad del codo.',
+    'questions': [
+        {
+            'id': 'q1',
+            'question': '¿Puede extender completamente el codo?',
+            'type': 'radio',
+            'options': [
+                {'label': ' Sí, sin dificultad', 'value': 'sin_dificultad'},
+                {'label': ' Sí, con molestia', 'value': 'con_molestia'},
+                {'label': ' No completamente', 'value': 'limitado'}
+            ]
+        },
+        {
+            'id': 'q2',
+            'question': 'Nivel de rigidez al despertar (0 = ninguna, 10 = máxima)',
+            'type': 'slider',
+            'min': 0,
+            'max': 10,
+            'step': 1
+        },
+    ]
+}
+
+QUESTIONNAIRES['dolor_hombro'] = {
+    'id': 'dolor_hombro',
+    'title': '📋 Cuestionario de Dolor de Hombro',
+    'description': 'Evalúa dolor en reposo y en movimientos por encima de la cabeza.',
+    'questions': [
+        {
+            'id': 'q1',
+            'question': '¿Cómo calificaría su dolor de hombro en reposo? (0 = sin dolor, 10 = dolor máximo)',
+            'type': 'slider',
+            'min': 0,
+            'max': 10,
+            'step': 1
+        },
+        {
+            'id': 'q2',
+            'question': '¿Cómo calificaría el dolor al levantar el brazo por encima del hombro?',
+            'type': 'slider',
+            'min': 0,
+            'max': 10,
+            'step': 1
+        },
+        {
+            'id': 'q3',
+            'question': '¿El dolor interfiere con el sueño?',
+            'type': 'radio',
+            'options': [
+                {'label': ' Sí, mucho', 'value': 'mucho'},
+                {'label': ' Sí, algo', 'value': 'algo'},
+                {'label': ' No', 'value': 'no'}
+            ]
+        },
+    ]
+}
+
+QUESTIONNAIRES['movilidad_hombro'] = {
+    'id': 'movilidad_hombro',
+    'title': '📊 Cuestionario de Movilidad de Hombro',
+    'description': 'Control de movilidad activa y tolerancia de carga del hombro.',
+    'questions': [
+        {
+            'id': 'q1',
+            'question': '¿Puede elevar el brazo lateralmente hasta la altura del hombro?',
+            'type': 'radio',
+            'options': [
+                {'label': ' Sí, sin dolor', 'value': 'sin_dolor'},
+                {'label': ' Sí, con dolor', 'value': 'con_dolor'},
+                {'label': ' No', 'value': 'no'}
+            ]
+        },
+        {
+            'id': 'q2',
+            'question': 'Nivel de limitación para actividades por encima de la cabeza (0-10)',
+            'type': 'slider',
+            'min': 0,
+            'max': 10,
+            'step': 1
+        },
+    ]
+}
+
+
+def get_recommended_questionnaires(health_status, injury_types=None):
+    """Retorna cuestionarios recomendados según estado de salud y lesiones."""
+    if health_status == 'listo':
+        return ['funcionalidad']
+
+    if health_status == 'lesionado' and injury_types:
+        if not isinstance(injury_types, list):
+            injury_types = [injury_types]
+
+        selected = []
+        seen = set()
+        for injury in injury_types:
+            for q_id in QUESTIONNAIRES_BY_INJURY.get(injury, []):
+                if q_id in QUESTIONNAIRES and q_id not in seen:
+                    selected.append(q_id)
+                    seen.add(q_id)
+        return selected
+
+    return ['funcionalidad']
+
 MMA_WEIGHT_CLASSES = [
     {'label': 'Peso Mosca (56.7 kg)', 'value': 'flyweight'},
     {'label': 'Peso Gallo (61.2 kg)', 'value': 'bantamweight'},
@@ -960,6 +1108,128 @@ def create_questionnaire_plot(questionnaires):
     fig_caminar = format_fig(data_q2, '🟠 Dolor al Caminar', '#f59e0b')
 
     return fig_reposo, fig_caminar
+
+def create_dynamic_questionnaire_graphs(questionnaires_data, questionnaire_id):
+    """
+    Genera gráficas dinámicas para un cuestionario específico.
+    Crea una gráfica por cada pregunta de tipo 'slider'.
+    
+    Args:
+        questionnaires_data: Lista de respuestas históricas
+        questionnaire_id: ID del cuestionario (ej: 'dolor_rodilla', 'dolor_codo')
+    
+    Returns:
+        dict: {question_id: figure} para cada pregunta tipo slider
+    """
+    graphs = {}
+    
+    questionnaire = QUESTIONNAIRES.get(questionnaire_id)
+    if not questionnaire:
+        return graphs
+    
+    # Filtrar solo preguntas de tipo slider
+    slider_questions = [q for q in questionnaire['questions'] if q.get('type') == 'slider']
+    
+    if not questionnaires_data:
+        # Retornar gráficas vacías para cada slider
+        for q in slider_questions:
+            empty = go.Figure().add_annotation(
+                text="Sin datos registrados", 
+                font=dict(color="#555555", size=14),
+                showarrow=False
+            )
+            empty.update_layout(
+                height=280, 
+                paper_bgcolor='black', 
+                plot_bgcolor='black',
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False)
+            )
+            graphs[q['id']] = empty
+        return graphs
+    
+    # Extraer datos para cada pregunta
+    for q in slider_questions:
+        data = []
+        for questionnaire_entry in questionnaires_data:
+            try:
+                if questionnaire_entry.get('questionnaire_id') == questionnaire_id:
+                    if q['id'] in questionnaire_entry.get('responses', {}):
+                        ts = datetime.fromisoformat(questionnaire_entry['timestamp'])
+                        value = questionnaire_entry['responses'][q['id']]
+                        if value is not None:
+                            data.append({'timestamp': ts, 'Valor': float(value)})
+            except (ValueError, TypeError):
+                continue
+        
+        # Crear figura para esta pregunta
+        if not data:
+            empty = go.Figure().add_annotation(
+                text="Sin respuestas", 
+                font=dict(color="#555555", size=14),
+                showarrow=False
+            )
+            empty.update_layout(
+                height=280, 
+                paper_bgcolor='black', 
+                plot_bgcolor='black',
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False)
+            )
+            graphs[q['id']] = empty
+        else:
+            df = pd.DataFrame(data).sort_values('timestamp')
+            fig = px.line(df, x='timestamp', y='Valor', markers=True, title=q['question'][:50])
+            
+            # Colores dinámicos según el tipo de pregunta
+            line_color = '#ef4444' if 'dolor' in q['question'].lower() else '#3b82f6'
+            
+            fig.update_traces(
+                line=dict(width=2, color=line_color), 
+                marker=dict(
+                    size=8, 
+                    color=line_color, 
+                    symbol='circle',
+                    line=dict(width=1, color='white')
+                ),
+                mode='lines+markers'
+            )
+            
+            q_min = q.get('min', 0)
+            q_max = q.get('max', 10)
+            
+            fig.update_layout(
+                yaxis=dict(
+                    range=[q_min - 1, q_max + 1], 
+                    dtick=1, 
+                    gridcolor="#1a1a1a",
+                    zerolinecolor="#333333",
+                    color="#666666",
+                    title_text="Valor",
+                    fixedrange=True
+                ),
+                xaxis=dict(
+                    gridcolor="#1a1a1a", 
+                    zerolinecolor="#333333",
+                    color="#666666",
+                    title_text="Fecha",
+                    fixedrange=True
+                ),
+                height=280,
+                margin=dict(l=40, r=10, t=50, b=40),
+                template="plotly_dark", 
+                paper_bgcolor='black',
+                plot_bgcolor='black',
+                title={
+                    'text': q['question'][:50],
+                    'x': 0.05,
+                    'xanchor': 'left',
+                    'font': {'size': 12, 'color': '#888888', 'family': 'Arial'}
+                }
+            )
+            graphs[q['id']] = fig
+    
+    return graphs
 
 def create_exercise_plot(exercises):
     if not exercises:
@@ -1569,8 +1839,9 @@ def get_patient_dashboard(username, full_name, current_search=""):
                     dcc.Dropdown(
                         id='questionnaire-select',
                         options=[
-                            {'label': QUESTIONNAIRES['dolor_rodilla']['title'], 'value': 'dolor_rodilla'},
-                            {'label': QUESTIONNAIRES['funcionalidad']['title'], 'value': 'funcionalidad'},
+                            {'label': QUESTIONNAIRES[q_id]['title'], 'value': q_id}
+                            for q_id in get_recommended_questionnaires(health_status, injury_types)
+                            if q_id in QUESTIONNAIRES
                         ],
                         placeholder='Seleccione...',
                         style={'marginBottom': '15px', 'backgroundColor': '#000', 'color': '#fff', 'border': '1px solid #ff0000'}
@@ -1584,16 +1855,18 @@ def get_patient_dashboard(username, full_name, current_search=""):
 
             # COLUMNA DERECHA
             html.Div([
-                # Evolución del Dolor
+                # Evolución del Dolor (Dinámico según cuestionario)
                 html.Div([
                     html.Div([
                         html.Span("📈 ", style={'fontSize': '1.2em'}),
-                        "Evolución del Dolor"
+                        "Evolución de Respuestas"
                     ], style=STYLES['card_header_tactical']),
                     
-                    dbc.Row([
-                        dbc.Col(dcc.Graph(id="questionnaire-q1-graph", figure=fig_q1, config={'displayModeBar': False}), width=12, lg=6),
-                        dbc.Col(dcc.Graph(id="questionnaire-q2-graph", figure=fig_q2, config={'displayModeBar': False}), width=12, lg=6),
+                    html.Div(id='questionnaire-dynamic-graphs', children=[
+                        dbc.Row([
+                            dbc.Col(dcc.Graph(id="questionnaire-q1-graph", figure=fig_q1, config={'displayModeBar': False}), width=12, lg=6),
+                            dbc.Col(dcc.Graph(id="questionnaire-q2-graph", figure=fig_q2, config={'displayModeBar': False}), width=12, lg=6),
+                        ])
                     ]),
                 ], style=STYLES['card']),
 
@@ -2606,6 +2879,128 @@ def reload_progress_graphs(trigger, username):
             return dash.no_update, dash.no_update, dash.no_update
     return dash.no_update, dash.no_update, dash.no_update
 
+# NUEVO CALLBACK: Actualiza gráficas dinámicamente según el cuestionario seleccionado
+@app.callback(
+    Output('questionnaire-dynamic-graphs', 'children'),
+    [Input('questionnaire-select', 'value'),
+     Input('reload-trigger', 'data')],
+    [State('current-patient-username', 'data'),
+     State('questionnaire-select', 'options')],
+    prevent_initial_call=True
+)
+def update_dynamic_questionnaire_graphs(selected_questionnaire, reload_trigger, username, questionnaire_options):
+    """
+    Actualiza dinámicamente las gráficas según el cuestionario seleccionado.
+    Se ejecuta cuando:
+    1. Cambia el cuestionario seleccionado
+    2. Se recarga tras enviar un cuestionario (reload-trigger)
+    """
+    if not username or not selected_questionnaire:
+        return dbc.Row([
+            dbc.Col(dcc.Graph(
+                figure=go.Figure().add_annotation(
+                    text="Selecciona un cuestionario",
+                    font=dict(color="#555555", size=14),
+                    showarrow=False
+                ).update_layout(
+                    height=280,
+                    paper_bgcolor='black',
+                    plot_bgcolor='black',
+                    xaxis=dict(visible=False),
+                    yaxis=dict(visible=False)
+                ),
+                config={'displayModeBar': False}
+            ), width=12)
+        ])
+    
+    try:
+        # Obtener datos de cuestionarios del paciente
+        patient_data = db.get_complete_user_data(username) or {}
+        questionnaires_data = patient_data.get('questionnaires', [])
+        
+        # Generar gráficas dinámicas para el cuestionario seleccionado
+        graphs = create_dynamic_questionnaire_graphs(questionnaires_data, selected_questionnaire)
+        
+        if not graphs:
+            return dbc.Row([
+                dbc.Col(dcc.Graph(
+                    figure=go.Figure().add_annotation(
+                        text="No hay preguntas de tipo slider en este cuestionario",
+                        font=dict(color="#555555", size=14),
+                        showarrow=False
+                    ).update_layout(
+                        height=280,
+                        paper_bgcolor='black',
+                        plot_bgcolor='black',
+                        xaxis=dict(visible=False),
+                        yaxis=dict(visible=False)
+                    ),
+                    config={'displayModeBar': False}
+                ), width=12)
+            ])
+        
+        # Crear filas de gráficas (2 gráficas por fila)
+        graph_items = []
+        question_ids = list(graphs.keys())
+        
+        for i in range(0, len(question_ids), 2):
+            cols = []
+            for j in range(2):
+                if i + j < len(question_ids):
+                    q_id = question_ids[i + j]
+                    cols.append(
+                        dbc.Col(
+                            dcc.Graph(
+                                figure=graphs[q_id],
+                                config={'displayModeBar': False}
+                            ),
+                            width=12,
+                            lg=6
+                        )
+                    )
+            if cols:
+                graph_items.append(dbc.Row(cols))
+        
+        # Si no hay gráficas, mostrar mensaje
+        if not graph_items:
+            return dbc.Row([
+                dbc.Col(dcc.Graph(
+                    figure=go.Figure().add_annotation(
+                        text="Sin datos registrados",
+                        font=dict(color="#555555", size=14),
+                        showarrow=False
+                    ).update_layout(
+                        height=280,
+                        paper_bgcolor='black',
+                        plot_bgcolor='black',
+                        xaxis=dict(visible=False),
+                        yaxis=dict(visible=False)
+                    ),
+                    config={'displayModeBar': False}
+                ), width=12)
+            ])
+        
+        return graph_items
+        
+    except Exception as e:
+        print(f"Error al actualizar gráficas dinámicas: {e}")
+        return dbc.Row([
+            dbc.Col(dcc.Graph(
+                figure=go.Figure().add_annotation(
+                    text=f"Error: {str(e)[:50]}",
+                    font=dict(color="red", size=12),
+                    showarrow=False
+                ).update_layout(
+                    height=280,
+                    paper_bgcolor='black',
+                    plot_bgcolor='black',
+                    xaxis=dict(visible=False),
+                    yaxis=dict(visible=False)
+                ),
+                config={'displayModeBar': False}
+            ), width=12)
+        ])
+
 # NUEVO CALLBACK: Refresca la lista de citas pendientes del paciente (cada 30s)
 @app.callback(
     Output('patient-appointments-list', 'children'),
@@ -2709,9 +3104,10 @@ def handle_registration_visibility(role):
 
 @app.callback(
     Output('selected-questionnaire-content', 'children'),
-    Input('questionnaire-select', 'value')
+    Input('questionnaire-select', 'value'),
+    State('current-patient-username', 'data')
 )
-def display_questionnaire(selected_questionnaire):
+def display_questionnaire(selected_questionnaire, username):
     if not selected_questionnaire:
         return html.P("Selecciona un cuestionario para comenzar.", style={'color': COLORS['muted']})
     
@@ -2724,7 +3120,9 @@ def display_questionnaire(selected_questionnaire):
     # que esta función reciba el 'username' como argumento, o leerlo de la DB global.
     # Asumiendo que tenemos acceso a la sesión o que el historial está accesible:
     
-    username = dash.callback_context.states.get('current-patient-username.data')
+    if not username:
+        return html.P("❌ No se pudo identificar al paciente actual. Recarga la sesión.", style={'color': 'red'})
+
     today_str = date.today().isoformat()
     
     # 2. Verificar si ya existe una entrada para hoy de este cuestionario específico
@@ -2759,7 +3157,7 @@ def display_questionnaire(selected_questionnaire):
             html.H6(f"{i+1}. {question['question']}", style={'marginBottom': '10px', 'fontWeight': 'bold', 'color': '#ffffff'}),
         ])
         
-        component_id = {'type': f'q-{questionnaire["id"]}-input', 'index': question['id']}
+        component_id = {'type': 'questionnaire-input', 'questionnaire': questionnaire['id'], 'index': question['id']}
 
         if question['type'] == 'slider':
             question_html.children.append(
@@ -2770,10 +3168,7 @@ def display_questionnaire(selected_questionnaire):
                     step=question.get('step', 1),
                     value=question.get('min', 0),
                     marks=question.get('marks', {i: str(i) for i in range(question['min'], question['max']+1, max(1, (question['max']-question['min'])//5))}),
-                    tooltip={"placement": "bottom", "always_visible": True},
-                    trackStyle={'backgroundColor': '#ff0000'},
-                    railStyle={'backgroundColor': '#333333'},
-                    markStyle={'color': '#ffffff'}
+                    tooltip={"placement": "bottom", "always_visible": True}
                 )
             )
         elif question['type'] == 'radio':
@@ -2825,20 +3220,22 @@ def display_questionnaire(selected_questionnaire):
     Input({'type': 'submit-questionnaire', 'index': dash.ALL}, 'n_clicks'),
     [State('questionnaire-select', 'value'),
      State('current-patient-username', 'data'),
-     State('questionnaire-select', 'options'),
-     State({'type': 'q-dolor_rodilla-input', 'index': dash.ALL}, 'value'),
-     State({'type': 'q-funcionalidad-input', 'index': dash.ALL}, 'value'),
+     State({'type': 'questionnaire-input', 'questionnaire': dash.ALL, 'index': dash.ALL}, 'id'),
+     State({'type': 'questionnaire-input', 'questionnaire': dash.ALL, 'index': dash.ALL}, 'value'),
      State('reload-trigger', 'data')],
     prevent_initial_call=True
 )
 
-def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, options, dolor_rodilla_vals, funcionalidad_vals, reload_trigger):
+def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, input_ids, input_values, reload_trigger):
     ctx = callback_context
     if not ctx.triggered or not n_clicks or n_clicks[0] == 0:
         return dash.no_update, dash.no_update
     
     if not questionnaire_id:
         return html.Div("❌ Error: No se ha seleccionado cuestionario", style={'color': 'red'}), dash.no_update
+
+    if not username:
+        return html.Div("❌ Error de sesión: paciente no identificado.", style={'color': 'red'}), dash.no_update
 
     # --- NUEVA LÓGICA DE CONTROL: Un cuestionario de cada tipo al día ---
     try:
@@ -2865,23 +3262,30 @@ def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, optio
     try:
         responses = {}
         questionnaire = QUESTIONNAIRES.get(questionnaire_id)
-        
-        # ... (Tu lógica original de recolección de valores)
-        if questionnaire_id == 'dolor_rodilla':
-            values = [v for v in dolor_rodilla_vals if v is not dash.no_update and v is not None]
-        elif questionnaire_id == 'funcionalidad':
-            values = [v for v in funcionalidad_vals if v is not dash.no_update and v is not None]
-        else:
-            values = []
+
+        values_by_qid = {}
+        if input_ids and input_values:
+            for comp_id, comp_value in zip(input_ids, input_values):
+                if not isinstance(comp_id, dict):
+                    continue
+                qid = comp_id.get('questionnaire')
+                qindex = comp_id.get('index')
+                if qid and qindex:
+                    if qid not in values_by_qid:
+                        values_by_qid[qid] = {}
+                    values_by_qid[qid][qindex] = comp_value
+
+        values_map = values_by_qid.get(questionnaire_id, {})
 
         if questionnaire:
             question_ids = [q['id'] for q in questionnaire['questions']]
-            
-            if len(values) != len(question_ids):
-                 return html.Div(f"⚠️ Error: Faltan {len(question_ids) - len(values)} respuestas.", style={'color': 'orange'}), dash.no_update
 
-            for q_id, value in zip(question_ids, values):
-                 responses[q_id] = value
+            missing = [q_id for q_id in question_ids if values_map.get(q_id) is None]
+            if missing:
+                return html.Div(f"⚠️ Error: Faltan {len(missing)} respuestas.", style={'color': 'orange'}), dash.no_update
+
+            for q_id in question_ids:
+                responses[q_id] = values_map.get(q_id)
 
         questionnaire_data = {
             'questionnaire_id': questionnaire_id,
@@ -3135,12 +3539,12 @@ def toggle_appointment_modal(n_open_dash, n_open_nav_trigger, n_cancel, n_confir
 @app.callback(
     Output('appointment-patient-select', 'options'),
     [Input('schedule-appointment-btn', 'n_clicks'), Input('schedule-appointment-btn-modal-trigger', 'n_clicks')], 
-    State('current-user-data', 'data'),
+    State('user-session-state', 'data'),
     prevent_initial_call=True
 )
 def load_patients_for_appointment(n_clicks_dash, n_clicks_nav_trigger, user_data):
     # Se activará con cualquier clic, pero solo si es médico
-    if user_data.get('role') != 'medico':
+    if not user_data or user_data.get('role') != 'medico':
         return []
 
     try:
@@ -3172,7 +3576,7 @@ def load_patients_for_appointment(n_clicks_dash, n_clicks_nav_trigger, user_data
      State('appointment-hospital', 'value'),
      State('appointment-office', 'value'),
      State('appointment-comments', 'value'),
-     State('current-user-data', 'data'),
+     State('user-session-state', 'data'),
      State('appointments-reload-trigger', 'data'),
      State('patient-appointments-refresh-interval', 'n_intervals')],
     prevent_initial_call=True
@@ -3184,6 +3588,10 @@ def schedule_appointment(n_clicks, patient_username, date, time, hospital, offic
     # --- 1. Validación de campos obligatorios (todos excepto 'Comentarios') ---
     if not patient_username or not date or not time or not hospital or not office:
         feedback = html.Div("⚠️ Faltan campos obligatorios para crear la cita (excepto Comentarios).", style={'color': 'red'})
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, feedback, reload_trigger, dash.no_update
+
+    if not user_data or user_data.get('role') != 'medico' or not user_data.get('username'):
+        feedback = html.Div("❌ Sesión inválida para agendar cita. Vuelve a iniciar sesión.", style={'color': 'red'})
         return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, feedback, reload_trigger, dash.no_update
 
     try:
@@ -3480,6 +3888,19 @@ def close_edit_profile_modal(n_clicks):
 def update_health_status_store(health_status):
     """Callback para guardar el estado de salud en el Store."""
     return health_status if health_status else 'listo'
+
+
+@app.callback(
+    Output('current-patient-username', 'data'),
+    [Input('url', 'pathname'),
+     Input('user-session-state', 'data')],
+    prevent_initial_call=False
+)
+def sync_current_patient_username(pathname, user_session):
+    """Mantiene el store de paciente sincronizado para callbacks de cuestionarios/ejercicios."""
+    if user_session and user_session.get('role') == 'paciente' and user_session.get('username'):
+        return user_session['username']
+    return None
 
 
 @app.callback(
@@ -3800,10 +4221,10 @@ def register_user_complete(n_clicks, username, password, role, fullname, email, 
     Output('unassigned-patient-select', 'options'),
     [Input('url', 'pathname'),
      Input('associate-patient-button', 'n_clicks')], # Recargar tras asociar
-    State('current-user-data', 'data')
+    State('user-session-state', 'data')
 )
 def load_unassigned_patients_for_doctor(pathname, n_clicks_associate, user_data):
-    if pathname == '/' and user_data.get('role') == 'medico':
+    if pathname == '/' and user_data and user_data.get('role') == 'medico':
         try:
             doctor_username = user_data['username']
             patients = db.get_unassigned_patients_or_unassigned_to_doctor(doctor_username)
@@ -3824,7 +4245,7 @@ def load_unassigned_patients_for_doctor(pathname, n_clicks_associate, user_data)
      Output('unassigned-patient-select','value'), 
      Output('patient-diagnosis-input','value')],
     Input('associate-patient-button','n_clicks'),
-    [State('current-user-data','data'), 
+    [State('user-session-state','data'), 
      State('unassigned-patient-select','value'), 
      State('patient-diagnosis-input','value')],
     prevent_initial_call=True
@@ -3835,6 +4256,9 @@ def associate_patient_to_doctor(n_clicks, user_data, patient_username, diagnosis
         
     if not patient_username:
         return html.Div("⚠️ Selecciona un paciente para asociar.", style={'color':'red'}), dash.no_update, dash.no_update
+
+    if not user_data or user_data.get('role') != 'medico' or not user_data.get('username'):
+        return html.Div("❌ Sesión inválida. Vuelve a iniciar sesión.", style={'color':'red'}), dash.no_update, dash.no_update
     
     if not diagnosis:
         # CORRECCIÓN: Si el paciente ya está en _PATIENT_INFO_DB con diagnóstico, no pedimos uno nuevo
@@ -4065,10 +4489,10 @@ def cancel_edit_appointment(n_clicks):
     Output('assigned-patient-select-disassociate', 'options'),
     [Input('url', 'pathname'),
      Input('disassociate-patient-button', 'n_clicks')], # Recargar tras desasociar
-    State('current-user-data', 'data')
+    State('user-session-state', 'data')
 )
 def load_assigned_patients_for_disassociation(pathname, n_clicks_disassociate, user_data):
-    if pathname == '/' and user_data.get('role') == 'medico':
+    if pathname == '/' and user_data and user_data.get('role') == 'medico':
         try:
             doctor_username = user_data['username']
             patients = db.get_all_patients_for_doctor(doctor_username) # Ya obtiene solo los asignados
@@ -4089,7 +4513,7 @@ def load_assigned_patients_for_disassociation(pathname, n_clicks_disassociate, u
      Output('unassigned-patient-select', 'options', allow_duplicate=True)], # Recargar la lista de asignables
     Input('disassociate-patient-button','n_clicks'),
     [State('assigned-patient-select-disassociate','value'), 
-     State('current-user-data','data')],
+     State('user-session-state','data')],
     prevent_initial_call=True
 )
 def disassociate_patient(n_clicks, patient_username, user_data):
@@ -4098,6 +4522,9 @@ def disassociate_patient(n_clicks, patient_username, user_data):
         
     if not patient_username:
         return html.Div("⚠️ Selecciona un paciente para desasociar.", style={'color':'red'}), dash.no_update, dash.no_update
+
+    if not user_data or user_data.get('role') != 'medico' or not user_data.get('username'):
+        return html.Div("❌ Sesión inválida. Vuelve a iniciar sesión.", style={'color':'red'}), dash.no_update, dash.no_update
     
     try:
         # Desasociar el paciente
@@ -4124,13 +4551,15 @@ def disassociate_patient(n_clicks, patient_username, user_data):
 @app.callback(
     Output('assigned-patient-select-disassociate', 'options', allow_duplicate=True),
     Input('disassociate-patient-button', 'n_clicks'), # Recargar tras desasociar
-    State('current-user-data', 'data'),
+    State('user-session-state', 'data'),
     prevent_initial_call=True
 )
 def reload_assigned_patients_for_disassociation(n_clicks_disassociate, user_data):
     # Se activará después de la desasociación para actualizar la lista.
     if n_clicks_disassociate and n_clicks_disassociate > 0:
         try:
+            if not user_data or user_data.get('role') != 'medico' or not user_data.get('username'):
+                return []
             doctor_username = user_data['username']
             patients = db.get_all_patients_for_doctor(doctor_username)
             return [

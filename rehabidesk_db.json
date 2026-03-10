@@ -197,10 +197,8 @@
                 "emergency_contact": "1",
                 "emergency_phone": "600123456",
                 "blood_type": "A-",
-                "injury_types": [
-                    "hombro"
-                ],
-                "health_status": "lesionado"
+                "injury_types": [],
+                "health_status": "listo"
             }
         }
     },
@@ -1274,6 +1272,16 @@
                     "q2": 5,
                     "q3": "moderado"
                 }
+            },
+            {
+                "questionnaire_id": "dolor_hombro",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "mucho"
+                },
+                "timestamp": "2026-03-10T21:58:27.282352",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Hombro"
             }
         ]
     },
