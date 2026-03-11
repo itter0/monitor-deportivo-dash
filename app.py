@@ -995,6 +995,26 @@ def get_recommended_questionnaires(health_status, injury_types=None):
 
     return ['funcionalidad']
 
+
+def render_fights_list(fights):
+    """Renderiza la lista de combates para el dashboard del paciente."""
+    if not fights:
+        return html.P("No hay combates registrados aún.", style={'color': COLORS['muted'], 'fontSize': '0.9em'})
+
+    sorted_fights = sorted(fights, key=lambda f: f.get('date', ''), reverse=True)
+    return html.Ul([
+        html.Li(
+            [
+                html.Strong(f"📅 {fight.get('date', 'N/A')} | "),
+                html.Span(f"vs {fight.get('opponent', 'N/A')}"),
+                html.Br(),
+                html.Span(f"📍 {fight.get('location', 'N/A')}", style={'color': COLORS['muted'], 'fontSize': '0.9em'})
+            ],
+            style={'marginBottom': '10px'}
+        )
+        for fight in sorted_fights
+    ], style={'paddingLeft': '20px', 'marginBottom': 0})
+
 MMA_WEIGHT_CLASSES = [
     {'label': 'Peso Mosca (56.7 kg)', 'value': 'flyweight'},
     {'label': 'Peso Gallo (61.2 kg)', 'value': 'bantamweight'},
@@ -1109,6 +1129,79 @@ def create_questionnaire_plot(questionnaires):
 
     return fig_reposo, fig_caminar
 
+
+
+@app.callback(
+    [Output('fight-feedback', 'children'),
+     Output('fight-list', 'children'),
+     Output('fight-opponent', 'value'),
+     Output('fight-location', 'value')],
+    Input('add-fight-btn', 'n_clicks'),
+    [State('fight-date', 'date'),
+     State('fight-opponent', 'value'),
+     State('fight-location', 'value'),
+     State('current-patient-username', 'data')],
+    prevent_initial_call=True
+)
+def add_fight_entry(n_clicks, fight_date, opponent, location, username):
+    if not n_clicks or n_clicks == 0:
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+    if not username:
+        return html.Div("❌ Usuario no autenticado.", style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update
+
+    if not fight_date or not opponent or not location:
+        return html.Div("⚠️ Completa fecha, oponente y lugar del combate.", style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update
+
+    if username not in _USER_DB:
+        return html.Div("❌ Usuario no encontrado en la base de datos.", style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update
+
+    fights = _USER_DB[username].get('fights', [])
+    fights.append({'date': fight_date, 'opponent': opponent.strip(), 'location': location.strip()})
+    _USER_DB[username]['fights'] = fights
+    db.save_data()
+
+    return (
+        html.Div("✅ Combate agregado correctamente.", style={'color': 'green'}),
+        render_fights_list(fights),
+        "",
+        ""
+    )
+
+
+@app.callback(
+    Output('nutrition-feedback', 'children'),
+    Input('save-nutrition-plan-btn', 'n_clicks'),
+    [State('fighter-weight', 'value'),
+     State('fighter-weight-class-change', 'value'),
+     State('fighter-diet', 'value'),
+     State('current-patient-username', 'data')],
+    prevent_initial_call=True
+)
+def save_nutrition_plan(n_clicks, weight, weight_class, diet, username):
+    if not n_clicks or n_clicks == 0:
+        return dash.no_update
+
+    if not username or username not in _USER_DB:
+        return html.Div("❌ Usuario no autenticado.", style={'color': 'red'})
+
+    user_record = _USER_DB[username]
+    nutrition_data = user_record.get('nutrition', {})
+    nutrition_data.update({
+        'weight': weight,
+        'diet': diet,
+        'last_update': datetime.now().isoformat()
+    })
+    user_record['nutrition'] = nutrition_data
+
+    profile_data = user_record.get('profile', {})
+    profile_data['current_weight'] = weight
+    if weight_class:
+        profile_data['weight_class'] = weight_class
+    user_record['profile'] = profile_data
+
+    db.save_data()
+    return html.Div("✅ Plan alimenticio y peso actualizados.", style={'color': 'green'})
 def create_dynamic_questionnaire_graphs(questionnaires_data, questionnaire_id):
     """
     Genera gráficas dinámicas para un cuestionario específico.
@@ -1534,10 +1627,6 @@ def get_login_layout():
                     "¿Eres nuevo? ", 
                     dcc.Link('Regístrate aquí', href='/register', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'})
                 ], style={'fontSize': '14px', 'color': 'white'})
-                html.P("¿Olvidaste tu contraseña?", style={'textAlign': 'center', 'color': COLORS['muted'], 'marginTop': '12px'}),
-                    dcc.Link('🔑 Cambiar Contraseña', href='/change-password',
-                    style={'textAlign': 'center', 'display': 'block', 'color': COLORS['primary'], 'textDecoration': 'none', 'fontWeight': '600'}),
-
             ], style={'textAlign': 'center'})
             
         ], style=STYLES['login_container'])
@@ -1754,6 +1843,10 @@ def get_patient_dashboard(username, full_name, current_search=""):
     
     questionnaires_data = patient_data.get('questionnaires', [])
     exercises_data = patient_data.get('exercises', [])
+    user_raw_data = _USER_DB.get(username, {})
+    profile_data = patient_data.get('profile', {})
+    fights_data = user_raw_data.get('fights', [])
+    nutrition_data = user_raw_data.get('nutrition', {})
     
     fig_q1, fig_q2 = create_questionnaire_plot(questionnaires_data)
     exercise_fig = create_exercise_plot(exercises_data)
@@ -1825,44 +1918,56 @@ def get_patient_dashboard(username, full_name, current_search=""):
         style=STYLES['card']
     )
 
-    # --- NUEVA SECCIÓN: Eliminación de Cuenta ---
-    delete_account_card = html.Div([
-        html.H4("⚠️ Eliminar Cuenta", style={'color': 'red', 'marginBottom': '10px'}),
-        html.P("Si eliminas tu cuenta, todos tus datos y progreso se perderán permanentemente.", 
-           style={'color': COLORS['muted'], 'fontSize': '0.9em'}),
-        dbc.Button("🗑️ Eliminar mi cuenta", id='delete-account-button', color='danger', className='w-100')
-    ], style={**STYLES['card'], **{'border': '2px solid #f87171'}})
+    fights_section = html.Div([
+        html.Div([
+            html.Span("🥊 ", style={'fontSize': '1.2em'}),
+            "Próximos Combates"
+        ], style=STYLES['card_header_tactical']),
+        html.Div([
+            html.Label("🏁 Fecha del combate", style={'color': '#ffffff'}),
+            dcc.DatePickerSingle(id='fight-date', date=datetime.now().date(), style={'marginBottom': '10px'}),
+            html.Label("🥋 Oponente", style={'color': '#ffffff'}),
+            dcc.Input(id='fight-opponent', type='text', placeholder='Nombre del oponente', style={'width': '100%', 'marginBottom': '10px'}),
+            html.Label("📍 Lugar", style={'color': '#ffffff'}),
+            dcc.Input(id='fight-location', type='text', placeholder='Lugar del evento', style={'width': '100%', 'marginBottom': '10px'}),
+            dbc.Button("✅ Agregar Combate", id='add-fight-btn', color='success', className='w-100'),
+            html.Div(id='fight-feedback', style={'marginTop': '15px'}),
+            html.Hr(),
+            html.Div(id='fight-list', children=render_fights_list(fights_data), style={'fontSize': '0.95em'})
+        ])
+    ], style=STYLES['card'])
 
-# --- NUEVO: Sección de Combates ---
-fights_section = html.Div([
-    html.H4("🥊 Próximos Combates", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
-    html.Div([
-        html.Label("🏁 Fecha del combate"),
-        dcc.DatePickerSingle(id='fight-date', date=datetime.now().date(), style={'marginBottom': '10px'}),
-        html.Label("🥋 Oponente"),
-        dcc.Input(id='fight-opponent', type='text', placeholder='Nombre del oponente', style={'width': '100%', 'marginBottom': '10px'}),
-        html.Label("📍 Lugar"),
-        dcc.Input(id='fight-location', type='text', placeholder='Lugar del evento', style={'width': '100%', 'marginBottom': '10px'}),
-        dbc.Button("✅ Agregar Combate", id='add-fight-btn', color='success', className='w-100'),
-        html.Div(id='fight-feedback', style={'marginTop': '15px'}),
-        html.Hr(),
-        html.Div(id='fight-list', children="No hay combates registrados aún.", style={'color': COLORS['muted'], 'fontSize': '0.9em'})
-    ])
-], style=STYLES['card'])
-
-# --- NUEVO: Sección Plan de Alimentación y Control de Peso ---
-nutrition_section = html.Div([
-    html.H4("🥗 Plan de Alimentación y Control de Peso", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
-    html.Label("⚖️ Peso Actual (kg)"),
-    dcc.Input(id='fighter-weight', type='number', placeholder='Peso actual', style={'width': '100%', 'marginBottom': '10px'}),
-    html.Label("🍽️ Plan Alimenticio Diario"),
-    dcc.Textarea(id='fighter-diet', placeholder='Describe tu plan de comidas, suplementos, etc.', 
-                 style={'width': '100%', 'height': '80px', 'marginBottom': '10px'}),
-    dbc.Button("📤 Guardar Plan", id='save-nutrition-plan-btn', n_clicks=0, color='secondary', className='w-100'),
-    html.Div(id='nutrition-feedback', style={'marginTop': '15px'})
-], style=STYLES['card'])
-
-
+    nutrition_section = html.Div([
+        html.Div([
+            html.Span("🥗 ", style={'fontSize': '1.2em'}),
+            "Plan de Alimentación y Control de Peso"
+        ], style=STYLES['card_header_tactical']),
+        html.Label("⚖️ Peso Actual (kg)", style={'color': '#ffffff'}),
+        dcc.Input(
+            id='fighter-weight',
+            type='number',
+            value=nutrition_data.get('weight', profile_data.get('current_weight')),
+            placeholder='Peso actual',
+            style={'width': '100%', 'marginBottom': '10px'}
+        ),
+        html.Label("🏷️ Categoría de peso", style={'color': '#ffffff'}),
+        dcc.Dropdown(
+            id='fighter-weight-class-change',
+            options=MMA_WEIGHT_CLASSES,
+            value=profile_data.get('weight_class'),
+            placeholder='Selecciona categoría...',
+            style={'marginBottom': '10px', 'color': 'black'}
+        ),
+        html.Label("🍽️ Plan Alimenticio Diario", style={'color': '#ffffff'}),
+        dcc.Textarea(
+            id='fighter-diet',
+            value=nutrition_data.get('diet', ''),
+            placeholder='Describe tu plan de comidas, suplementos, etc.',
+            style={'width': '100%', 'height': '80px', 'marginBottom': '10px'}
+        ),
+        dbc.Button("📤 Guardar Plan", id='save-nutrition-plan-btn', n_clicks=0, color='secondary', className='w-100'),
+        html.Div(id='nutrition-feedback', style={'marginTop': '15px'})
+    ], style=STYLES['card'])
 
     return html.Div([
         get_user_navbar("🧑‍🦽", full_name.upper(), "PANEL PACIENTE", current_search), 
@@ -1935,8 +2040,6 @@ nutrition_section = html.Div([
                 exercise_grid,
                 fights_section,
                 nutrition_section,
-
-                
             ], style={'flex': 2, 'minWidth': '400px'})
         ], style={'display': 'flex', 'gap': '20px', 'padding': '10px 24px', 'flexWrap': 'wrap'})
 
@@ -2728,6 +2831,8 @@ app.layout = html.Div([
         dcc.Input(id='edit-emergency-contact'),
         dcc.Input(id='edit-emergency-phone'),
         dcc.Dropdown(id='edit-blood-type'),
+        dcc.Dropdown(id='edit-weight-class'),
+        dcc.Input(id='edit-current-weight'),
         dcc.Textarea(id='edit-allergies'),
         dcc.Textarea(id='edit-medications'),
         dcc.Textarea(id='edit-conditions'),
@@ -2902,9 +3007,7 @@ def monitor_patient_health(n, selected_patient):
 
 # --- CALLBACK DE RECARGA DE GRÁFICAS Y CITAS ---
 @app.callback(
-    [Output('questionnaire-q1-graph', 'figure', allow_duplicate=True),
-     Output('questionnaire-q2-graph', 'figure', allow_duplicate=True),
-     Output('exercise-history-graph', 'figure', allow_duplicate=True)],
+    Output('exercise-history-graph', 'figure', allow_duplicate=True),
     Input('reload-trigger', 'data'),
     State('current-patient-username', 'data'),
     prevent_initial_call=True
@@ -2913,18 +3016,15 @@ def reload_progress_graphs(trigger, username):
     if trigger is not None and username:
         try:
             patient_data = db.get_complete_user_data(username) or {}
-            questionnaires_data = patient_data.get('questionnaires', [])
             exercises_data = patient_data.get('exercises', [])
-            
-            # Ahora desempaquetamos las dos figuras correctamente
-            fig_q1, fig_q2 = create_questionnaire_plot(questionnaires_data)
+
             exercise_fig = create_exercise_plot(exercises_data)
-            
-            return fig_q1, fig_q2, exercise_fig
+
+            return exercise_fig
         except Exception as e:
             print(f"Error al recargar gráficas: {e}")
-            return dash.no_update, dash.no_update, dash.no_update
-    return dash.no_update, dash.no_update, dash.no_update
+            return dash.no_update
+    return dash.no_update
 
 # NUEVO CALLBACK: Actualiza gráficas dinámicamente según el cuestionario seleccionado
 @app.callback(
@@ -3793,6 +3893,24 @@ def open_edit_profile_modal(n_clicks, user_session, is_open):
         # --- Información Médica (Solo para paciente) ---
         html.Div(id='edit-medical-info-section', children=[
             html.H4("🏥 Información Médica y de Salud", style={'color': COLORS['primary'], 'marginBottom': '16px', 'marginTop': '20px'}),
+
+            html.Label("🏷️ Categoría de Peso MMA"),
+            dcc.Dropdown(
+                id='edit-weight-class',
+                options=MMA_WEIGHT_CLASSES,
+                value=profile.get('weight_class'),
+                placeholder='Selecciona categoría...',
+                style={'marginBottom': '10px', 'color': 'black'}
+            ),
+
+            html.Label("⚖️ Peso Actual (kg)"),
+            dcc.Input(
+                id='edit-current-weight',
+                type='number',
+                value=profile.get('current_weight'),
+                placeholder='Ej. 72.5',
+                style={'width': '100%', 'marginBottom': '10px'}
+            ),
             
             html.Label("🩸 Tipo de Sangre"),
             dcc.Dropdown(
@@ -3859,12 +3977,14 @@ def open_edit_profile_modal(n_clicks, user_session, is_open):
       State('edit-emergency-contact', 'value'),
       State('edit-emergency-phone', 'value'),
       State('edit-blood-type', 'value'),
+    State('edit-weight-class', 'value'),
+    State('edit-current-weight', 'value'),
       State('edit-health-status-store', 'data'),  # Usar Store en lugar de State
       State('edit-injury-types-store', 'data'),   # Usar Store en lugar de State
       State('profile-user-role', 'data')],
     prevent_initial_call=True
 )
-def save_profile_changes(n_clicks, user_session, fullname, email, phone, address, dni, birthdate, emergency_contact, emergency_phone, blood_type, health_status, injury_types, role):
+def save_profile_changes(n_clicks, user_session, fullname, email, phone, address, dni, birthdate, emergency_contact, emergency_phone, blood_type, weight_class, current_weight, health_status, injury_types, role):
     if not n_clicks or n_clicks == 0:
         return dash.no_update, dash.no_update, dash.no_update
 
@@ -3896,6 +4016,8 @@ def save_profile_changes(n_clicks, user_session, fullname, email, phone, address
             # Solo si el rol es 'paciente', se incluyen los datos médicos del Store
             profile_data.update({
                 'blood_type': blood_type,
+                'weight_class': weight_class,
+                'current_weight': current_weight,
                 'health_status': health_status if health_status else 'listo',
                 'injury_types': injury_types if isinstance(injury_types, list) else ([] if not injury_types else [injury_types])
             })
@@ -4027,8 +4149,6 @@ def display_page(pathname, search, current_session):
     
     if pathname == '/register':
         return get_register_layout(), {}, dash.no_update
-    if pathname == '/change-password':
-        return get_change_password_layout(), {}, dash.no_update
     
     return get_login_layout(), {}, dash.no_update
 
@@ -4169,6 +4289,8 @@ def toggle_injury_dropdown(status):
      State('register-address','value'),
      State('register-dni','value'),
      State('register-birthdate','date'),
+     State('register-weight-class','value'),
+     State('register-specialty','value'),
      State('register-blood-type','value'),
      State('register-emergency-contact','value'),
      State('register-emergency-phone','value'),
@@ -4176,7 +4298,7 @@ def toggle_injury_dropdown(status):
      State('register-injury-type','value')],
     prevent_initial_call=True
 )
-def register_user_complete(n_clicks, username, password, role, fullname, email, phone, address, dni, birthdate, blood_type, emergency_contact, emergency_phone, health_status, injury_type):
+def register_user_complete(n_clicks, username, password, role, fullname, email, phone, address, dni, birthdate, weight_class, specialty, blood_type, emergency_contact, emergency_phone, health_status, injury_type):
     if n_clicks is None or n_clicks == 0:
         return html.Div("⚠️ Haz clic en el botón para registrar", style={'color':'orange'})
     
@@ -4215,6 +4337,12 @@ def register_user_complete(n_clicks, username, password, role, fullname, email, 
         missing_fields.append(field_names['emergency_contact'])
     if not emergency_phone:
         missing_fields.append(field_names['emergency_phone'])
+
+    if role == 'paciente':
+        if not weight_class:
+            missing_fields.append('Categoría de Peso MMA')
+        if not specialty:
+            missing_fields.append('Especialidad')
     
     if missing_fields:
         missing_text = ', '.join(missing_fields)
@@ -4254,6 +4382,8 @@ def register_user_complete(n_clicks, username, password, role, fullname, email, 
             'birth_date': birthdate,
             'emergency_contact': emergency_contact,
             'emergency_phone': emergency_phone,
+            'weight_class': weight_class,
+            'specialty': specialty,
             'blood_type': blood_type,
             'health_status': health_status,
             'injury_types': [injury_type] if injury_type else []
@@ -4287,42 +4417,6 @@ def load_unassigned_patients_for_doctor(pathname, n_clicks_associate, user_data)
             return [{'label': f"Error: {e}", 'value': 'error', 'disabled': True}]
     return []
 
-@app.callback(
-    [Output('fight-feedback', 'children'),
-     Output('fight-list', 'children')],
-    Input('add-fight-btn', 'n_clicks'),
-    [State('fight-date', 'date'),
-     State('fight-opponent', 'value'),
-     State('fight-location', 'value'),
-     State('current-patient-username', 'data')],
-    prevent_initial_call=True
-)
-def add_fight_entry(n_clicks, date, opponent, location, username):
-    if not username or not opponent or not location or not date:
-        return html.Div("⚠️ Completa todos los campos del combate.", style={'color': 'red'}), dash.no_update
-    fights = _USER_DB.get(username, {}).get('fights', [])
-    fights.append({'date': date, 'opponent': opponent, 'location': location})
-    _USER_DB[username]['fights'] = fights
-    db.save_data()
-    fight_list = html.Ul([html.Li(f"📅 {f['date']} vs {f['opponent']} - {f['location']}") for f in fights])
-    return html.Div("✅ Combate agregado con éxito.", style={'color': 'green'}), fight_list
-
-@app.callback(
-    Output('nutrition-feedback', 'children'),
-    Input('save-nutrition-plan-btn', 'n_clicks'),
-    [State('fighter-weight', 'value'),
-     State('fighter-diet', 'value'),
-     State('current-patient-username', 'data')],
-    prevent_initial_call=True
-)
-def save_nutrition_plan(n_clicks, weight, diet, username):
-    if not username:
-        return html.Div("❌ Usuario no autenticado.", style={'color': 'red'})
-    data = _USER_DB.get(username, {}).get('nutrition', {})
-    data.update({'weight': weight, 'diet': diet, 'last_update': datetime.now().isoformat()})
-    _USER_DB[username]['nutrition'] = data
-    db.save_data()
-    return html.Div("✅ Plan alimenticio y peso actualizados.", style={'color': 'green'})
 
 # Callback: Asociar Paciente al Médico (REEMPLAZA AÑADIR PACIENTE)
 @app.callback(
@@ -4370,23 +4464,6 @@ def associate_patient_to_doctor(n_clicks, user_data, patient_username, diagnosis
         
     except Exception as e:
         return html.Div(f"❌ Error al asociar paciente: {e}", style={'color':'red'}), dash.no_update, dash.no_update
-@app.callback(
-    Output('url', 'pathname', allow_duplicate=True),
-    Input('delete-account-button', 'n_clicks'),
-    State('current-patient-username', 'data'),
-    prevent_initial_call=True
-)
-def delete_patient_account(n_clicks, username):
-    if n_clicks and username in _USER_DB:
-        # Eliminar usuario y su información asociada
-        _USER_DB.pop(username, None)
-        _PATIENT_INFO_DB.pop(username, None)
-        _QUESTIONNAIRE_HISTORY_DB.pop(username, None)
-        _EXERCISE_HISTORY_DB.pop(username, None)
-        print(f"DEBUG: Cuenta del paciente {username} eliminada permanentemente.")
-        db.save_data()  # Persistir cambios
-        return '/login'  # Redirigir a Login
-    return dash.no_update
 
 # Callback: Cerrar Sesión (Se mantiene)
 @app.callback(
@@ -5160,22 +5237,6 @@ def run_simulator():
         except Exception as e:
             print(f"⚠️ Error en simulador: {e}")
             break
-#nuevo layout
-def get_change_password_layout():
-    return html.Div([
-        html.Div([
-            html.H2("🔑 Cambiar Contraseña", style={'textAlign': 'center', 'color': COLORS['primary'], 'marginBottom': '16px'}),
-            html.Label("👤 Usuario"),
-            dcc.Input(id='changeuser', type='text', placeholder='Ingresa tu usuario', style={'width': '100%', 'marginBottom': '10px'}),
-            html.Label("🔒 Nueva Contraseña"),
-            dcc.Input(id='newpassword', type='password', placeholder='Nueva contraseña segura', style={'width': '100%', 'marginBottom': '20px'}),
-            html.Button('✅ Actualizar Contraseña', id='btn-change-password', n_clicks=0,
-                        style={'width': '100%', 'padding': '12px', 'background': COLORS['secondary'], 'color': 'white',
-                               'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer', 'fontWeight': '600'}),
-            html.Div(id='change-password-feedback', style={'marginTop': '15px'})
-        ], style=STYLES['login_container'])
-    ], style={'background': COLORS['background'], 'minHeight': '100vh', 'padding': '20px'})
-
 
 # ==========================================================================
 # --- INICIO DEL SISTEMA ---
@@ -5198,4 +5259,3 @@ if __name__ == '__main__':
         port=8050, 
         use_reloader=False # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
     )
-
