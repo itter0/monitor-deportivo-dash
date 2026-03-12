@@ -553,7 +553,9 @@ STYLES = {
         'background': '#111111', # Fondo casi negro
         'border': '1px solid #ff0000', # Borde rojo neón para combinar
         'color': '#ffffff', # Texto blanco puro
-        'padding': '12px',
+        'padding': '0 12px',
+        'height': '45px',
+        'lineHeight': '45px',
         'borderRadius': '5px',
         'width': '100%',
         'caretColor': '#ff0000' # El cursor al escribir será rojo
@@ -1572,65 +1574,52 @@ def get_login_layout():
         html.Div([
             # Título Estilo Octagon
             html.Div([
-                html.Span("OCTAGON", style={'color': 'white', 'fontSize': '32px', 'fontWeight': '900', 'letterSpacing': '2px'}),
-                html.Span(" PRO", style={'color': COLORS['primary'], 'fontSize': '32px', 'fontWeight': '900'})
-            ], style={'textAlign': 'center', 'marginBottom': '40px'}),
+                html.Span("OCTAGON", className='login-logo-main'),
+                html.Span(" PRO", className='login-logo-pro')
+            ], className='login-logo'),
             
-            html.H3("LOGIN / REGISTER", style={'textAlign': 'center', 'color': 'white', 'fontSize': '24px', 'fontWeight': '700', 'marginBottom': '5px'}),
-            html.P("READY FOR THE CAGE?", style={'textAlign': 'center', 'color': COLORS['text_muted'], 'fontSize': '14px', 'marginBottom': '40px'}),
+            html.H3("LOGIN / REGISTER", className='login-section-title'),
+            html.P("READY FOR THE CAGE?", className='login-section-subtitle'),
             
             # Campo Email
             html.Div([
-                html.Label("EMAIL O TELÉFONO", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
+                html.Label("NOMBRE DE USUARIO", className='login-input-label'),
                 dcc.Input(id='login-username', type='text', placeholder='Email o Teléfono', 
-                          style={'width': '100%', 'padding': '15px', 'background': '#1a1a1a', 'border': f'1px solid {COLORS["border_soft"]}', 'color': 'white', 'marginBottom': '20px'})
-            ]),
+                          className='auth-input login-input-field')
+            ], className='login-input-group'),
             
             # Campo Password
             html.Div([
-                html.Label("CONTRASEÑA", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
+                html.Label("CONTRASEÑA", className='login-input-label'),
                 dcc.Input(id="login-password", type="password", placeholder="Contraseña",
-                          style={'width': '100%', 'padding': '15px', 'background': '#1a1a1a', 'border': f'1px solid {COLORS["border_soft"]}', 'color': 'white', 'marginBottom': '20px'})
-            ]),
-
-            # --- ESTO ES LO QUE FALTABA: Selector de Rol ---
-            html.Div([
-                html.Label("MODALIDAD DE ACCESO", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
-                dcc.Dropdown(
-                    id='login-role', # <--- AQUÍ ESTÁ EL ID QUE PIDE EL ERROR
-                    options=[
-                        {'label': 'Médico', 'value': 'medico'},
-                        {'label': 'Luchador', 'value': 'paciente'}
-                    ],
-                    placeholder='Selecciona Rol',
-                    # Estilo oscuro para que no desentone
-                    style={'marginBottom': '30px', 'backgroundColor': '#1a1a1a', 'color': 'black'}
-                ),
-            ]),
+                          className='auth-input login-input-field')
+            ], className='login-input-group'),
             
             # Botón Principal con resplandor
-            html.Button('ENTRAR AL GYM', id='login-button', n_clicks=0,
-                        style={
-                            'width': '100%', 'padding': '16px', 'background': 'transparent', 
-                            'color': 'white', 'border': f'2px solid {COLORS["primary"]}', 
-                            'fontWeight': '900', 'fontSize': '16px', 'cursor': 'pointer',
-                            'boxShadow': f'inset 0 0 10px {COLORS["primary"]}, 0 0 15px rgba(255,0,0,0.3)',
-                            'marginBottom': '30px'
-                        }),
+            html.Button('ENTRAR AL GYM', id='login-button', n_clicks=0, className='login-submit-btn'),
             
-            html.Div(id='login-feedback'),
+            html.Div(build_login_feedback(), id='login-feedback', className='login-feedback-area'),
             
             # Links inferiores
             html.Div([
-                dcc.Link('¿Olvidaste tu contraseña?', href='#', style={'color': COLORS['text_muted'], 'fontSize': '13px', 'textDecoration': 'underline', 'display': 'block', 'marginBottom': '15px'}),
+                dcc.Link('¿Olvidaste tu contraseña?', href='#', className='login-forgot-link'),
                 html.P([
                     "¿Eres nuevo? ", 
-                    dcc.Link('Regístrate aquí', href='/register', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'})
-                ], style={'fontSize': '14px', 'color': 'white'})
-            ], style={'textAlign': 'center'})
+                    dcc.Link('Regístrate aquí', href='/register', className='login-register-link')
+                ], className='login-register-text')
+            ], className='login-links')
             
-        ], style=STYLES['login_container'])
-    ], style={'background': COLORS['background_tactical'], 'minHeight': '100vh', 'padding': '20px', 'fontFamily': 'Arial, sans-serif'})
+        ], className='login-box')
+    ], className='login-shell')
+
+
+def build_login_feedback(message="Haz clic en el botón para iniciar sesión", tone='warning'):
+    icon = '⚠' if tone == 'warning' else '✖'
+    class_name = 'login-warning-text' if tone == 'warning' else 'login-error-text'
+    return html.Div([
+        html.Span(icon, className='login-feedback-icon'),
+        html.Span(message)
+    ], className=class_name)
 
 def get_register_layout():
     return html.Div([
@@ -1642,14 +1631,17 @@ def get_register_layout():
             
             html.Label("Nombre Completo *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-fullname', type='text', placeholder='Ingresa tu nombre completo', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Usuario *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-username', type='text', placeholder='Crea un nombre de usuario', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Contraseña *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-password', type='password', placeholder='Crea una contraseña segura', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Rol *", style=REHAB_STYLES['label']),
@@ -1667,18 +1659,22 @@ def get_register_layout():
             
             html.Label("Email *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-email', type='email', placeholder='tu.email@ejemplo.com', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Teléfono *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-phone', type='tel', placeholder='+34 600 000 000', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Dirección", style=REHAB_STYLES['label']),
             dcc.Input(id='register-address', type='text', placeholder='Calle, número, ciudad', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("DNI/NIE *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-dni', type='text', placeholder='12345678X', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Fecha de Nacimiento *", style=REHAB_STYLES['label']),
@@ -1755,10 +1751,12 @@ def get_register_layout():
             
             html.Label("Nombre del Contacto *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-emergency-contact', type='text', placeholder='Nombre completo', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Teléfono del Contacto *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-emergency-phone', type='tel', placeholder='+34 600 000 000', 
+                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '32px'}),
             
             html.Button('Registrar Cuenta Completa', id='register-button', n_clicks=0,
@@ -4161,22 +4159,23 @@ def display_page(pathname, search, current_session):
      Output('url', 'search', allow_duplicate=True)],
     Input('login-button','n_clicks'),
     [State('login-username','value'),
-     State('login-password','value'),
-     State('login-role','value')],
+     State('login-password','value')],
     prevent_initial_call=True
 )
-def login(n_clicks, username, password, role):
+def login(n_clicks, username, password):
     if n_clicks is None or n_clicks == 0:
-        return dash.no_update, html.Div("⚠️ Haz clic en el botón para iniciar sesión", style={'color':'orange'}), dash.no_update, dash.no_update
+        return dash.no_update, build_login_feedback("Haz clic en el botón para iniciar sesión", 'warning'), dash.no_update, dash.no_update
     
-    if not username or not password or not role:
-        return dash.no_update, html.Div("⚠️ Completa todos los campos", style={'color':'red'}), dash.no_update, dash.no_update
-        
-    user_data = db.authenticate_user(username, password)
-    if not user_data or user_data['role'] != role:
-        return dash.no_update, html.Div("❌ Credenciales incorrectas", style={'color':'red'}), dash.no_update, dash.no_update
-        
-    session_params = urlencode({'user': username, 'role': role})
+    if not username or not password:
+        return dash.no_update, build_login_feedback("Completa todos los campos", 'error'), dash.no_update, dash.no_update
+
+    normalized_username = username.strip()
+    user_data = db.authenticate_user(normalized_username, password)
+    if not user_data:
+        return dash.no_update, build_login_feedback("Credenciales incorrectas", 'error'), dash.no_update, dash.no_update
+
+    role = user_data['role']
+    session_params = urlencode({'user': normalized_username, 'role': role})
     return dash.no_update, "", "/", f"?{session_params}"
 
 # Callback: Mostrar/Ocultar contraseña (Ojo)
@@ -4193,21 +4192,6 @@ def toggle_password(n_clicks, current_type):
     if current_type == "password":
         return "text", "🙈"
     return "password", "👁️"
-
-def login(n_clicks, username, password, role):
-    if n_clicks is None or n_clicks == 0:
-        return dash.no_update, html.Div("⚠️ Haz clic en el botón para iniciar sesión", style={'color':'orange'}), dash.no_update, dash.no_update
-        
-    if not username or not password or not role:
-        return dash.no_update, html.Div("⚠️ Completa todos los campos", style={'color':'red'}), dash.no_update, dash.no_update
-    
-    user_data = db.authenticate_user(username, password)
-    if not user_data or user_data['role'] != role:
-        return dash.no_update, html.Div("❌ Credenciales incorrectas", style={'color':'red'}), dash.no_update, dash.no_update
-    
-    session_params = urlencode({'user': username, 'role': role})
-    
-    return dash.no_update, "", "/", f"?{session_params}"
 
 # Callback: Navegación de Botones/Enlaces Internos (CORREGIDO)
 # Callback: Navegación de Botones/Enlaces Internos (CORREGIDO DE FORMA SEGURA)
@@ -5244,8 +5228,7 @@ def run_simulator():
 
 server = app.server
 
-# 1. Este bloque arranca el simulador tanto en RENDER como en LOCAL
-# El chequeo de WERKZEUG evita que se duplique en modo debug
+# Render + inicio simulación
 if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
     print("✅ Iniciando hilos de simulación...")
     simulation_thread = threading.Thread(target=run_simulator, daemon=True)
@@ -5261,6 +5244,3 @@ if __name__ == '__main__':
         port=8050, 
         use_reloader=False # Mantenlo en False para estabilidad de los hilos
     )
-
-
-
