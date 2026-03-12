@@ -5241,21 +5241,26 @@ def run_simulator():
 # ==========================================================================
 # --- INICIO DEL SISTEMA ---
 # ==========================================================================
-if __name__ == '__main__':
-    # 1. Iniciar el simulador PRIMERO
+
+server = app.server
+
+# 1. Este bloque arranca el simulador tanto en RENDER como en LOCAL
+# El chequeo de WERKZEUG evita que se duplique en modo debug
+if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
     print("✅ Iniciando hilos de simulación...")
     simulation_thread = threading.Thread(target=run_simulator, daemon=True)
     simulation_thread.start()
-    
-    # Pausa para asegurar que data/sensor_data_stream.csv existe antes de que Dash cargue 
-    
+
+if __name__ == '__main__':
+    # 2. Ejecución exclusiva para modo LOCAL
     print("🚀 Servidor RehabiDesk levantando en http://127.0.0.1:8050")
     
-    # 2. Ejecución del servidor
-    # debug=True + use_reloader=False es la combinación más estable para hilos secundarios
     app.run(
         debug=True, 
         host='0.0.0.0', 
         port=8050, 
-        use_reloader=False # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
+        use_reloader=False # Mantenlo en False para estabilidad de los hilos
     )
+
+
+
