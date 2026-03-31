@@ -15,6 +15,18 @@ import signal
 import threading
 import csv  
 import time 
+import base64
+
+from tactical_system import (
+    OpponentProfile,
+    TacticalPlan,
+    OpponentStyle,
+    CampPhase,
+    generate_initial_tactical_plan,
+    validate_plan_advanced,
+    generate_training_calendar,
+    generate_calendar_pdf,
+)
 
 # --------------------------------------------------------------------------
 # --- INICIALIZACIÓN DE DUMMIES PARA BASE DE DATOS Y SENSORES ---
@@ -422,6 +434,64 @@ class DummyDB:
         self.save_data() # Persistencia
         print(f"DEBUG: Cuestionario {questionnaire_data['questionnaire_id']} guardado para {username}.")
 
+    def save_tactical_plan(self, username, tactical_plan_dict):
+        """Crea o actualiza un plan táctico por fight_id y lo persiste."""
+        if username not in _USER_DB:
+            return False
+
+        user_record = _USER_DB[username]
+        if 'tactical_plans' not in user_record or not isinstance(user_record.get('tactical_plans'), list):
+            user_record['tactical_plans'] = []
+
+        fight_id = tactical_plan_dict.get('fight_id')
+        if not fight_id:
+            return False
+
+        found = False
+        for idx, plan in enumerate(user_record['tactical_plans']):
+            if plan.get('fight_id') == fight_id:
+                user_record['tactical_plans'][idx] = tactical_plan_dict
+                found = True
+                break
+
+        if not found:
+            user_record['tactical_plans'].append(tactical_plan_dict)
+
+        self.save_data()
+        return True
+
+    def get_tactical_plans(self, username, status=None):
+        if username not in _USER_DB:
+            return []
+        plans = _USER_DB[username].get('tactical_plans', [])
+        if status:
+            return [p for p in plans if p.get('status') == status]
+        return plans
+
+    def get_tactical_plan_by_fight_id(self, username, fight_id):
+        if username not in _USER_DB:
+            return None
+        for plan in _USER_DB[username].get('tactical_plans', []):
+            if plan.get('fight_id') == fight_id:
+                return plan
+        return None
+
+    def archive_tactical_plan(self, username, fight_id):
+        plan = self.get_tactical_plan_by_fight_id(username, fight_id)
+        if not plan:
+            return False
+        plan['status'] = 'archived'
+        self.save_data()
+        return True
+
+    def restore_tactical_plan(self, username, fight_id):
+        plan = self.get_tactical_plan_by_fight_id(username, fight_id)
+        if not plan:
+            return False
+        plan['status'] = 'active'
+        self.save_data()
+        return True
+
     def get_complete_user_data(self, username):
         basic_info = _USER_DB.get(username, {})
         profile = basic_info.get('profile', {})
@@ -553,9 +623,7 @@ STYLES = {
         'background': '#111111', # Fondo casi negro
         'border': '1px solid #ff0000', # Borde rojo neón para combinar
         'color': '#ffffff', # Texto blanco puro
-        'padding': '0 12px',
-        'height': '45px',
-        'lineHeight': '45px',
+        'padding': '12px',
         'borderRadius': '5px',
         'width': '100%',
         'caretColor': '#ff0000' # El cursor al escribir será rojo
@@ -1017,6 +1085,151 @@ def render_fights_list(fights):
         for fight in sorted_fights
     ], style={'paddingLeft': '20px', 'marginBottom': 0})
 
+
+def render_tactical_plans_section(username):
+    plans = db.get_tactical_plans(username)
+    active_plans = [p for p in plans if p.get('status', 'active') == 'active']
+    archived_plans = [p for p in plans if p.get('status') == 'archived']
+
+    def _plan_card(plan, archived=False):
+        opponent = plan.get('opponent', {})
+        rounds = plan.get('game_plan_rounds', [])
+        actions = []
+        if archived:
+            actions.append(
+                dbc.Button(
+                    "♻️ Recuperar",
+                    id={'type': 'restore-tactical-plan-btn', 'index': plan.get('fight_id')},
+                    color='success',
+                    size='sm'
+                )
+            )
+        else:
+            actions.extend([
+                dbc.Button(
+                    "📝 Editar",
+                    id={'type': 'edit-tactical-plan-btn', 'index': plan.get('fight_id')},
+                    color='primary',
+                    size='sm',
+                    className='me-2'
+                ),
+                dbc.Button(
+                    "📦 Archivar",
+                    id={'type': 'archive-tactical-plan-btn', 'index': plan.get('fight_id')},
+                    color='warning',
+                    size='sm'
+                )
+            ])
+
+        return dbc.Card(
+            dbc.CardBody([
+                html.H6(f"🥊 vs {opponent.get('name', 'Sin rival')}", style={'color': COLORS['primary']}),
+                html.P(
+                    f"Estilo: {opponent.get('style', 'Balanced')} | Rounds: {len(rounds)}",
+                    style={'color': '#ffffff', 'marginBottom': '8px'}
+                ),
+                html.P(
+                    f"Fecha objetivo: {plan.get('target_date') or 'No definida'}",
+                    style={'color': COLORS['muted'], 'fontSize': '0.9em', 'marginBottom': '10px'}
+                ),
+                html.Div(actions)
+            ]),
+            className='mb-2',
+            style={'backgroundColor': '#111111', 'border': f"1px solid {COLORS['border_soft']}"}
+        )
+
+    return html.Div([
+        html.H5("Activos", style={'color': '#ffffff', 'marginTop': '10px'}),
+        html.Div([_plan_card(p, archived=False) for p in active_plans]) if active_plans else html.P(
+            "No hay planes tácticos activos.",
+            style={'color': COLORS['muted']}
+        ),
+        html.Hr(),
+        html.H5("Archivados", style={'color': '#ffffff'}),
+        html.Div([_plan_card(p, archived=True) for p in archived_plans]) if archived_plans else html.P(
+            "No hay planes archivados.",
+            style={'color': COLORS['muted']}
+        )
+    ])
+
+
+def parse_csv_values(text):
+    return [t.strip() for t in str(text or '').split(',') if t.strip()]
+
+
+def get_default_tactical_rounds():
+    return [
+        {'round_number': 1, 'title': 'Round 1 - Lectura y control', 'details': ''},
+        {'round_number': 2, 'title': 'Round 2 - Presión y ajustes', 'details': ''},
+        {'round_number': 3, 'title': 'Round 3 - Cierre inteligente', 'details': ''},
+    ]
+
+
+def get_next_fight_date_for_user(username):
+    try:
+        user_fights = _USER_DB.get(username, {}).get('fights', [])
+        future_dates = []
+        for fight in user_fights:
+            date_str = fight.get('date')
+            if not date_str:
+                continue
+            dt = datetime.fromisoformat(str(date_str))
+            if dt.date() >= datetime.now().date():
+                future_dates.append(dt.date())
+        return min(future_dates).isoformat() if future_dates else None
+    except Exception:
+        return None
+
+
+def resolve_target_date(start_date_str, prep_window, username):
+    if not start_date_str:
+        return None
+    start_dt = datetime.fromisoformat(start_date_str).date()
+    if prep_window == 'week':
+        return (start_dt + timedelta(days=7)).isoformat()
+    if prep_window == 'month':
+        return (start_dt + timedelta(days=30)).isoformat()
+    if prep_window == 'two_months':
+        return (start_dt + timedelta(days=60)).isoformat()
+    if prep_window == 'next_fight':
+        next_fight = get_next_fight_date_for_user(username)
+        return next_fight or (start_dt + timedelta(days=30)).isoformat()
+    return None
+
+
+def render_tactical_rounds_editor(rounds):
+    rounds = rounds or get_default_tactical_rounds()
+    rendered = []
+    for idx, rnd in enumerate(rounds):
+        rendered.append(
+            html.Div([
+                html.Div([
+                    html.H6(f"Round {idx + 1}", style={'color': COLORS['primary'], 'margin': '0'}),
+                    dbc.Button(
+                        "Eliminar",
+                        id={'type': 'tactical-delete-round-btn', 'index': idx},
+                        color='outline-danger',
+                        size='sm'
+                    ) if len(rounds) > 1 else html.Span()
+                ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '10px'}),
+                html.Label("Título / intención general", style={'color': '#ffffff'}),
+                dcc.Input(
+                    id={'type': 'tactical-round-title', 'index': idx},
+                    value=rnd.get('title', ''),
+                    placeholder='Ej: Presionar clinch y castigar piernas',
+                    style=STYLES['input']
+                ),
+                html.Br(), html.Br(),
+                html.Label("Detalles", style={'color': '#ffffff'}),
+                dcc.Textarea(
+                    id={'type': 'tactical-round-details', 'index': idx},
+                    value=rnd.get('details', ''),
+                    style={'width': '100%', 'height': '100px', 'backgroundColor': '#0f0f0f', 'color': '#ffffff', 'border': f"1px solid {COLORS['border_soft']}"}
+                )
+            ], style={'backgroundColor': '#111111', 'padding': '12px', 'borderRadius': '8px', 'marginBottom': '10px', 'border': f"1px solid {COLORS['border_soft']}"})
+        )
+    return rendered
+
 MMA_WEIGHT_CLASSES = [
     {'label': 'Peso Mosca (56.7 kg)', 'value': 'flyweight'},
     {'label': 'Peso Gallo (61.2 kg)', 'value': 'bantamweight'},
@@ -1204,6 +1417,642 @@ def save_nutrition_plan(n_clicks, weight, weight_class, diet, username):
 
     db.save_data()
     return html.Div("✅ Plan alimenticio y peso actualizados.", style={'color': 'green'})
+
+
+@app.callback(
+    Output('tactical-plan-modal', 'is_open'),
+    [Input('open-tactical-plan-modal-btn', 'n_clicks'),
+     Input('tactical-plan-close-btn', 'n_clicks'),
+     Input({'type': 'edit-tactical-plan-btn', 'index': ALL}, 'n_clicks')],
+    State('tactical-plan-modal', 'is_open'),
+    prevent_initial_call=True
+)
+def toggle_tactical_plan_modal(open_clicks, close_clicks, edit_clicks, is_open):
+    trigger = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else None
+    if trigger == 'tactical-plan-close-btn':
+        return False
+    if trigger == 'open-tactical-plan-modal-btn':
+        return True
+    if trigger.startswith('{'):
+        return True
+    return is_open
+
+
+@app.callback(
+    [Output('tactical-step-current-store', 'data'),
+     Output('tactical-step-1-content', 'style'),
+     Output('tactical-step-2-content', 'style'),
+     Output('tactical-step-3-content', 'style'),
+     Output('tactical-step-4-content', 'style'),
+     Output('tactical-step-5-content', 'style'),
+     Output('tactical-step-btn-1', 'color'),
+     Output('tactical-step-btn-2', 'color'),
+     Output('tactical-step-btn-3', 'color'),
+     Output('tactical-step-btn-4', 'color'),
+     Output('tactical-step-btn-5', 'color')],
+    [Input('tactical-step-btn-1', 'n_clicks'),
+     Input('tactical-step-btn-2', 'n_clicks'),
+     Input('tactical-step-btn-3', 'n_clicks'),
+     Input('tactical-step-btn-4', 'n_clicks'),
+     Input('tactical-step-btn-5', 'n_clicks'),
+     Input('tactical-plan-modal', 'is_open')],
+    State('tactical-step-current-store', 'data'),
+    prevent_initial_call=True
+)
+def switch_tactical_wizard_step(s1, s2, s3, s4, s5, modal_open, current_step):
+    trigger = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else None
+    step_map = {
+        'tactical-step-btn-1': 1,
+        'tactical-step-btn-2': 2,
+        'tactical-step-btn-3': 3,
+        'tactical-step-btn-4': 4,
+        'tactical-step-btn-5': 5,
+    }
+    if trigger == 'tactical-plan-modal' and modal_open:
+        selected = 1
+    else:
+        selected = step_map.get(trigger, current_step or 1)
+
+    def section_style(step):
+        return {'padding': '8px'} if selected == step else {'padding': '8px', 'display': 'none'}
+
+    colors = ['secondary', 'secondary', 'secondary', 'secondary', 'secondary']
+    colors[selected - 1] = 'danger'
+
+    return (
+        selected,
+        section_style(1),
+        section_style(2),
+        section_style(3),
+        section_style(4),
+        section_style(5),
+        colors[0], colors[1], colors[2], colors[3], colors[4]
+    )
+
+
+@app.callback(
+    [Output('tactical-start-date', 'date'),
+     Output('tactical-target-date', 'date'),
+     Output('tactical-target-preview', 'children')],
+    [Input('tactical-prep-window', 'value'),
+     Input('tactical-start-mode', 'value'),
+     Input('tactical-start-date', 'date')],
+    [State('current-patient-username', 'data'),
+     State('tactical-target-date', 'date')],
+    prevent_initial_call=True
+)
+def update_tactical_dates(prep_window, start_mode, start_date, username, current_target_date):
+    start_value = start_date or datetime.now().date().isoformat()
+    if start_mode == 'today':
+        start_value = datetime.now().date().isoformat()
+
+    target_value = current_target_date
+    if prep_window != 'custom':
+        target_value = resolve_target_date(start_value, prep_window, username)
+
+    if not target_value:
+        target_value = (datetime.fromisoformat(start_value).date() + timedelta(days=30)).isoformat()
+
+    start_dt = datetime.fromisoformat(start_value).date()
+    target_dt = datetime.fromisoformat(target_value).date()
+    total_days = max(0, (target_dt - start_dt).days)
+    msg = html.Div(f"📅 Campamento planificado: {start_dt.isoformat()} → {target_dt.isoformat()} ({total_days} días)")
+    return start_value, target_value, msg
+
+
+@app.callback(
+    [Output('tactical-phase-plan', 'children'),
+     Output('tactical-generated-phases-store', 'data')],
+    Input('tactical-generate-phases-btn', 'n_clicks'),
+    [State('tactical-start-date', 'date'),
+     State('tactical-target-date', 'date')],
+    prevent_initial_call=True
+)
+def generate_tactical_phase_plan(n_clicks, start_date, target_date):
+    if not n_clicks:
+        return dash.no_update, dash.no_update
+
+    if not start_date or not target_date:
+        return html.Div("⚠️ Define fecha de inicio y fecha objetivo.", style={'color': 'red'}), []
+
+    try:
+        start_dt = datetime.fromisoformat(start_date).date()
+        target_dt = datetime.fromisoformat(target_date).date()
+    except Exception:
+        return html.Div("❌ Formato de fecha inválido.", style={'color': 'red'}), []
+
+    if target_dt <= start_dt:
+        return html.Div("❌ La fecha objetivo debe ser posterior al inicio.", style={'color': 'red'}), []
+
+    phases = []
+    total_days = (target_dt - start_dt).days
+    if total_days <= 10:
+        phase_template = [
+            ('Base breve', 0.35, 'Técnica limpia y volumen controlado'),
+            ('Intensificación', 0.40, 'Sparring específico y simulación táctica'),
+            ('Descarga + pelea', 0.25, 'Bajar volumen, mantener velocidad y precisión'),
+        ]
+    elif total_days <= 45:
+        phase_template = [
+            ('Base técnica', 0.40, 'Consolidar fundamentos y ritmo aeróbico'),
+            ('Específico rival', 0.35, 'Trabajos dirigidos a fortalezas/debilidades rival'),
+            ('Puesta a punto', 0.25, 'Ajuste fino, gestión de carga y recorte'),
+        ]
+    else:
+        phase_template = [
+            ('Base de desarrollo', 0.35, 'Volumen y mejoras estructurales'),
+            ('Especialización', 0.35, 'Simulaciones de combate por escenarios'),
+            ('Pre-competitiva', 0.20, 'Picos de intensidad y decisiones rápidas'),
+            ('Descarga final', 0.10, 'Recuperación activa y afilado táctico'),
+        ]
+
+    cursor = start_dt
+    for idx, (name, ratio, focus) in enumerate(phase_template):
+        if idx == len(phase_template) - 1:
+            end_dt = target_dt
+        else:
+            duration = max(1, int(total_days * ratio))
+            end_dt = min(target_dt, cursor + timedelta(days=duration))
+        phases.append({
+            'phase': name,
+            'start': cursor.isoformat(),
+            'end': end_dt.isoformat(),
+            'focus': focus
+        })
+        cursor = end_dt + timedelta(days=1)
+        if cursor > target_dt:
+            break
+
+    phase_cards = [
+        dbc.Card(
+            dbc.CardBody([
+                html.H6(f"{idx + 1}. {p['phase']}", style={'color': COLORS['primary']}),
+                html.P(f"{p['start']} → {p['end']}", style={'color': '#ffffff', 'marginBottom': '6px'}),
+                html.P(p['focus'], style={'color': COLORS['muted'], 'marginBottom': 0})
+            ]),
+            className='mb-2',
+            style={'backgroundColor': '#111111', 'border': f"1px solid {COLORS['border_soft']}"}
+        ) for idx, p in enumerate(phases)
+    ]
+    return phase_cards, phases
+
+
+@app.callback(
+    Output('tactical-rounds-store', 'data'),
+    [Input('tactical-add-round-btn', 'n_clicks'),
+     Input('tactical-reset-rounds-btn', 'n_clicks'),
+     Input('tactical-autogenerate-rounds-btn', 'n_clicks'),
+     Input({'type': 'tactical-delete-round-btn', 'index': ALL}, 'n_clicks'),
+     Input({'type': 'tactical-round-title', 'index': ALL}, 'value'),
+     Input({'type': 'tactical-round-details', 'index': ALL}, 'value')],
+    [State('tactical-rounds-store', 'data'),
+     State('tactical-opponent-name', 'value'),
+     State('tactical-opponent-style', 'value'),
+     State('tactical-opponent-strengths', 'value'),
+     State('tactical-opponent-weaknesses', 'value')],
+    prevent_initial_call=True
+)
+def manage_tactical_rounds(add_clicks, reset_clicks, autogen_clicks, delete_clicks, title_values, detail_values,
+                           rounds_store, opponent_name, opponent_style, strengths, weaknesses):
+    rounds = rounds_store or get_default_tactical_rounds()
+    trigger_raw = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else None
+
+    if not trigger_raw:
+        return rounds
+
+    if trigger_raw == 'tactical-add-round-btn':
+        rounds.append({'round_number': len(rounds) + 1, 'title': f'Round {len(rounds) + 1}', 'details': ''})
+        return rounds
+
+    if trigger_raw == 'tactical-reset-rounds-btn':
+        return get_default_tactical_rounds()
+
+    if trigger_raw.startswith('{'):
+        try:
+            trigger = json.loads(trigger_raw)
+        except Exception:
+            trigger = None
+        if isinstance(trigger, dict) and trigger.get('type') == 'tactical-delete-round-btn':
+            idx = trigger.get('index')
+            rounds = [r for i, r in enumerate(rounds) if i != idx]
+            if not rounds:
+                rounds = get_default_tactical_rounds()
+            for i, r in enumerate(rounds):
+                r['round_number'] = i + 1
+            return rounds
+
+    if trigger_raw == 'tactical-autogenerate-rounds-btn':
+        style_value = opponent_style if opponent_style in ['Striking', 'Grappling', 'Balanced'] else 'Balanced'
+        profile = OpponentProfile(
+            name=opponent_name or 'Rival',
+            style=OpponentStyle(style_value),
+            strengths=parse_csv_values(strengths),
+            weaknesses=parse_csv_values(weaknesses),
+            notes=''
+        )
+        tactical_plan = generate_initial_tactical_plan(
+            opponent=profile,
+            athlete_specialty=OpponentStyle.BALANCED,
+            camp_phase=CampPhase.BASE_BUILDING,
+            num_rounds=max(1, len(rounds))
+        )
+        generated = []
+        for rnd in tactical_plan.game_plan_rounds:
+            generated.append({
+                'round_number': rnd.round_number,
+                'title': rnd.focus,
+                'details': f"Técnicas: {', '.join(rnd.techniques)}. Plan B: {rnd.contingency}"
+            })
+        return generated
+
+    updated = []
+    for idx, rnd in enumerate(rounds):
+        updated.append({
+            'round_number': idx + 1,
+            'title': (title_values[idx] if idx < len(title_values or []) else rnd.get('title', '')) or '',
+            'details': (detail_values[idx] if idx < len(detail_values or []) else rnd.get('details', '')) or '',
+        })
+    return updated
+
+
+@app.callback(
+    Output('tactical-rounds-editor', 'children'),
+    Input('tactical-rounds-store', 'data')
+)
+def render_tactical_rounds(rounds_store):
+    return render_tactical_rounds_editor(rounds_store)
+
+
+@app.callback(
+    [Output('tactical-review-results', 'children'),
+     Output('tactical-review-store', 'data')],
+    Input('tactical-run-review-btn', 'n_clicks'),
+    [State('tactical-opponent-name', 'value'),
+     State('tactical-opponent-style', 'value'),
+     State('tactical-opponent-strengths', 'value'),
+     State('tactical-opponent-weaknesses', 'value'),
+     State('tactical-target-date', 'date'),
+     State('tactical-rounds-store', 'data')],
+    prevent_initial_call=True
+)
+def review_tactical_plan(n_clicks, opponent_name, opponent_style, strengths, weaknesses, target_date, rounds_store):
+    if not n_clicks:
+        return dash.no_update, dash.no_update
+
+    rounds_store = rounds_store or []
+    game_rounds = []
+    for idx, r in enumerate(rounds_store):
+        game_rounds.append({
+            'round_number': idx + 1,
+            'focus': r.get('title', ''),
+            'techniques': [],
+            'contingency': r.get('details', '')
+        })
+
+    plan_obj = TacticalPlan.from_dict({
+        'fight_id': 'preview',
+        'opponent': {
+            'name': opponent_name or '',
+            'style': opponent_style or 'Balanced',
+            'strengths': parse_csv_values(strengths),
+            'weaknesses': parse_csv_values(weaknesses),
+            'notes': ''
+        },
+        'my_specialty': 'Balanced',
+        'my_phase': 'Base (Volumen Alto)',
+        'game_plan_rounds': game_rounds,
+        'contingencies': [],
+        'drill_focus': ['mixed_drills'],
+        'injury_restrictions': {},
+        'target_date': target_date,
+    })
+
+    review = validate_plan_advanced(plan_obj)
+    blocks = []
+
+    if review.get('errors'):
+        blocks.append(html.H6('Problemas', style={'color': '#ff6b6b'}))
+        blocks.extend([html.P(f"• {msg}", style={'color': '#ff6b6b'}) for msg in review['errors']])
+
+    if review.get('warnings'):
+        blocks.append(html.H6('Consejos', style={'color': '#ffd166'}))
+        blocks.extend([html.P(f"• {msg}", style={'color': '#ffd166'}) for msg in review['warnings']])
+
+    if review.get('recommendations'):
+        blocks.append(html.H6('Correcciones sugeridas', style={'color': '#87cefa'}))
+        blocks.extend([html.P(f"• {msg}", style={'color': '#87cefa'}) for msg in review['recommendations']])
+
+    if not blocks:
+        blocks = [html.P('✅ Sin incidencias detectadas', style={'color': '#00ff88'})]
+
+    return html.Div(blocks), review
+
+
+@app.callback(
+    [Output('tactical-rounds-store', 'data', allow_duplicate=True),
+     Output('tactical-review-results', 'children', allow_duplicate=True)],
+    Input('tactical-auto-fix-btn', 'n_clicks'),
+    [State('tactical-review-store', 'data'),
+     State('tactical-rounds-store', 'data')],
+    prevent_initial_call=True
+)
+def auto_fix_tactical_plan(n_clicks, review_store, rounds_store):
+    if not n_clicks:
+        return dash.no_update, dash.no_update
+
+    rounds = rounds_store or get_default_tactical_rounds()
+    fixed = []
+    for idx, r in enumerate(rounds):
+        title = r.get('title') or f"Round {idx + 1} - Ajuste táctico"
+        details = r.get('details') or "Plan A: controlar distancia y ritmo. Plan B: entrar a clinch y reiniciar intercambio."
+        fixed.append({'round_number': idx + 1, 'title': title, 'details': details})
+
+    msg = html.Div([
+        html.P("✅ Correcciones autoimplementadas sobre los rounds.", style={'color': '#00ff88', 'marginBottom': '4px'}),
+        html.P("Revisa los detalles y vuelve a ejecutar la revisión.", style={'color': COLORS['muted']})
+    ])
+    return fixed, msg
+
+
+@app.callback(
+    [Output('tactical-feedback', 'children', allow_duplicate=True),
+     Output('tactical-plans-list', 'children', allow_duplicate=True),
+     Output('tactical-editing-fight-id', 'data', allow_duplicate=True),
+     Output('tactical-plans-refresh', 'data', allow_duplicate=True)],
+    Input('tactical-plan-save-btn', 'n_clicks'),
+    [State('current-patient-username', 'data'),
+     State('tactical-editing-fight-id', 'data'),
+     State('tactical-prep-window', 'value'),
+     State('tactical-start-date', 'date'),
+     State('tactical-target-date', 'date'),
+     State('tactical-opponent-name', 'value'),
+     State('tactical-opponent-style', 'value'),
+     State('tactical-opponent-strengths', 'value'),
+     State('tactical-opponent-weaknesses', 'value'),
+     State('tactical-opponent-stance', 'value'),
+     State('tactical-opponent-reach', 'value'),
+     State('tactical-opponent-cardio', 'value'),
+     State('tactical-opponent-notes', 'value'),
+     State('tactical-rounds-store', 'data'),
+     State('tactical-generated-phases-store', 'data'),
+     State('tactical-plans-refresh', 'data')],
+    prevent_initial_call=True
+)
+def save_tactical_plan_wizard(
+    n_clicks, username, editing_fight_id, prep_window, start_date, target_date,
+    opponent_name, opponent_style, strengths, weaknesses, stance, reach, cardio, notes,
+    rounds_store, phases_store, refresh
+):
+    if not n_clicks:
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+    if not username or username not in _USER_DB:
+        return html.Div("❌ Usuario no identificado", style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update
+
+    if not opponent_name:
+        return html.Div("⚠️ Debes indicar el nombre del rival", style={'color': '#ffd166'}), dash.no_update, dash.no_update, dash.no_update
+
+    if not start_date or not target_date:
+        return html.Div("⚠️ Debes definir fecha de inicio y objetivo", style={'color': '#ffd166'}), dash.no_update, dash.no_update, dash.no_update
+
+    existing = db.get_tactical_plan_by_fight_id(username, editing_fight_id) if editing_fight_id else None
+    fight_id = editing_fight_id or f"fight-{datetime.now().timestamp()}"
+    created_at = existing.get('created_at') if existing else datetime.now().isoformat()
+    start_dt = datetime.fromisoformat(start_date).date()
+    target_dt = datetime.fromisoformat(target_date).date()
+
+    rounds = rounds_store or get_default_tactical_rounds()
+    game_plan_rounds = []
+    for idx, r in enumerate(rounds):
+        game_plan_rounds.append({
+            'round_number': idx + 1,
+            'focus': r.get('title', ''),
+            'techniques': [],
+            'contingency': r.get('details', '')
+        })
+
+    plan_dict = {
+        'fight_id': fight_id,
+        'opponent': {
+            'name': opponent_name,
+            'style': opponent_style or 'Balanced',
+            'strengths': parse_csv_values(strengths),
+            'weaknesses': parse_csv_values(weaknesses),
+            'notes': notes or '',
+            'stance': stance or '',
+            'reach': reach or '',
+            'cardio': cardio or ''
+        },
+        'my_specialty': _USER_DB.get(username, {}).get('profile', {}).get('specialty', 'Balanced'),
+        'my_phase': 'Base (Volumen Alto)',
+        'game_plan_rounds': game_plan_rounds,
+        'contingencies': [],
+        'drill_focus': [],
+        'injury_restrictions': {},
+        'created_at': created_at,
+        'status': 'active',
+        'execution_logs': [],
+        'version': '2.0',
+        'adaptive_adjustments': [],
+        'version_history': existing.get('version_history', []) if existing else [],
+        'target_date': target_date,
+        'target_days_left': max(0, (target_dt - datetime.now().date()).days),
+        'start_date': start_date,
+        'prep_window': prep_window,
+        'camp_phases': phases_store or []
+    }
+
+    ok = db.save_tactical_plan(username, plan_dict)
+    if not ok:
+        return html.Div("❌ No se pudo guardar el plan", style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update
+
+    msg = "✅ Plan actualizado" if editing_fight_id else "✅ Plan creado"
+    new_refresh = (refresh or 0) + 1
+    return html.Div(msg, style={'color': '#00ff88', 'fontWeight': 'bold'}), render_tactical_plans_section(username), None, new_refresh
+
+
+@app.callback(
+    [Output('tactical-plans-list', 'children', allow_duplicate=True),
+     Output('tactical-feedback', 'children', allow_duplicate=True),
+     Output('tactical-editing-fight-id', 'data', allow_duplicate=True),
+     Output('tactical-prep-window', 'value', allow_duplicate=True),
+     Output('tactical-start-mode', 'value', allow_duplicate=True),
+     Output('tactical-start-date', 'date', allow_duplicate=True),
+     Output('tactical-target-date', 'date', allow_duplicate=True),
+     Output('tactical-opponent-name', 'value', allow_duplicate=True),
+     Output('tactical-opponent-style', 'value', allow_duplicate=True),
+     Output('tactical-opponent-strengths', 'value', allow_duplicate=True),
+     Output('tactical-opponent-weaknesses', 'value', allow_duplicate=True),
+     Output('tactical-opponent-stance', 'value', allow_duplicate=True),
+     Output('tactical-opponent-reach', 'value', allow_duplicate=True),
+     Output('tactical-opponent-cardio', 'value', allow_duplicate=True),
+     Output('tactical-opponent-notes', 'value', allow_duplicate=True),
+     Output('tactical-rounds-store', 'data', allow_duplicate=True),
+     Output('tactical-generated-phases-store', 'data', allow_duplicate=True),
+     Output('tactical-plans-refresh', 'data', allow_duplicate=True)],
+    [Input({'type': 'edit-tactical-plan-btn', 'index': ALL}, 'n_clicks'),
+     Input({'type': 'archive-tactical-plan-btn', 'index': ALL}, 'n_clicks'),
+     Input({'type': 'restore-tactical-plan-btn', 'index': ALL}, 'n_clicks')],
+    [State('current-patient-username', 'data'),
+     State('tactical-plans-refresh', 'data')],
+    prevent_initial_call=True
+)
+def handle_tactical_actions_wizard(edit_clicks, archive_clicks, restore_clicks, username, refresh):
+    if not username:
+        return (dash.no_update, html.Div("❌ Usuario no identificado", style={'color': 'red'}), dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update)
+
+    trigger_raw = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else None
+    if not trigger_raw or not trigger_raw.startswith('{'):
+        return (dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update)
+
+    try:
+        trigger = json.loads(trigger_raw)
+    except Exception:
+        trigger = None
+
+    fight_id = trigger.get('index') if isinstance(trigger, dict) else None
+    if not fight_id:
+        return (dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update)
+
+    action_type = trigger.get('type')
+    if action_type == 'archive-tactical-plan-btn':
+        ok = db.archive_tactical_plan(username, fight_id)
+        new_refresh = (refresh or 0) + 1
+        return (render_tactical_plans_section(username),
+                html.Div("✅ Plan archivado" if ok else "❌ No se pudo archivar", style={'color': '#ffd166' if ok else 'red'}),
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, new_refresh)
+
+    if action_type == 'restore-tactical-plan-btn':
+        ok = db.restore_tactical_plan(username, fight_id)
+        new_refresh = (refresh or 0) + 1
+        return (render_tactical_plans_section(username),
+                html.Div("✅ Plan recuperado" if ok else "❌ No se pudo recuperar", style={'color': '#00ff88' if ok else 'red'}),
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, new_refresh)
+
+    plan = db.get_tactical_plan_by_fight_id(username, fight_id)
+    if not plan:
+        return (render_tactical_plans_section(username), html.Div("❌ Plan no encontrado", style={'color': 'red'}),
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update)
+
+    opponent = plan.get('opponent', {})
+    rounds = plan.get('game_plan_rounds', [])
+    rounds_store = []
+    for rnd in rounds:
+        rounds_store.append({
+            'round_number': rnd.get('round_number', len(rounds_store) + 1),
+            'title': rnd.get('focus', ''),
+            'details': rnd.get('contingency', '')
+        })
+
+    return (
+        render_tactical_plans_section(username),
+        html.Div("📝 Editando plan seleccionado", style={'color': '#87cefa'}),
+        fight_id,
+        plan.get('prep_window', 'month'),
+        'custom',
+        plan.get('start_date', datetime.now().date().isoformat()),
+        plan.get('target_date', (datetime.now().date() + timedelta(days=30)).isoformat()),
+        opponent.get('name', ''),
+        opponent.get('style', 'Balanced'),
+        ', '.join(opponent.get('strengths', [])) if isinstance(opponent.get('strengths', []), list) else '',
+        ', '.join(opponent.get('weaknesses', [])) if isinstance(opponent.get('weaknesses', []), list) else '',
+        opponent.get('stance', ''),
+        opponent.get('reach', ''),
+        opponent.get('cardio', ''),
+        opponent.get('notes', ''),
+        rounds_store or get_default_tactical_rounds(),
+        plan.get('camp_phases', []),
+        dash.no_update
+    )
+
+
+@app.callback(
+    Output('tactical-plan-pdf-download', 'data'),
+    Input('tactical-download-pdf-btn', 'n_clicks'),
+    [State('tactical-opponent-name', 'value'),
+     State('tactical-opponent-style', 'value'),
+     State('tactical-opponent-strengths', 'value'),
+     State('tactical-opponent-weaknesses', 'value'),
+     State('tactical-opponent-notes', 'value'),
+     State('tactical-target-date', 'date'),
+     State('tactical-rounds-store', 'data')],
+    prevent_initial_call=True
+)
+def download_tactical_pdf(n_clicks, opponent_name, opponent_style, strengths, weaknesses, notes, target_date, rounds_store):
+    if not n_clicks:
+        return dash.no_update
+
+    if not opponent_name or not target_date:
+        return dash.no_update
+
+    style_value = opponent_style if opponent_style in ['Striking', 'Grappling', 'Balanced'] else 'Balanced'
+    profile = OpponentProfile(
+        name=opponent_name,
+        style=OpponentStyle(style_value),
+        strengths=parse_csv_values(strengths),
+        weaknesses=parse_csv_values(weaknesses),
+        notes=notes or ''
+    )
+
+    rounds = rounds_store or get_default_tactical_rounds()
+    game_rounds = []
+    for idx, r in enumerate(rounds):
+        game_rounds.append({
+            'round_number': idx + 1,
+            'focus': r.get('title', ''),
+            'techniques': [],
+            'contingency': r.get('details', '')
+        })
+
+    plan_obj = TacticalPlan.from_dict({
+        'fight_id': 'pdf-preview',
+        'opponent': profile.to_dict(),
+        'my_specialty': 'Balanced',
+        'my_phase': 'Base (Volumen Alto)',
+        'game_plan_rounds': game_rounds,
+        'contingencies': [],
+        'drill_focus': ['mixed_drills'],
+        'injury_restrictions': {},
+        'target_date': target_date
+    })
+
+    pdf_bytes = generate_calendar_pdf(plan_obj, target_date)
+    if not pdf_bytes:
+        return dash.no_update
+
+    return {
+        'content': base64.b64encode(pdf_bytes).decode('utf-8'),
+        'filename': f"plan_tactico_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+        'type': 'application/pdf',
+        'base64': True
+    }
+
+
+@app.callback(
+    Output('tactical-plans-list', 'children', allow_duplicate=True),
+    [Input('current-patient-username', 'data'),
+     Input('tactical-plans-refresh', 'data')],
+    prevent_initial_call=True
+)
+def refresh_tactical_plans_section(username, refresh):
+    if not username:
+        return html.P("Usuario no identificado", style={'color': COLORS['muted']})
+    return render_tactical_plans_section(username)
+
+
 def create_dynamic_questionnaire_graphs(questionnaires_data, questionnaire_id):
     """
     Genera gráficas dinámicas para un cuestionario específico.
@@ -1574,52 +2423,65 @@ def get_login_layout():
         html.Div([
             # Título Estilo Octagon
             html.Div([
-                html.Span("OCTAGON", className='login-logo-main'),
-                html.Span(" PRO", className='login-logo-pro')
-            ], className='login-logo'),
+                html.Span("OCTAGON", style={'color': 'white', 'fontSize': '32px', 'fontWeight': '900', 'letterSpacing': '2px'}),
+                html.Span(" PRO", style={'color': COLORS['primary'], 'fontSize': '32px', 'fontWeight': '900'})
+            ], style={'textAlign': 'center', 'marginBottom': '40px'}),
             
-            html.H3("LOGIN / REGISTER", className='login-section-title'),
-            html.P("READY FOR THE CAGE?", className='login-section-subtitle'),
+            html.H3("LOGIN / REGISTER", style={'textAlign': 'center', 'color': 'white', 'fontSize': '24px', 'fontWeight': '700', 'marginBottom': '5px'}),
+            html.P("READY FOR THE CAGE?", style={'textAlign': 'center', 'color': COLORS['text_muted'], 'fontSize': '14px', 'marginBottom': '40px'}),
             
             # Campo Email
             html.Div([
-                html.Label("NOMBRE DE USUARIO", className='login-input-label'),
+                html.Label("EMAIL O TELÉFONO", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
                 dcc.Input(id='login-username', type='text', placeholder='Email o Teléfono', 
-                          className='auth-input login-input-field')
-            ], className='login-input-group'),
+                          style={'width': '100%', 'padding': '15px', 'background': '#1a1a1a', 'border': f'1px solid {COLORS["border_soft"]}', 'color': 'white', 'marginBottom': '20px'})
+            ]),
             
             # Campo Password
             html.Div([
-                html.Label("CONTRASEÑA", className='login-input-label'),
+                html.Label("CONTRASEÑA", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
                 dcc.Input(id="login-password", type="password", placeholder="Contraseña",
-                          className='auth-input login-input-field')
-            ], className='login-input-group'),
+                          style={'width': '100%', 'padding': '15px', 'background': '#1a1a1a', 'border': f'1px solid {COLORS["border_soft"]}', 'color': 'white', 'marginBottom': '20px'})
+            ]),
+
+            # --- ESTO ES LO QUE FALTABA: Selector de Rol ---
+            html.Div([
+                html.Label("MODALIDAD DE ACCESO", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
+                dcc.Dropdown(
+                    id='login-role', # <--- AQUÍ ESTÁ EL ID QUE PIDE EL ERROR
+                    options=[
+                        {'label': 'Médico', 'value': 'medico'},
+                        {'label': 'Luchador', 'value': 'paciente'}
+                    ],
+                    placeholder='Selecciona Rol',
+                    # Estilo oscuro para que no desentone
+                    style={'marginBottom': '30px', 'backgroundColor': '#1a1a1a', 'color': 'black'}
+                ),
+            ]),
             
             # Botón Principal con resplandor
-            html.Button('ENTRAR AL GYM', id='login-button', n_clicks=0, className='login-submit-btn'),
+            html.Button('ENTRAR AL GYM', id='login-button', n_clicks=0,
+                        style={
+                            'width': '100%', 'padding': '16px', 'background': 'transparent', 
+                            'color': 'white', 'border': f'2px solid {COLORS["primary"]}', 
+                            'fontWeight': '900', 'fontSize': '16px', 'cursor': 'pointer',
+                            'boxShadow': f'inset 0 0 10px {COLORS["primary"]}, 0 0 15px rgba(255,0,0,0.3)',
+                            'marginBottom': '30px'
+                        }),
             
-            html.Div(build_login_feedback(), id='login-feedback', className='login-feedback-area'),
+            html.Div(id='login-feedback'),
             
             # Links inferiores
             html.Div([
-                dcc.Link('¿Olvidaste tu contraseña?', href='#', className='login-forgot-link'),
+                dcc.Link('¿Olvidaste tu contraseña?', href='#', style={'color': COLORS['text_muted'], 'fontSize': '13px', 'textDecoration': 'underline', 'display': 'block', 'marginBottom': '15px'}),
                 html.P([
                     "¿Eres nuevo? ", 
-                    dcc.Link('Regístrate aquí', href='/register', className='login-register-link')
-                ], className='login-register-text')
-            ], className='login-links')
+                    dcc.Link('Regístrate aquí', href='/register', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'})
+                ], style={'fontSize': '14px', 'color': 'white'})
+            ], style={'textAlign': 'center'})
             
-        ], className='login-box')
-    ], className='login-shell')
-
-
-def build_login_feedback(message="Haz clic en el botón para iniciar sesión", tone='warning'):
-    icon = '⚠' if tone == 'warning' else '✖'
-    class_name = 'login-warning-text' if tone == 'warning' else 'login-error-text'
-    return html.Div([
-        html.Span(icon, className='login-feedback-icon'),
-        html.Span(message)
-    ], className=class_name)
+        ], style=STYLES['login_container'])
+    ], style={'background': COLORS['background_tactical'], 'minHeight': '100vh', 'padding': '20px', 'fontFamily': 'Arial, sans-serif'})
 
 def get_register_layout():
     return html.Div([
@@ -1631,17 +2493,14 @@ def get_register_layout():
             
             html.Label("Nombre Completo *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-fullname', type='text', placeholder='Ingresa tu nombre completo', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Usuario *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-username', type='text', placeholder='Crea un nombre de usuario', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Contraseña *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-password', type='password', placeholder='Crea una contraseña segura', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Rol *", style=REHAB_STYLES['label']),
@@ -1659,22 +2518,18 @@ def get_register_layout():
             
             html.Label("Email *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-email', type='email', placeholder='tu.email@ejemplo.com', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Teléfono *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-phone', type='tel', placeholder='+34 600 000 000', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Dirección", style=REHAB_STYLES['label']),
             dcc.Input(id='register-address', type='text', placeholder='Calle, número, ciudad', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("DNI/NIE *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-dni', type='text', placeholder='12345678X', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Fecha de Nacimiento *", style=REHAB_STYLES['label']),
@@ -1751,12 +2606,10 @@ def get_register_layout():
             
             html.Label("Nombre del Contacto *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-emergency-contact', type='text', placeholder='Nombre completo', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
             
             html.Label("Teléfono del Contacto *", style=REHAB_STYLES['label']),
             dcc.Input(id='register-emergency-phone', type='tel', placeholder='+34 600 000 000', 
-                      className='auth-input',
                       style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '32px'}),
             
             html.Button('Registrar Cuenta Completa', id='register-button', n_clicks=0,
@@ -1783,7 +2636,11 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search=""):
         dbc.DropdownMenuItem("👤 Ver Mis Datos", id="nav-my-data-btn", n_clicks=0, href=get_full_href("/my-data")),
     ]
     
-    if 'medico' in role_name.lower():
+    role_name_lower = role_name.lower()
+    is_doctor_role = ('medico' in role_name_lower) or (role_symbol == "👨‍⚕️")
+    is_patient_role = ('paciente' in role_name_lower) or (role_symbol == "🧑‍🦽")
+
+    if is_doctor_role:
         is_doctor_dashboard = role_name.lower() == 'panel médico'
 
         if not is_doctor_dashboard:
@@ -1795,10 +2652,11 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search=""):
                 dbc.DropdownMenuItem("Ver Citas", id="nav-view-appointments-btn", n_clicks=0, href=get_full_href("/view-appointments")),
             ])
     
-    if 'paciente' in role_name.lower():
+    if is_patient_role:
         user_menu_items.extend([
             dbc.DropdownMenuItem("Ver Cuestionarios", id="nav-my-questionnaires-btn", n_clicks=0, href=get_full_href("/my-questionnaires")),
-            dbc.DropdownMenuItem("Ver Citas", id="nav-view-patient-appointments-btn", n_clicks=0, href=get_full_href("/view-patient-appointments"))
+            dbc.DropdownMenuItem("Ver Citas", id="nav-view-patient-appointments-btn", n_clicks=0, href=get_full_href("/view-patient-appointments")),
+            dbc.DropdownMenuItem("Planificación Táctica", id="nav-tactical-planning-btn", n_clicks=0, href=get_full_href("/tactical-planning"))
         ])
 
     user_menu_items.append(dbc.DropdownMenuItem("Cerrar Sesión", id="logout-button", style={'color': 'red'}))
@@ -2042,6 +2900,162 @@ def get_patient_dashboard(username, full_name, current_search=""):
         ], style={'display': 'flex', 'gap': '20px', 'padding': '10px 24px', 'flexWrap': 'wrap'})
 
     ], style=STYLES['main_container']) # Fondo gris oscuro general
+
+def get_tactical_planning_layout(username, full_name, current_search=""):
+    today_str = datetime.now().date().isoformat()
+
+    wizard_modal = dbc.Modal([
+        dbc.ModalHeader([
+            dbc.ModalTitle("🧠 Crear Plan Táctico"),
+            dbc.ButtonGroup([
+                dbc.Button("1. Fechas", id='tactical-step-btn-1', color='danger', size='sm'),
+                dbc.Button("2. Rival", id='tactical-step-btn-2', color='secondary', size='sm'),
+                dbc.Button("3. Fases", id='tactical-step-btn-3', color='secondary', size='sm'),
+                dbc.Button("4. Rounds", id='tactical-step-btn-4', color='secondary', size='sm'),
+                dbc.Button("5. Revisión", id='tactical-step-btn-5', color='secondary', size='sm'),
+            ], className='ms-2')
+        ], close_button=False),
+        dbc.ModalBody([
+            dcc.Store(id='tactical-step-current-store', data=1),
+
+            html.Div([
+                html.H5("Paso 1. Fechas", style={'color': COLORS['primary']}),
+                dbc.Row([
+                    dbc.Col([
+                        html.Label("¿En cuánto tiempo lo vas a preparar?", style={'color': '#ffffff'}),
+                        dcc.Dropdown(
+                            id='tactical-prep-window',
+                            options=[
+                                {'label': 'Una semana', 'value': 'week'},
+                                {'label': 'Un mes', 'value': 'month'},
+                                {'label': '2 meses', 'value': 'two_months'},
+                                {'label': 'Próximo combate', 'value': 'next_fight'},
+                                {'label': 'Fecha personalizada', 'value': 'custom'}
+                            ],
+                            value='month',
+                            style={'color': 'black'}
+                        )
+                    ], width=12, lg=6),
+                    dbc.Col([
+                        html.Label("¿Cuándo empiezas?", style={'color': '#ffffff'}),
+                        dcc.RadioItems(
+                            id='tactical-start-mode',
+                            options=[
+                                {'label': ' Hoy', 'value': 'today'},
+                                {'label': ' Otro día', 'value': 'custom'}
+                            ],
+                            value='today',
+                            inline=True,
+                            style={'color': '#ffffff'}
+                        )
+                    ], width=12, lg=6)
+                ], className='g-3'),
+                dbc.Row([
+                    dbc.Col([
+                        html.Label("Fecha de inicio", style={'color': '#ffffff'}),
+                        dcc.DatePickerSingle(id='tactical-start-date', date=today_str)
+                    ], width=12, lg=6),
+                    dbc.Col([
+                        html.Label("Fecha objetivo", style={'color': '#ffffff'}),
+                        dcc.DatePickerSingle(id='tactical-target-date', date=(datetime.now().date() + timedelta(days=30)).isoformat())
+                    ], width=12, lg=6)
+                ], className='g-3', style={'marginTop': '5px'}),
+                html.Div(id='tactical-target-preview', style={'marginTop': '10px', 'color': '#87cefa'})
+            ], id='tactical-step-1-content', style={'padding': '8px'}),
+
+            html.Div([
+                html.H5("Paso 2. Rival", style={'color': COLORS['primary']}),
+                dbc.Row([
+                    dbc.Col([html.Label("Nombre", style={'color': '#ffffff'}), dcc.Input(id='tactical-opponent-name', style=STYLES['input'])], width=12, lg=6),
+                    dbc.Col([
+                        html.Label("Estilo", style={'color': '#ffffff'}),
+                        dcc.Dropdown(
+                            id='tactical-opponent-style',
+                            options=[
+                                {'label': 'Striking', 'value': 'Striking'},
+                                {'label': 'Grappling', 'value': 'Grappling'},
+                                {'label': 'Balanced', 'value': 'Balanced'}
+                            ],
+                            value='Balanced',
+                            style={'color': 'black'}
+                        )
+                    ], width=12, lg=6)
+                ], className='g-3'),
+                dbc.Row([
+                    dbc.Col([html.Label("Fortalezas (coma)", style={'color': '#ffffff'}), dcc.Input(id='tactical-opponent-strengths', style=STYLES['input'])], width=12, lg=6),
+                    dbc.Col([html.Label("Debilidades (coma)", style={'color': '#ffffff'}), dcc.Input(id='tactical-opponent-weaknesses', style=STYLES['input'])], width=12, lg=6),
+                ], className='g-3', style={'marginTop': '5px'}),
+                dbc.Row([
+                    dbc.Col([html.Label("Guardia", style={'color': '#ffffff'}), dcc.Input(id='tactical-opponent-stance', placeholder='Ortodoxo / Zurdo', style=STYLES['input'])], width=12, lg=4),
+                    dbc.Col([html.Label("Alcance aprox.", style={'color': '#ffffff'}), dcc.Input(id='tactical-opponent-reach', placeholder='Ej: 188 cm', style=STYLES['input'])], width=12, lg=4),
+                    dbc.Col([html.Label("Cardio percibido", style={'color': '#ffffff'}), dcc.Input(id='tactical-opponent-cardio', placeholder='Alto / Medio / Bajo', style=STYLES['input'])], width=12, lg=4),
+                ], className='g-3', style={'marginTop': '5px'}),
+                html.Label("Notas de scouting", style={'color': '#ffffff', 'marginTop': '8px'}),
+                dcc.Textarea(id='tactical-opponent-notes', style={'width': '100%', 'height': '90px', 'backgroundColor': '#0f0f0f', 'color': '#ffffff'})
+            ], id='tactical-step-2-content', style={'padding': '8px', 'display': 'none'}),
+
+            html.Div([
+                html.H5("Paso 3. Organización automática", style={'color': COLORS['primary']}),
+                html.P("Se genera automáticamente por fases sin pedir más datos.", style={'color': COLORS['muted']}),
+                dbc.Button("⚙️ Generar organización", id='tactical-generate-phases-btn', color='warning', className='mb-2'),
+                html.Div(id='tactical-phase-plan')
+            ], id='tactical-step-3-content', style={'padding': '8px', 'display': 'none'}),
+
+            html.Div([
+                html.H5("Paso 4. Rounds", style={'color': COLORS['primary']}),
+                dbc.Row([
+                    dbc.Col(dbc.Button("➕ Añadir round", id='tactical-add-round-btn', color='secondary', className='w-100'), width=12, lg=4),
+                    dbc.Col(dbc.Button("🧠 Autogenerar rounds", id='tactical-autogenerate-rounds-btn', color='danger', className='w-100'), width=12, lg=4),
+                    dbc.Col(dbc.Button("🔄 Limpiar rounds", id='tactical-reset-rounds-btn', color='dark', className='w-100'), width=12, lg=4),
+                ], className='g-2'),
+                html.Div(id='tactical-rounds-editor', children=render_tactical_rounds_editor(get_default_tactical_rounds()), style={'marginTop': '10px'})
+            ], id='tactical-step-4-content', style={'padding': '8px', 'display': 'none'}),
+
+            html.Div([
+                html.H5("Paso 5. Revisión", style={'color': COLORS['primary']}),
+                dbc.Row([
+                    dbc.Col(dbc.Button("🔎 Revisar plan", id='tactical-run-review-btn', color='info', className='w-100'), width=12, lg=6),
+                    dbc.Col(dbc.Button("🛠️ Autoimplementar correcciones", id='tactical-auto-fix-btn', color='success', className='w-100'), width=12, lg=6),
+                ], className='g-2'),
+                html.Div(id='tactical-review-results', style={'marginTop': '10px'})
+            ], id='tactical-step-5-content', style={'padding': '8px', 'display': 'none'}),
+        ]),
+        dbc.ModalFooter([
+            dbc.Button("💾 Guardar plan", id='tactical-plan-save-btn', color='success', className='me-2'),
+            dbc.Button("📄 Descargar PDF", id='tactical-download-pdf-btn', color='primary', className='me-2'),
+            dbc.Button("Cerrar", id='tactical-plan-close-btn', color='secondary')
+        ])
+    ], id='tactical-plan-modal', is_open=False, size='xl', scrollable=True, backdrop='static', keyboard=False)
+
+    tactical_section = html.Div([
+        html.Div([
+            html.Span("🧠 ", style={'fontSize': '1.2em'}),
+            "Planificación Táctica (Wizard)"
+        ], style=STYLES['card_header_tactical']),
+
+        dcc.Store(id='tactical-editing-fight-id', data=None),
+        dcc.Store(id='tactical-plans-refresh', data=0),
+        dcc.Store(id='tactical-rounds-store', data=get_default_tactical_rounds()),
+        dcc.Store(id='tactical-generated-phases-store', data=[]),
+        dcc.Store(id='tactical-review-store', data={}),
+        dcc.Download(id='tactical-plan-pdf-download'),
+
+        dbc.Button("➕ Crear Plan Táctico", id='open-tactical-plan-modal-btn', color='danger', className='w-100 mb-3'),
+
+        html.Div(id='tactical-feedback', style={'marginTop': '10px'}),
+        html.Hr(),
+        html.Div(id='tactical-plans-list', children=render_tactical_plans_section(username)),
+        wizard_modal
+    ], style=STYLES['card'])
+
+    return html.Div([
+        get_user_navbar("🧑‍🦽", full_name, "Planificación Táctica", current_search),
+        html.Div([
+            dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-5", href=f"/{current_search}", color="primary",
+                       style={'marginBottom': '20px'}),
+            tactical_section,
+        ], style={'padding': '24px'})
+    ], style=STYLES['main_container'])
 
 def get_doctor_dashboard(username, full_name, current_search=""): 
     
@@ -4127,6 +5141,9 @@ def display_page(pathname, search, current_session):
         
         if pathname == '/my-questionnaires' and role == 'paciente':
             return get_questionnaire_history_layout(username, full_name, session_search), updated_session, dash.no_update 
+
+        if pathname == '/tactical-planning' and role == 'paciente':
+            return get_tactical_planning_layout(username, full_name, session_search), updated_session, dash.no_update
         
         # NUEVO: VISTA DE CITAS DEL PACIENTE
         if pathname == '/view-patient-appointments' and role == 'paciente':
@@ -4159,23 +5176,22 @@ def display_page(pathname, search, current_session):
      Output('url', 'search', allow_duplicate=True)],
     Input('login-button','n_clicks'),
     [State('login-username','value'),
-     State('login-password','value')],
+     State('login-password','value'),
+     State('login-role','value')],
     prevent_initial_call=True
 )
-def login(n_clicks, username, password):
+def login(n_clicks, username, password, role):
     if n_clicks is None or n_clicks == 0:
-        return dash.no_update, build_login_feedback("Haz clic en el botón para iniciar sesión", 'warning'), dash.no_update, dash.no_update
+        return dash.no_update, html.Div("⚠️ Haz clic en el botón para iniciar sesión", style={'color':'orange'}), dash.no_update, dash.no_update
     
-    if not username or not password:
-        return dash.no_update, build_login_feedback("Completa todos los campos", 'error'), dash.no_update, dash.no_update
-
-    normalized_username = username.strip()
-    user_data = db.authenticate_user(normalized_username, password)
-    if not user_data:
-        return dash.no_update, build_login_feedback("Credenciales incorrectas", 'error'), dash.no_update, dash.no_update
-
-    role = user_data['role']
-    session_params = urlencode({'user': normalized_username, 'role': role})
+    if not username or not password or not role:
+        return dash.no_update, html.Div("⚠️ Completa todos los campos", style={'color':'red'}), dash.no_update, dash.no_update
+        
+    user_data = db.authenticate_user(username, password)
+    if not user_data or user_data['role'] != role:
+        return dash.no_update, html.Div("❌ Credenciales incorrectas", style={'color':'red'}), dash.no_update, dash.no_update
+        
+    session_params = urlencode({'user': username, 'role': role})
     return dash.no_update, "", "/", f"?{session_params}"
 
 # Callback: Mostrar/Ocultar contraseña (Ojo)
@@ -4192,6 +5208,21 @@ def toggle_password(n_clicks, current_type):
     if current_type == "password":
         return "text", "🙈"
     return "password", "👁️"
+
+def login(n_clicks, username, password, role):
+    if n_clicks is None or n_clicks == 0:
+        return dash.no_update, html.Div("⚠️ Haz clic en el botón para iniciar sesión", style={'color':'orange'}), dash.no_update, dash.no_update
+        
+    if not username or not password or not role:
+        return dash.no_update, html.Div("⚠️ Completa todos los campos", style={'color':'red'}), dash.no_update, dash.no_update
+    
+    user_data = db.authenticate_user(username, password)
+    if not user_data or user_data['role'] != role:
+        return dash.no_update, html.Div("❌ Credenciales incorrectas", style={'color':'red'}), dash.no_update, dash.no_update
+    
+    session_params = urlencode({'user': username, 'role': role})
+    
+    return dash.no_update, "", "/", f"?{session_params}"
 
 # Callback: Navegación de Botones/Enlaces Internos (CORREGIDO)
 # Callback: Navegación de Botones/Enlaces Internos (CORREGIDO DE FORMA SEGURA)
@@ -5225,22 +6256,21 @@ def run_simulator():
 # ==========================================================================
 # --- INICIO DEL SISTEMA ---
 # ==========================================================================
-
-server = app.server
-
-# Render + inicio simulación
-if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+if __name__ == '__main__':
+    # 1. Iniciar el simulador PRIMERO
     print("✅ Iniciando hilos de simulación...")
     simulation_thread = threading.Thread(target=run_simulator, daemon=True)
     simulation_thread.start()
-
-if __name__ == '__main__':
-    # 2. Ejecución exclusiva para modo LOCAL
+    
+    # Pausa para asegurar que data/sensor_data_stream.csv existe antes de que Dash cargue 
+    
     print("🚀 Servidor RehabiDesk levantando en http://127.0.0.1:8050")
     
+    # 2. Ejecución del servidor
+    # debug=True + use_reloader=False es la combinación más estable para hilos secundarios
     app.run(
         debug=True, 
         host='0.0.0.0', 
         port=8050, 
-        use_reloader=False # Mantenlo en False para estabilidad de los hilos
+        use_reloader=False # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
     )
