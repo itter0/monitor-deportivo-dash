@@ -20,6 +20,88 @@
     border-top-color: #ffffff !important;
 }
 
+/* Estilos para DatePicker - Color del texto en campos de fecha */
+.DateInput_input {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+}
+
+/* Estilos para el contenedor del DatePicker */
+.DateInput {
+    background-color: #ffffff !important;
+}
+
+/* Estilos para el texto del calendario desplegable */
+.CalendarDay__selected_span {
+    color: #000000 !important;
+}
+
+.CalendarDay__selected {
+    color: #000000 !important;
+    background-color: #e0e7ff !important;
+}
+
+/* Header del calendario (mes y año) */
+.CalendarMonth_caption {
+    color: #000000 !important;
+    font-weight: bold !important;
+}
+
+/* Días de la semana */
+.DayPicker_weekHeader_li {
+    color: #000000 !important;
+}
+
+/* Días del mes */
+.CalendarDay {
+    color: #000000 !important;
+}
+
+.CalendarDay__default {
+    color: #3b3b3b !important;
+}
+
+/* Día actual (hoy) */
+.CalendarDay__today {
+    color: #3b82f6 !important;
+    background-color: #f0f8ff !important;
+}
+
+/* Día hover */
+.CalendarDay:hover {
+    background-color: #f5f5f5 !important;
+    color: #000000 !important;
+}
+
+/* Botones de navegación del calendario */
+.DayPickerNavigation_button {
+    color: #000000 !important;
+}
+
+.DayPickerNavigation_button:hover {
+    background-color: #f5f5f5 !important;
+}
+
+/* Contenedor del calendario */
+.DayPicker {
+    background-color: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
+}
+
+/* Meses en el selector de mes/año */
+.Selectable__option {
+    color: #000000 !important;
+}
+
+.Selectable__option:hover {
+    background-color: #f5f5f5 !important;
+}
+
+.Selectable__option--selected {
+    background-color: #e0e7ff !important;
+    color: #000000 !important;
+}
+
 /* Actualización opcional para mejorar la visibilidad */
 .rc-slider-handle {
     border-color: #ff0000 !important;
@@ -29,6 +111,7 @@
     background-color: #ff0000 !important;
 }
 
+<<<<<<< HEAD
 /* Mejor contraste del wizard táctico */
 .tactical-modal .Select-control {
     background-color: #111111 !important;
@@ -60,4 +143,416 @@
 
 .tactical-modal .SingleDatePickerInput {
     border: 1px solid #444444 !important;
+=======
+/* ===========================================
+   ESTILOS RESPONSIVE PARA OCTAGON PRO
+   =========================================== */
+
+/* Variables CSS para breakpoints consistentes */
+:root {
+    --mobile-max: 576px;
+    --tablet-min: 577px;
+    --tablet-max: 992px;
+    --desktop-min: 993px;
+}
+
+/* RESETEO Y BASE RESPONSIVE */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px; /* Base para rem */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevenir scroll horizontal */
+}
+
+/* CONTENEDORES PRINCIPALES - RESPONSIVE */
+.main-container {
+    padding: 10px !important;
+    min-height: 100vh;
+}
+
+@media (min-width: 576px) {
+    .main-container {
+        padding: 15px !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .main-container {
+        padding: 20px !important;
+    }
+}
+
+/* NAVBAR RESPONSIVE */
+.navbar-responsive {
+    padding: 10px 15px !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+@media (min-width: 768px) {
+    .navbar-responsive {
+        flex-direction: row !important;
+        padding: 15px 40px !important;
+        gap: 0 !important;
+    }
+}
+
+/* CARDS RESPONSIVE */
+.card-responsive {
+    margin-bottom: 15px !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+}
+
+@media (min-width: 768px) {
+    .card-responsive {
+        margin-bottom: 20px !important;
+        padding: 25px !important;
+        border-radius: 10px !important;
+    }
+}
+
+/* HEADERS RESPONSIVE */
+.card-header-responsive {
+    font-size: 1.1rem !important;
+    margin-bottom: 10px !important;
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .card-header-responsive {
+        font-size: 1.4rem !important;
+        margin-bottom: 15px !important;
+        text-align: left;
+    }
+}
+
+/* BOTONES RESPONSIVE */
+.btn-responsive {
+    padding: 10px 15px !important;
+    font-size: 0.9rem !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
+}
+
+@media (min-width: 576px) {
+    .btn-responsive {
+        width: auto !important;
+        margin-bottom: 0 !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .btn-responsive {
+        padding: 12px 25px !important;
+        font-size: 1rem !important;
+    }
+}
+
+/* INPUTS RESPONSIVE */
+.input-responsive {
+    padding: 10px !important;
+    font-size: 16px !important; /* Prevenir zoom en iOS */
+    margin-bottom: 10px !important;
+}
+
+@media (min-width: 768px) {
+    .input-responsive {
+        padding: 12px !important;
+        margin-bottom: 0 !important;
+    }
+}
+
+/* GRÁFICOS RESPONSIVE */
+.graph-responsive {
+    height: 250px !important;
+    margin-bottom: 15px !important;
+}
+
+@media (min-width: 576px) {
+    .graph-responsive {
+        height: 300px !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .graph-responsive {
+        height: 400px !important;
+        margin-bottom: 20px !important;
+    }
+}
+
+/* TABLAS RESPONSIVE */
+.table-responsive {
+    font-size: 0.8rem !important;
+    overflow-x: auto !important;
+}
+
+@media (min-width: 768px) {
+    .table-responsive {
+        font-size: 0.9rem !important;
+    }
+}
+
+/* MODALES RESPONSIVE */
+.modal-responsive .modal-dialog {
+    margin: 10px !important;
+    max-width: calc(100vw - 20px) !important;
+}
+
+@media (min-width: 576px) {
+    .modal-responsive .modal-dialog {
+        margin: 30px auto !important;
+        max-width: 500px !important;
+    }
+}
+
+/* FORMULARIOS RESPONSIVE */
+.form-row-responsive {
+    margin-bottom: 15px !important;
+}
+
+@media (min-width: 768px) {
+    .form-row-responsive {
+        margin-bottom: 20px !important;
+    }
+}
+
+/* ALERTAS RESPONSIVE */
+.alert-responsive {
+    padding: 10px !important;
+    margin-bottom: 10px !important;
+    font-size: 0.9rem !important;
+}
+
+@media (min-width: 768px) {
+    .alert-responsive {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+        font-size: 1rem !important;
+    }
+}
+
+/* DASHBOARD ESPECÍFICO - COACH */
+
+/* Lista de atletas responsive */
+.athletes-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+@media (min-width: 576px) {
+    .athletes-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+}
+
+@media (min-width: 992px) {
+    .athletes-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+}
+
+/* Cards de atletas */
+.athlete-card {
+    background: #0a0a0a;
+    border: 1px solid #ff0000;
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.athlete-card:hover {
+    border-color: #ff4444;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+}
+
+@media (min-width: 768px) {
+    .athlete-card {
+        padding: 20px;
+    }
+}
+
+/* Métricas de fatiga responsive */
+.fatigue-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+@media (min-width: 576px) {
+    .fatigue-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .fatigue-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* DASHBOARD ESPECÍFICO - PACIENTE */
+
+/* Lista de citas responsive */
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.appointment-card {
+    background: #0a0a0a;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+@media (min-width: 768px) {
+    .appointment-card {
+        padding: 20px;
+    }
+}
+
+/* DASHBOARD ESPECÍFICO - MÉDICO */
+
+/* Panel de pacientes responsive */
+.patients-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+
+@media (min-width: 768px) {
+    .patients-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .patients-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* UTILIDADES GENERALES */
+
+/* Ocultar elementos en móvil */
+.hide-mobile {
+    display: none !important;
+}
+
+@media (min-width: 768px) {
+    .hide-mobile {
+        display: block !important;
+    }
+}
+
+/* Mostrar solo en móvil */
+.show-mobile-only {
+    display: block !important;
+}
+
+@media (min-width: 768px) {
+    .show-mobile-only {
+        display: none !important;
+    }
+}
+
+/* Texto responsive */
+.text-responsive {
+    font-size: 0.9rem !important;
+}
+
+@media (min-width: 768px) {
+    .text-responsive {
+        font-size: 1rem !important;
+    }
+}
+
+/* Espaciado responsive */
+.spacing-responsive {
+    margin-bottom: 15px !important;
+}
+
+@media (min-width: 768px) {
+    .spacing-responsive {
+        margin-bottom: 20px !important;
+    }
+}
+
+/* TOUCH FRIENDLY */
+
+/* Botones touch-friendly */
+.btn-touch {
+    min-height: 44px !important; /* Mínimo recomendado para touch */
+    min-width: 44px !important;
+}
+
+/* Inputs touch-friendly */
+.input-touch {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevenir zoom en iOS */
+}
+
+/* Links touch-friendly */
+.link-touch {
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 10px !important;
+}
+
+/* ANIMACIONES SUAVES PARA MEJOR UX */
+* {
+    transition: all 0.2s ease-in-out;
+}
+
+/* LOADING STATES */
+.loading-shimmer {
+    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* FOCUS STATES PARA ACCESIBILIDAD */
+.btn:focus,
+.input:focus,
+.select:focus {
+    outline: 2px solid #ff0000 !important;
+    outline-offset: 2px !important;
+}
+
+/* PREVENIR ZOOM EN INPUTS (iOS) */
+@media screen and (max-width: 767px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"],
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+>>>>>>> e3c5435b (Mis cambios)
 }

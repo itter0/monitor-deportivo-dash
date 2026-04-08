@@ -4,6 +4,13 @@ pandas
 numpy
 scipy
 plotly
+psutil
+pydantic
 sqlalchemy
 gunicorn
+<<<<<<< HEAD
 reportlab
+=======
+fastapi
+uvicorn
+>>>>>>> e3c5435b (Mis cambios)
