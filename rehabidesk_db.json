@@ -474,6 +474,28 @@
                     "created_date": "2026-04-08T10:01:05.798241"
                 }
             ]
+        },
+        "user": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "user",
+            "member_since": "2026-04-08T20:39:09.548541",
+            "profile": {
+                "email": "user@gmail.com",
+                "phone": "600 000 000",
+                "address": "1",
+                "dni": "12345678A",
+                "birth_date": "1900-01-17",
+                "emergency_contact": "contacto",
+                "emergency_phone": "600 000 000",
+                "weight_class": "bantamweight",
+                "specialty": "Grappling",
+                "blood_type": "A-",
+                "health_status": "lesionado",
+                "injury_types": [
+                    "codo"
+                ]
+            }
         }
     },
     "appointments": [

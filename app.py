@@ -3007,25 +3007,20 @@ def get_login_layout():
 
             html.Div([
                 html.P("¿Nuevo en la plataforma?", style={'color': COLORS['text_muted'], 'fontSize': '13px', 'marginBottom': '14px', 'letterSpacing': '1px'}),
-                html.Div([
-                    dcc.Link('Registro de luchador', href='/register?role=paciente', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'}),
-                    html.Span(' · ', style={'color': COLORS['text_muted'], 'padding': '0 8px'}),
-                    dcc.Link('Registro médico', href='/register?role=medico', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'})
-                ], style={'fontSize': '13px', 'letterSpacing': '0.4px'}),
+                dcc.Link('Regístrate aquí', href='/register', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none', 'fontSize': '13px', 'letterSpacing': '0.4px'}),
             ], style={'textAlign': 'center', 'marginTop': '26px'}),
         ], style=STYLES['login_container'])
     ], className='octagon-auth-shell', style=STYLES['auth_main_container'])
 
 
-def get_register_layout(role='paciente'):
-    normalized_role = role if role in ['medico', 'paciente'] else 'paciente'
-    role_title = 'REGISTRO DE LUCHADOR' if normalized_role == 'paciente' else 'REGISTRO MÉDICO'
-    role_subtitle = 'Crea tu perfil operativo y deja listo el acceso' if normalized_role == 'paciente' else 'Crea tu cuenta profesional para acceder al panel médico'
-    button_label = 'Registrar luchador' if normalized_role == 'paciente' else 'Registrar médico'
-    medical_style = {'display': 'block'} if normalized_role == 'paciente' else {'display': 'none'}
+def get_register_layout():
+    role_title = 'REGISTRO DE LUCHADOR'
+    role_subtitle = 'Crea tu perfil operativo y deja listo el acceso'
+    button_label = 'Registrar luchador'
+    medical_style = {'display': 'block'}
 
     return html.Div([
-        dcc.Store(id='register-role-store', data=normalized_role),
+        dcc.Store(id='register-role-store', data='paciente'),
         html.Div([
             html.Div([
                 html.Span(role_title, style={'color': 'white', 'fontSize': '30px', 'fontWeight': '900', 'letterSpacing': '3px', 'textAlign': 'center', 'display': 'block'}),
@@ -6128,8 +6123,7 @@ def display_page(pathname, search, current_session):
                 return get_patient_dashboard(username, full_name, session_search), updated_session, dash.no_update 
     
     if pathname == '/register':
-        register_role = role_url if role_url in ['medico', 'paciente'] else 'paciente'
-        return get_register_layout(register_role), {}, dash.no_update
+        return get_register_layout(), {}, dash.no_update
     
     return get_login_layout(), {}, dash.no_update
 
