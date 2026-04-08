@@ -1,6 +1,0 @@
-
-try:
-    from coach_dashboard import get_coach_dashboard
-except ImportError:
-    def get_coach_dashboard(username, full_name, current_search="", COLORS=None, STYLES=None):
-        return html.Div("Error: Coach Dashboard module not found", style={'color': 'red'})
