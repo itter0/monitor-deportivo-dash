@@ -2070,6 +2070,7 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True,
 )
+server = app.server
 
 # --- CONFIGURACIÓN VISUAL ESTILO OCTAGON PRO ---
 # --- CONFIGURACIÓN VISUAL ESTILO TÁCTICO / OCTAGON (ACTUALIZADO) ---
@@ -14309,5 +14310,9 @@ if __name__ == "__main__":
     simulator_thread.start()
     print("✅ Simulador iniciado como demonio")
 
-    # Ejecutar servidor Dash
-    app.run(debug=True, host="0.0.0.0", port=8050)
+    # --- CAMBIO PARA RENDER ---
+    # Render asigna un puerto dinámico, por eso usamos os.environ.get
+    port = int(os.environ.get("PORT", 8050))
+    
+    # IMPORTANTE: debug debe ser False en producción (Render)
+    app.run(debug=False, host="0.0.0.0", port=port)
