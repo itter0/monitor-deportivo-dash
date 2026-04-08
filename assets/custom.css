@@ -111,7 +111,6 @@
     background-color: #ff0000 !important;
 }
 
-<<<<<<< HEAD
 /* Mejor contraste del wizard táctico */
 .tactical-modal .Select-control {
     background-color: #111111 !important;
@@ -143,7 +142,6 @@
 
 .tactical-modal .SingleDatePickerInput {
     border: 1px solid #444444 !important;
-=======
 /* ===========================================
    ESTILOS RESPONSIVE PARA OCTAGON PRO
    =========================================== */
@@ -554,5 +552,100 @@ body {
     select {
         font-size: 16px !important;
     }
->>>>>>> e3c5435b (Mis cambios)
 }
+
+    /* AUTENTICACIÓN OCTAGON PRO */
+    .octagon-auth-shell input::placeholder,
+    .octagon-auth-shell textarea::placeholder {
+        color: #94a3b8 !important;
+        opacity: 1 !important;
+    }
+
+    .octagon-auth-shell input,
+    .octagon-auth-shell textarea,
+    .octagon-auth-shell .DateInput_input {
+        background-color: #1a1a1a !important;
+        color: #f8fafc !important;
+        border-color: #334155 !important;
+        caret-color: #3b82f6 !important;
+        box-sizing: border-box !important;
+    }
+
+    .octagon-auth-shell input[type="text"],
+    .octagon-auth-shell input[type="password"],
+    .octagon-auth-shell input[type="email"],
+    .octagon-auth-shell input[type="tel"] {
+        height: 48px !important;
+        padding: 0 15px !important;
+        line-height: 48px !important;
+        vertical-align: middle !important;
+        box-sizing: border-box !important;
+    }
+
+    .octagon-auth-shell .DateInput,
+    .octagon-auth-shell .SingleDatePickerInput,
+    .octagon-auth-shell .DateInput_input {
+        background-color: #1a1a1a !important;
+        border: 1px solid #334155 !important;
+        border-radius: 10px !important;
+    }
+
+    .octagon-auth-shell .Select-control,
+    .octagon-auth-shell .Select__control {
+        background-color: #1a1a1a !important;
+        border: 1px solid #334155 !important;
+        border-radius: 10px !important;
+        color: #f8fafc !important;
+        min-height: 44px !important;
+        box-shadow: none !important;
+    }
+
+    .octagon-auth-shell .is-focused > .Select-control,
+    .octagon-auth-shell .Select-control:hover,
+    .octagon-auth-shell .Select__control--is-focused,
+    .octagon-auth-shell .Select__control:hover {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 0 16px rgba(59, 130, 246, 0.18) !important;
+    }
+
+    .octagon-auth-shell .Select-menu-outer,
+    .octagon-auth-shell .Select__menu {
+        background-color: #111827 !important;
+        border: 1px solid #334155 !important;
+        color: #f8fafc !important;
+    }
+
+    .octagon-auth-shell .Select-option,
+    .octagon-auth-shell .Select__option {
+        background-color: #111827 !important;
+        color: #f8fafc !important;
+    }
+
+    .octagon-auth-shell .Select-option.is-focused,
+    .octagon-auth-shell .Select__option--is-focused {
+        background-color: #1d4ed8 !important;
+        color: #ffffff !important;
+    }
+
+    .octagon-auth-shell .Select-option.is-selected,
+    .octagon-auth-shell .Select__option--is-selected {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+    }
+
+    .octagon-auth-shell .Select-placeholder,
+    .octagon-auth-shell .Select--single > .Select-control .Select-value,
+    .octagon-auth-shell .Select-value-label,
+    .octagon-auth-shell .Select-input > input {
+        color: #94a3b8 !important;
+    }
+
+    .octagon-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 24px rgba(59, 130, 246, 0.55) !important;
+        background-color: #2563eb !important;
+    }
+
+    .octagon-button:active {
+        transform: translateY(0);
+    }

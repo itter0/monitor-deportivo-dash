@@ -590,16 +590,37 @@ STYLES = {
         'padding': '12px',
         'fontSize': '14px',
     },
-    'login_container': {
-        'maxWidth': '100%',
-        'margin': '20px auto',
+    'auth_main_container': {
+        'backgroundColor': COLORS['background_tactical'],
+        'minHeight': '100vh',
+        'display': 'flex',
+        'alignItems': 'center',
+        'justifyContent': 'center',
+        'fontFamily': "'Oswald', 'Segoe UI', 'Roboto', sans-serif",
+        'color': COLORS['text'],
         'padding': '20px',
-        'background': COLORS['card_bg'],
-        'borderRadius': '8px',
-        'border': f'2px solid {COLORS["border_neon"]}',
-        'boxShadow': '0 0 20px rgba(51, 51, 51, 0.35)',
+    },
+    'login_container': {
+        'width': '100%',
+        'maxWidth': '440px',
+        'padding': '36px 32px',
+        'background': 'linear-gradient(145deg, #1f2937, #111827)',
+        'borderRadius': '16px',
+        'border': f'1px solid {COLORS["primary"]}',
+        'boxShadow': '0 16px 40px rgba(0, 0, 0, 0.5), 0 0 22px rgba(59, 130, 246, 0.12)',
         'color': COLORS['text'],
         'textAlign': 'center',
+        'fontFamily': "'Oswald', 'Segoe UI', 'Roboto', sans-serif",
+    },
+    'register_container': {
+        'width': '100%',
+        'maxWidth': '960px',
+        'padding': '36px 32px',
+        'background': 'linear-gradient(145deg, #1f2937, #111827)',
+        'borderRadius': '16px',
+        'border': f'1px solid {COLORS["primary"]}',
+        'boxShadow': '0 16px 40px rgba(0, 0, 0, 0.5), 0 0 22px rgba(59, 130, 246, 0.12)',
+        'color': COLORS['text'],
         'fontFamily': "'Oswald', 'Segoe UI', 'Roboto', sans-serif",
     },
     'navbar': {
@@ -671,6 +692,51 @@ REHAB_STYLES = {
         'marginBottom': '8px',
         'fontFamily': "'Oswald', 'Segoe UI', 'Roboto', sans-serif",
     }
+}
+
+AUTH_TEXT_STYLE = {
+    'color': COLORS['text_muted'],
+    'fontSize': '11px',
+    'fontWeight': '700',
+    'marginBottom': '8px',
+    'display': 'block',
+    'letterSpacing': '2px',
+}
+
+AUTH_INPUT_STYLE = {
+    'width': '100%',
+    'padding': '10px 14px',
+    'background': '#1a1a1a',
+    'border': f'1px solid {COLORS["border_soft"]}',
+    'color': '#ffffff',
+    'borderRadius': '10px',
+    'marginBottom': '18px',
+    'fontFamily': "'Oswald', 'Segoe UI', 'Roboto', sans-serif",
+    'fontSize': '14px',
+    'height': '48px',
+    'lineHeight': '28px',
+    'boxSizing': 'border-box'
+}
+
+AUTH_BUTTON_STYLE = {
+    'width': '100%',
+    'padding': '15px',
+    'background': COLORS['primary'],
+    'color': 'white',
+    'border': 'none',
+    'borderRadius': '10px',
+    'fontWeight': '900',
+    'fontSize': '14px',
+    'letterSpacing': '1.2px',
+    'textTransform': 'uppercase',
+    'cursor': 'pointer',
+    'boxShadow': '0 10px 24px rgba(59, 130, 246, 0.28)',
+    'transition': 'all 0.3s ease',
+}
+
+AUTH_DROPDOWN_STYLE = {
+    'marginBottom': '18px',
+    'borderRadius': '10px',
 }
 
 # REPERTORIO DE EJERCICIOS PARA RODILLA (Se mantienen)
@@ -2903,207 +2969,186 @@ def get_edit_profile_modal():
 def get_login_layout():
     return html.Div([
         html.Div([
-            # Título Estilo Octagon
             html.Div([
-                html.Span("OCTAGON", style={'color': 'white', 'fontSize': '32px', 'fontWeight': '900', 'letterSpacing': '2px'}),
-                html.Span(" PRO", style={'color': COLORS['primary'], 'fontSize': '32px', 'fontWeight': '900'})
-            ], style={'textAlign': 'center', 'marginBottom': '40px'}),
-            
-            html.H3("LOGIN / REGISTER", style={'textAlign': 'center', 'color': 'white', 'fontSize': '24px', 'fontWeight': '700', 'marginBottom': '5px'}),
-            html.P("READY FOR THE CAGE?", style={'textAlign': 'center', 'color': COLORS['text_muted'], 'fontSize': '14px', 'marginBottom': '40px'}),
-            
-            # Campo Email
+                html.Span("OCTAGON", style={'color': 'white', 'fontSize': '34px', 'fontWeight': '900', 'letterSpacing': '3px'}),
+                html.Span(" PRO", style={'color': COLORS['primary'], 'fontSize': '34px', 'fontWeight': '900', 'letterSpacing': '2px'})
+            ], style={'textAlign': 'center', 'marginBottom': '14px'}),
+            html.P("PREPARE FOR BATTLE", style={'textAlign': 'center', 'color': COLORS['primary'], 'fontSize': '12px', 'letterSpacing': '5px', 'marginBottom': '34px'}),
+
             html.Div([
-                html.Label("USUARIO, EMAIL O TELÉFONO", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
-                dcc.Input(id='login-username', type='text', placeholder='Usuario, email o teléfono', 
-                          style={'width': '100%', 'padding': '15px', 'background': '#1a1a1a', 'border': f'1px solid {COLORS["border_soft"]}', 'color': 'white', 'marginBottom': '20px'})
-            ]),
-            
-            # Campo Password
-            html.Div([
-                html.Label("CONTRASEÑA", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
-                dcc.Input(id="login-password", type="password", placeholder="Contraseña",
-                          style={'width': '100%', 'padding': '15px', 'background': '#1a1a1a', 'border': f'1px solid {COLORS["border_soft"]}', 'color': 'white', 'marginBottom': '20px'})
+                html.Label("USUARIO", style=AUTH_TEXT_STYLE),
+                dcc.Input(
+                    id='login-username',
+                    type='text',
+                    placeholder='Usuario, email o teléfono',
+                    style=AUTH_INPUT_STYLE
+                )
             ]),
 
-            # --- ESTO ES LO QUE FALTABA: Selector de Rol ---
             html.Div([
-                html.Label("MODALIDAD DE ACCESO", style={'color': COLORS['text_muted'], 'fontSize': '12px', 'fontWeight': '700', 'marginBottom': '8px', 'display': 'block'}),
-                dcc.Dropdown(
-                    id='login-role', # <--- AQUÍ ESTÁ EL ID QUE PIDE EL ERROR
-                    options=[
-                        {'label': 'Médico', 'value': 'medico'},
-                        {'label': 'Luchador', 'value': 'paciente'}
-                    ],
-                    placeholder='Selecciona Rol',
-                    # Estilo oscuro para que no desentone
-                    style={'marginBottom': '30px', 'backgroundColor': '#1a1a1a', 'color': 'black'}
-                ),
+                html.Label("CONTRASEÑA", style=AUTH_TEXT_STYLE),
+                dcc.Input(
+                    id='login-password',
+                    type='password',
+                    placeholder='Contraseña',
+                    style=AUTH_INPUT_STYLE
+                )
             ]),
-            
-            # Botón Principal con resplandor
-            html.Button('ENTRAR AL GYM', id='login-button', n_clicks=0,
-                        style={
-                            'width': '100%', 'padding': '16px', 'background': 'transparent', 
-                            'color': 'white', 'border': f'2px solid {COLORS["primary"]}', 
-                            'fontWeight': '900', 'fontSize': '16px', 'cursor': 'pointer',
-                            'boxShadow': f'inset 0 0 10px {COLORS["primary"]}, 0 0 15px rgba(59,130,246,0.28)',
-                            'marginBottom': '30px'
-                        }),
-            
-            html.Div(id='login-feedback'),
-            
-            # Links inferiores
+
+            html.Button(
+                'ENTRAR AL OCTÁGONO',
+                id='login-button',
+                n_clicks=0,
+                className='octagon-button',
+                style=AUTH_BUTTON_STYLE
+            ),
+
+            html.Div(id='login-feedback', style={'minHeight': '24px', 'marginTop': '16px'}),
+
             html.Div([
-                dcc.Link('¿Olvidaste tu contraseña?', href='#', style={'color': COLORS['text_muted'], 'fontSize': '13px', 'textDecoration': 'underline', 'display': 'block', 'marginBottom': '15px'}),
-                html.P([
-                    "¿Eres nuevo? ", 
-                    dcc.Link('Regístrate aquí', href='/register', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'})
-                ], style={'fontSize': '14px', 'color': 'white'})
-            ], style={'textAlign': 'center'})
-            
+                html.P("¿Nuevo en la plataforma?", style={'color': COLORS['text_muted'], 'fontSize': '13px', 'marginBottom': '14px', 'letterSpacing': '1px'}),
+                html.Div([
+                    dcc.Link('Registro de luchador', href='/register?role=paciente', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'}),
+                    html.Span(' · ', style={'color': COLORS['text_muted'], 'padding': '0 8px'}),
+                    dcc.Link('Registro médico', href='/register?role=medico', style={'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'})
+                ], style={'fontSize': '13px', 'letterSpacing': '0.4px'}),
+            ], style={'textAlign': 'center', 'marginTop': '26px'}),
         ], style=STYLES['login_container'])
-    ], style={'background': COLORS['background_tactical'], 'minHeight': '100vh', 'padding': '20px', 'fontFamily': "'Oswald', 'Segoe UI', 'Roboto', sans-serif"})
+    ], className='octagon-auth-shell', style=STYLES['auth_main_container'])
 
-def get_register_layout():
+
+def get_register_layout(role='paciente'):
+    normalized_role = role if role in ['medico', 'paciente'] else 'paciente'
+    role_title = 'REGISTRO DE LUCHADOR' if normalized_role == 'paciente' else 'REGISTRO MÉDICO'
+    role_subtitle = 'Crea tu perfil operativo y deja listo el acceso' if normalized_role == 'paciente' else 'Crea tu cuenta profesional para acceder al panel médico'
+    button_label = 'Registrar luchador' if normalized_role == 'paciente' else 'Registrar médico'
+    medical_style = {'display': 'block'} if normalized_role == 'paciente' else {'display': 'none'}
+
     return html.Div([
+        dcc.Store(id='register-role-store', data=normalized_role),
         html.Div([
-            html.H2("Registro Completo", style={'textAlign': 'center', 'color': COLORS['primary'], 'marginBottom': '8px'}),
-            html.P("Crea tu cuenta en RehabiDesk - Perfil Octagon Pro", style={'textAlign': 'center', 'color': COLORS['muted'], 'marginBottom': '32px'}),
+            html.Div([
+                html.Span(role_title, style={'color': 'white', 'fontSize': '30px', 'fontWeight': '900', 'letterSpacing': '3px', 'textAlign': 'center', 'display': 'block'}),
+                html.P(role_subtitle, style={'textAlign': 'center', 'color': COLORS['text_muted'], 'fontSize': '13px', 'letterSpacing': '1px', 'marginTop': '10px', 'marginBottom': '0'})
+            ], style={'marginBottom': '28px'}),
 
-            html.H4("Información de Cuenta", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px'}),
-            
-            html.Label("Nombre Completo *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-fullname', type='text', placeholder='Ingresa tu nombre completo', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("Usuario *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-username', type='text', placeholder='Crea un nombre de usuario', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("Contraseña *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-password', type='password', placeholder='Crea una contraseña segura', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("Rol *", style=REHAB_STYLES['label']),
-            dcc.Dropdown(
-                id='register-role',
-                options=[
-                    {'label': 'Médico', 'value': 'medico'},
-                    {'label': 'Luchador', 'value': 'paciente'}
-                ],
-                placeholder='Selecciona tu rol',
-                style={'marginBottom': '24px'}
-            ),
-            
-            html.H4("Información Personal", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
-            
-            html.Label("Email *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-email', type='email', placeholder='tu.email@ejemplo.com', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("Teléfono *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-phone', type='tel', placeholder='+34 600 000 000', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("Dirección", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-address', type='text', placeholder='Calle, número, ciudad', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("DNI/NIE *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-dni', type='text', placeholder='12345678X', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("Fecha de Nacimiento *", style=REHAB_STYLES['label']),
-            dcc.DatePickerSingle(
-                id='register-birthdate',
-                min_date_allowed=datetime(1900, 1, 1),
-                max_date_allowed=datetime.today(),
-                style={'width': '100%', 'marginBottom': '16px'}
-            ),
-            
-            # --- SECCIÓN MÉDICA Y DE COMBATE (CONDICIONAL) ---
-            html.Div(id='medical-info-section', children=[
-                html.H4("Perfil de Luchador y Salud", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
-                
-                # PESO MMA
-                html.Label("Categoría de Peso MMA *", style=REHAB_STYLES['label']),
-                dcc.Dropdown(
-                    id='register-weight-class',
-                    options=MMA_WEIGHT_CLASSES,
-                    placeholder='Selecciona categoría...',
-                    style={'marginBottom': '16px', 'color': 'black'}
+            html.Div([
+                html.Label("Nombre Completo *", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-fullname', type='text', placeholder='Ingresa tu nombre completo', style=AUTH_INPUT_STYLE),
+
+                html.Label("Usuario *", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-username', type='text', placeholder='Crea un nombre de usuario', style=AUTH_INPUT_STYLE),
+
+                html.Label("Contraseña *", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-password', type='password', placeholder='Crea una contraseña segura', style=AUTH_INPUT_STYLE),
+
+                html.Label("Email *", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-email', type='email', placeholder='tu.email@ejemplo.com', style=AUTH_INPUT_STYLE),
+
+                html.Label("Teléfono *", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-phone', type='tel', placeholder='+34 600 000 000', style=AUTH_INPUT_STYLE),
+
+                html.Label("Dirección", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-address', type='text', placeholder='Calle, número, ciudad', style=AUTH_INPUT_STYLE),
+
+                html.Label("DNI/NIE *", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-dni', type='text', placeholder='12345678X', style=AUTH_INPUT_STYLE),
+
+                html.Label("Fecha de Nacimiento *", style=AUTH_TEXT_STYLE),
+                dcc.DatePickerSingle(
+                    id='register-birthdate',
+                    min_date_allowed=datetime(1900, 1, 1),
+                    max_date_allowed=datetime.today(),
+                    style={'width': '100%', 'marginBottom': '18px'}
                 ),
 
-                # ESPECIALIDAD
-                html.Label("Especialidad *", style=REHAB_STYLES['label']),
-                dcc.Dropdown(
-                    id='register-specialty',
-                    options=[
-                        {'label': 'Sparring', 'value': 'Sparring'},
-                        {'label': 'Grappling', 'value': 'Grappling'},
-                        {'label': 'Balanceado', 'value': 'Balanceado'}
-                    ],
-                    placeholder='Selecciona especialidad...',
-                    style={'marginBottom': '16px', 'color': 'black'}
+                html.Div(id='medical-info-section', children=[
+                    html.Div([
+                        html.H4("PERFIL DE LUCHADOR Y SALUD", style={'color': COLORS['primary'], 'marginBottom': '18px', 'letterSpacing': '2px', 'fontSize': '18px'}),
+
+                        html.Label("Categoría de Peso MMA *", style=AUTH_TEXT_STYLE),
+                        dcc.Dropdown(
+                            id='register-weight-class',
+                            options=MMA_WEIGHT_CLASSES,
+                            placeholder='Selecciona categoría...',
+                            className='octagon-dropdown',
+                            style=AUTH_DROPDOWN_STYLE
+                        ),
+
+                        html.Label("Especialidad *", style=AUTH_TEXT_STYLE),
+                        dcc.Dropdown(
+                            id='register-specialty',
+                            options=[
+                                {'label': 'Sparring', 'value': 'Sparring'},
+                                {'label': 'Grappling', 'value': 'Grappling'},
+                                {'label': 'Balanceado', 'value': 'Balanceado'}
+                            ],
+                            placeholder='Selecciona especialidad...',
+                            className='octagon-dropdown',
+                            style=AUTH_DROPDOWN_STYLE
+                        ),
+
+                        html.Label("Estado de Salud Actual *", style=AUTH_TEXT_STYLE),
+                        dcc.Dropdown(
+                            id='register-health-status',
+                            options=[
+                                {'label': 'Listo para pelear', 'value': 'listo'},
+                                {'label': 'Lesionado', 'value': 'lesionado'}
+                            ],
+                            placeholder='¿Cómo te encuentras?',
+                            className='octagon-dropdown',
+                            style=AUTH_DROPDOWN_STYLE
+                        ),
+
+                        html.Div(id='injury-type-container', children=[
+                            html.Label("Tipo de Lesión", style=AUTH_TEXT_STYLE),
+                            dcc.Dropdown(
+                                id='register-injury-type',
+                                options=[
+                                    {'label': 'Rodilla', 'value': 'rodilla'},
+                                    {'label': 'Codo', 'value': 'codo'},
+                                    {'label': 'Hombro', 'value': 'hombro'}
+                                ],
+                                placeholder='Selecciona zona...',
+                                className='octagon-dropdown',
+                                style=AUTH_DROPDOWN_STYLE
+                            ),
+                        ], style={'display': 'none'}),
+
+                        html.Label("Tipo de Sangre", style=AUTH_TEXT_STYLE),
+                        dcc.Dropdown(
+                            id='register-blood-type',
+                            options=[{'label': b, 'value': b} for b in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']],
+                            placeholder='Selecciona tipo de sangre',
+                            className='octagon-dropdown',
+                            style=AUTH_DROPDOWN_STYLE
+                        ),
+                    ], style=medical_style)
+                ]),
+
+                html.Label("Contacto de Emergencia - Nombre *", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-emergency-contact', type='text', placeholder='Nombre completo', style=AUTH_INPUT_STYLE),
+
+                html.Label("Contacto de Emergencia - Teléfono *", style=AUTH_TEXT_STYLE),
+                dcc.Input(id='register-emergency-phone', type='tel', placeholder='+34 600 000 000', style=AUTH_INPUT_STYLE),
+
+                html.Button(
+                    button_label,
+                    id='register-button',
+                    n_clicks=0,
+                    className='octagon-button',
+                    style=AUTH_BUTTON_STYLE
                 ),
 
-                # ESTADO DE SALUD
-                html.Label("Estado de Salud Actual *", style=REHAB_STYLES['label']),
-                dcc.Dropdown(
-                    id='register-health-status',
-                    options=[
-                        {'label': 'Listo para pelear', 'value': 'listo'},
-                        {'label': 'Lesionado', 'value': 'lesionado'}
-                    ],
-                    placeholder='¿Cómo te encuentras?',
-                    style={'marginBottom': '16px', 'color': 'black'}
-                ),
+                html.Div(id='register-feedback', style={'minHeight': '24px', 'marginTop': '16px'}),
 
-                # DESPLEGABLE CONDICIONAL DE LESIÓN (Se mostrará vía callback)
-                html.Div(id='injury-type-container', children=[
-                    html.Label("Tipo de Lesión", style=REHAB_STYLES['label']),
-                    dcc.Dropdown(
-                        id='register-injury-type',
-                        options=[
-                            {'label': 'Rodilla', 'value': 'rodilla'},
-                            {'label': 'Codo', 'value': 'codo'},
-                            {'label': 'Hombro', 'value': 'hombro'}
-                        ],
-                        placeholder='Selecciona zona...',
-                        style={'marginBottom': '16px', 'color': 'black'}
-                    ),
-                ], style={'display': 'none'}), # Oculto por defecto
-
-                html.Label("Tipo de Sangre", style=REHAB_STYLES['label']),
-                dcc.Dropdown(
-                    id='register-blood-type',
-                    options=[{'label': b, 'value': b} for b in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']],
-                    placeholder='Selecciona tipo de sangre',
-                    style={'marginBottom': '16px', 'color': 'black'}
-                ),
-            ]),
-            
-            html.H4("Contacto de Emergencia", style={'color': COLORS['primary'], 'marginBottom': '16px', 'borderBottom': f'2px solid {COLORS["primary"]}', 'paddingBottom': '8px', 'marginTop': '32px'}),
-            
-            html.Label("Nombre del Contacto *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-emergency-contact', type='text', placeholder='Nombre completo', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '16px'}),
-            
-            html.Label("Teléfono del Contacto *", style=REHAB_STYLES['label']),
-            dcc.Input(id='register-emergency-phone', type='tel', placeholder='+34 600 000 000', 
-                      style={'width': '100%', 'padding': '12px', 'background': '#1a1a1a', 'color': '#ffffff', 'border': f'1px solid {COLORS["muted"]}', 'borderRadius': '8px', 'marginBottom': '32px'}),
-            
-            html.Button('Registrar Cuenta Completa', id='register-button', n_clicks=0,
-                        style={'width': '100%', 'padding': '14px', 'background': COLORS['secondary'], 'color': 'white', 
-                               'border': 'none', 'borderRadius': '10px', 'cursor': 'pointer', 'fontWeight': '600', 'marginBottom': '16px', 'fontSize': '16px'}),
-            
-            html.Div(id='register-feedback'),
-            
-            html.P("¿Ya tienes cuenta? ", style={'textAlign': 'center', 'color': COLORS['muted']}),
-            dcc.Link('Inicia sesión aquí', href='/login', style={'textAlign': 'center', 'display': 'block', 'color': COLORS['primary']})
-        ], style=STYLES['login_container'])
-    ], style={'background': COLORS['background_tactical'], 'minHeight': '100vh', 'padding': '20px'})
+                html.Div([
+                    html.P("¿Ya tienes cuenta?", style={'textAlign': 'center', 'color': COLORS['text_muted'], 'marginBottom': '10px'}),
+                    dcc.Link('Inicia sesión aquí', href='/login', style={'textAlign': 'center', 'display': 'block', 'color': COLORS['primary'], 'fontWeight': '700', 'textDecoration': 'none'})
+                ], style={'marginTop': '24px'})
+            ], style=STYLES['register_container'])
+        ], style={'width': '100%'})
+    ], className='octagon-auth-shell', style=STYLES['auth_main_container'])
 
 # --- NAV BAR ---
 def get_user_navbar(role_symbol, full_name, role_name, current_search=""): 
@@ -4744,7 +4789,7 @@ def control_patient_refresh_interval(pathname, user_data):
 # Callback: Mostrar contenido del cuestionario seleccionado (Se mantiene)
 @app.callback(
     Output('medical-info-section', 'style'),
-    Input('register-role', 'value')
+    Input('register-role-store', 'data')
 )
 def handle_registration_visibility(role):
     # Por defecto, ocultamos todo
@@ -6083,11 +6128,11 @@ def display_page(pathname, search, current_session):
                 return get_patient_dashboard(username, full_name, session_search), updated_session, dash.no_update 
     
     if pathname == '/register':
-        return get_register_layout(), {}, dash.no_update
+        register_role = role_url if role_url in ['medico', 'paciente'] else 'paciente'
+        return get_register_layout(register_role), {}, dash.no_update
     
     return get_login_layout(), {}, dash.no_update
 
-# Callback: Login (Se mantiene)
 # Callback: Login (Se mantiene)
 @app.callback(
     [Output('page-content','children', allow_duplicate=True),
@@ -6096,22 +6141,21 @@ def display_page(pathname, search, current_session):
      Output('url', 'search', allow_duplicate=True)],
     Input('login-button','n_clicks'),
     [State('login-username','value'),
-     State('login-password','value'),
-     State('login-role','value')],
+     State('login-password','value')],
     prevent_initial_call=True
 )
-def login(n_clicks, username, password, role):
+def login(n_clicks, username, password):
     if n_clicks is None or n_clicks == 0:
-        return dash.no_update, html.Div("⚠️ Haz clic en el botón para iniciar sesión", style={'color':'orange'}), dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
     
-    if not username or not password or not role:
+    if not username or not password:
         return dash.no_update, html.Div("⚠️ Completa todos los campos", style={'color':'red'}), dash.no_update, dash.no_update
         
     user_data = db.authenticate_user(username, password)
-    if not user_data or user_data['role'] != role:
+    if not user_data:
         return dash.no_update, html.Div("❌ Credenciales incorrectas", style={'color':'red'}), dash.no_update, dash.no_update
         
-    session_params = urlencode({'user': username, 'role': role})
+    session_params = urlencode({'user': username, 'role': user_data['role']})
     return dash.no_update, "", "/", f"?{session_params}"
 
 # Callback: Mostrar/Ocultar contraseña (Ojo)
@@ -6128,21 +6172,6 @@ def toggle_password(n_clicks, current_type):
     if current_type == "password":
         return "text", "🙈"
     return "password", "👁️"
-
-def login(n_clicks, username, password, role):
-    if n_clicks is None or n_clicks == 0:
-        return dash.no_update, html.Div("⚠️ Haz clic en el botón para iniciar sesión", style={'color':'orange'}), dash.no_update, dash.no_update
-        
-    if not username or not password or not role:
-        return dash.no_update, html.Div("⚠️ Completa todos los campos", style={'color':'red'}), dash.no_update, dash.no_update
-    
-    user_data = db.authenticate_user(username, password)
-    if not user_data or user_data['role'] != role:
-        return dash.no_update, html.Div("❌ Credenciales incorrectas", style={'color':'red'}), dash.no_update, dash.no_update
-    
-    session_params = urlencode({'user': username, 'role': role})
-    
-    return dash.no_update, "", "/", f"?{session_params}"
 
 # Callback: Navegación de Botones/Enlaces Internos (CORREGIDO)
 # Callback: Navegación de Botones/Enlaces Internos (CORREGIDO DE FORMA SEGURA)
@@ -6217,7 +6246,7 @@ def toggle_injury_dropdown(status):
     Input('register-button','n_clicks'),
     [State('register-username','value'), 
      State('register-password','value'), 
-     State('register-role','value'), 
+    State('register-role-store','data'), 
      State('register-fullname','value'),
      State('register-email','value'),
      State('register-phone','value'),
@@ -6236,12 +6265,13 @@ def toggle_injury_dropdown(status):
 def register_user_complete(n_clicks, username, password, role, fullname, email, phone, address, dni, birthdate, weight_class, specialty, blood_type, emergency_contact, emergency_phone, health_status, injury_type):
     if n_clicks is None or n_clicks == 0:
         return html.Div("⚠️ Haz clic en el botón para registrar", style={'color':'orange'})
+
+    role = role if role in ['medico', 'paciente'] else 'paciente'
     
     # Validar campos obligatorios con mensajes específicos
     field_names = {
         'username': 'Usuario',
         'password': 'Contraseña',
-        'role': 'Rol',
         'fullname': 'Nombre Completo',
         'email': 'Email',
         'phone': 'Teléfono',
@@ -6256,8 +6286,6 @@ def register_user_complete(n_clicks, username, password, role, fullname, email, 
         missing_fields.append(field_names['username'])
     if not password:
         missing_fields.append(field_names['password'])
-    if not role:
-        missing_fields.append(field_names['role'])
     if not fullname:
         missing_fields.append(field_names['fullname'])
     if not email:
@@ -6317,16 +6345,21 @@ def register_user_complete(n_clicks, username, password, role, fullname, email, 
             'birth_date': birthdate,
             'emergency_contact': emergency_contact,
             'emergency_phone': emergency_phone,
-            'weight_class': weight_class,
-            'specialty': specialty,
-            'blood_type': blood_type,
-            'health_status': health_status,
-            'injury_types': [injury_type] if injury_type else []
         }
+
+        if role == 'paciente':
+            profile_data.update({
+                'weight_class': weight_class,
+                'specialty': specialty,
+                'blood_type': blood_type,
+                'health_status': health_status,
+                'injury_types': [injury_type] if injury_type else []
+            })
         
         db.save_user_profile(username, profile_data)
         
-        return html.Div("✅ Usuario registrado correctamente con toda la información. Ahora puedes iniciar sesión.", style={'color':'green'})
+        role_label = 'luchador' if role == 'paciente' else 'médico'
+        return html.Div(f"✅ Usuario registrado correctamente como {role_label}. Ya puedes iniciar sesión.", style={'color':'green'})
     except Exception as e:
         return html.Div(f"❌ Error: {str(e)}", style={'color':'red'})
 
