@@ -6,3 +6,4 @@ scipy
 plotly
 sqlalchemy
 gunicorn
+reportlab

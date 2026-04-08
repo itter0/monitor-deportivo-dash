@@ -198,8 +198,282 @@
                 "emergency_phone": "600123456",
                 "blood_type": "A-",
                 "injury_types": [],
-                "health_status": "listo"
-            }
+                "health_status": "listo",
+                "current_weight": 75,
+                "weight_class": "middleweight"
+            },
+            "tactical_plans": [
+                {
+                    "fight_id": "fight-1775637739.842377",
+                    "opponent": {
+                        "name": "Topuria",
+                        "style": "Balanced",
+                        "strengths": [],
+                        "weaknesses": [],
+                        "notes": "",
+                        "stance": "Zurdo",
+                        "reach": "170",
+                        "cardio": "Alto"
+                    },
+                    "my_specialty": "Balanced",
+                    "my_phase": "Base t\u00e9cnica",
+                    "game_plan_rounds": [
+                        {
+                            "round_number": 1,
+                            "focus": "Maintain pressure and exploit weaknesses",
+                            "techniques": [
+                                "T\u00e9cnicas: Refine your technique advantages",
+                                "Plan B: If opponent adjusts"
+                            ],
+                            "contingency": "T\u00e9cnicas: Refine your technique advantages. Plan B: If opponent adjusts, shift from primary to secondary techniques."
+                        },
+                        {
+                            "round_number": 2,
+                            "focus": "Close rounds with dominant control",
+                            "techniques": [
+                                "derribo"
+                            ],
+                            "contingency": "T\u00e9cnicas: Refine your technique advantages, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                        }
+                    ],
+                    "contingencies": [
+                        "T\u00e9cnicas: Refine your technique advantages. Plan B: If opponent adjusts, shift from primary to secondary techniques.",
+                        "T\u00e9cnicas: Refine your technique advantages, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                    ],
+                    "drill_focus": [],
+                    "injury_restrictions": {},
+                    "created_at": "2026-04-08T08:42:19.842395",
+                    "status": "active",
+                    "execution_logs": [],
+                    "version": "2.0",
+                    "adaptive_adjustments": [],
+                    "version_history": [],
+                    "target_date": "2026-05-20",
+                    "target_days_left": 42,
+                    "start_date": "2026-04-08",
+                    "prep_window": "custom",
+                    "camp_phases": [
+                        {
+                            "phase": "Base t\u00e9cnica",
+                            "start": "2026-04-08",
+                            "end": "2026-04-24",
+                            "focus": "Consolidar fundamentos y ritmo aer\u00f3bico + estabilidad de carga y recuperaci\u00f3n",
+                            "weight_goal": "maintain",
+                            "nutrition_note": "Nutrici\u00f3n: mantenimiento cal\u00f3rico, enfoque en rendimiento."
+                        },
+                        {
+                            "phase": "Espec\u00edfico rival",
+                            "start": "2026-04-25",
+                            "end": "2026-05-09",
+                            "focus": "Trabajos dirigidos a fortalezas/debilidades rival + estabilidad de carga y recuperaci\u00f3n",
+                            "weight_goal": "maintain",
+                            "nutrition_note": "Nutrici\u00f3n: mantenimiento cal\u00f3rico, enfoque en rendimiento."
+                        },
+                        {
+                            "phase": "Puesta a punto",
+                            "start": "2026-05-10",
+                            "end": "2026-05-20",
+                            "focus": "Ajuste fino, gesti\u00f3n de carga y recorte + estabilidad de carga y recuperaci\u00f3n",
+                            "weight_goal": "maintain",
+                            "nutrition_note": "Nutrici\u00f3n: mantenimiento cal\u00f3rico, enfoque en rendimiento."
+                        }
+                    ],
+                    "weight_direction": "auto",
+                    "phase_custom_notes": ""
+                },
+                {
+                    "fight_id": "fight-1775638550.951717",
+                    "opponent": {
+                        "name": "Topuria",
+                        "style": "Balanced",
+                        "strengths": [],
+                        "weaknesses": [],
+                        "notes": "",
+                        "stance": "",
+                        "reach": "",
+                        "cardio": ""
+                    },
+                    "my_specialty": "Balanced",
+                    "my_phase": "Espec\u00edfico rival",
+                    "game_plan_rounds": [
+                        {
+                            "round_number": 1,
+                            "focus": "Establish Master your Balanced game better than them",
+                            "techniques": [
+                                "clinch",
+                                "control de distancia"
+                            ],
+                            "contingency": "T\u00e9cnicas: Practice against their specific counters. Plan B: If struggling with distance, adjust footwork and use clinch disruption."
+                        },
+                        {
+                            "round_number": 2,
+                            "focus": "Maintain pressure and exploit weaknesses",
+                            "techniques": [
+                                "T\u00e9cnicas: Refine your technique advantages",
+                                "Plan B: If opponent adjusts"
+                            ],
+                            "contingency": "T\u00e9cnicas: Refine your technique advantages. Plan B: If opponent adjusts, shift from primary to secondary techniques."
+                        },
+                        {
+                            "round_number": 3,
+                            "focus": "Close rounds with dominant control",
+                            "techniques": [
+                                "derribo"
+                            ],
+                            "contingency": "T\u00e9cnicas: Refine your technique advantages, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                        }
+                    ],
+                    "contingencies": [
+                        "T\u00e9cnicas: Practice against their specific counters. Plan B: If struggling with distance, adjust footwork and use clinch disruption.",
+                        "T\u00e9cnicas: Refine your technique advantages. Plan B: If opponent adjusts, shift from primary to secondary techniques.",
+                        "T\u00e9cnicas: Refine your technique advantages, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                    ],
+                    "drill_focus": [],
+                    "injury_restrictions": {},
+                    "created_at": "2026-04-08T08:55:50.951732",
+                    "status": "active",
+                    "execution_logs": [],
+                    "version": "2.0",
+                    "adaptive_adjustments": [],
+                    "version_history": [],
+                    "target_date": "2026-05-08",
+                    "target_days_left": 30,
+                    "start_date": "2026-04-08",
+                    "prep_window": "month",
+                    "camp_phases": [
+                        {
+                            "phase": "Espec\u00edfico rival",
+                            "start": "2026-04-21",
+                            "end": "2026-05-01",
+                            "focus": "Trabajos dirigidos a fortalezas/debilidades rival + estabilidad de carga y recuperaci\u00f3n",
+                            "weight_goal": "maintain",
+                            "nutrition_note": "Nutrici\u00f3n: mantenimiento cal\u00f3rico, enfoque en rendimiento."
+                        },
+                        {
+                            "phase": "Puesta a punto",
+                            "start": "2026-05-02",
+                            "end": "2026-05-08",
+                            "focus": "Ajuste fino, gesti\u00f3n de carga y recorte + estabilidad de carga y recuperaci\u00f3n",
+                            "weight_goal": "maintain",
+                            "nutrition_note": "Nutrici\u00f3n: mantenimiento cal\u00f3rico, enfoque en rendimiento."
+                        }
+                    ],
+                    "weight_direction": "auto",
+                    "phase_custom_notes": ""
+                },
+                {
+                    "fight_id": "fight-1775638996.936836",
+                    "opponent": {
+                        "name": "Topuria",
+                        "style": "Balanced",
+                        "strengths": [],
+                        "weaknesses": [],
+                        "notes": "",
+                        "stance": "",
+                        "reach": "",
+                        "cardio": ""
+                    },
+                    "my_specialty": "Balanced",
+                    "my_phase": "Especializaci\u00f3n",
+                    "game_plan_rounds": [
+                        {
+                            "round_number": 1,
+                            "focus": "Establish Master your Balanced game better than them",
+                            "techniques": [
+                                "clinch",
+                                "control de distancia"
+                            ],
+                            "contingency": "T\u00e9cnicas: Practice against their specific counters. Plan B: If struggling with distance, adjust footwork and use clinch disruption."
+                        },
+                        {
+                            "round_number": 2,
+                            "focus": "Maintain pressure and exploit weaknesses",
+                            "techniques": [
+                                "T\u00e9cnicas: Refine your technique advantages",
+                                "Plan B: If opponent adjusts"
+                            ],
+                            "contingency": "T\u00e9cnicas: Refine your technique advantages. Plan B: If opponent adjusts, shift from primary to secondary techniques."
+                        },
+                        {
+                            "round_number": 3,
+                            "focus": "Close rounds with dominant control",
+                            "techniques": [
+                                "derribo"
+                            ],
+                            "contingency": "T\u00e9cnicas: Refine your technique advantages, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                        }
+                    ],
+                    "contingencies": [
+                        "T\u00e9cnicas: Practice against their specific counters. Plan B: If struggling with distance, adjust footwork and use clinch disruption.",
+                        "T\u00e9cnicas: Refine your technique advantages. Plan B: If opponent adjusts, shift from primary to secondary techniques.",
+                        "T\u00e9cnicas: Refine your technique advantages, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                    ],
+                    "drill_focus": [],
+                    "injury_restrictions": {},
+                    "created_at": "2026-04-08T09:03:16.936852",
+                    "status": "active",
+                    "execution_logs": [],
+                    "version": "2.0",
+                    "adaptive_adjustments": [],
+                    "version_history": [],
+                    "target_date": "2026-05-28",
+                    "target_days_left": 50,
+                    "start_date": "2026-04-08",
+                    "prep_window": "next_fight",
+                    "camp_phases": [
+                        {
+                            "phase": "Especializaci\u00f3n",
+                            "start": "2026-04-26",
+                            "end": "2026-05-13",
+                            "focus": "Simulaciones de combate por escenarios + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n."
+                        },
+                        {
+                            "phase": "Pre-competitiva",
+                            "start": "2026-05-14",
+                            "end": "2026-05-24",
+                            "focus": "Picos de intensidad y decisiones r\u00e1pidas + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n."
+                        },
+                        {
+                            "phase": "Descarga final",
+                            "start": "2026-05-25",
+                            "end": "2026-05-28",
+                            "focus": "Recuperaci\u00f3n activa y afilado t\u00e1ctico + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n."
+                        }
+                    ],
+                    "weight_direction": "auto",
+                    "phase_custom_notes": ""
+                }
+            ],
+            "fights": [
+                {
+                    "date": "2026-05-28",
+                    "opponent": "Topuria",
+                    "location": "New York"
+                }
+            ],
+            "nutrition": {
+                "weight": 75,
+                "diet": "",
+                "last_update": "2026-04-08T09:02:13.542519"
+            },
+            "meal_plans": [
+                {
+                    "name": "Pelea Topuria",
+                    "weight_change": "cut",
+                    "target_weight": 70.0,
+                    "duration": 30,
+                    "status": "active",
+                    "description": "",
+                    "notes": "",
+                    "created_date": "2026-04-08T10:01:05.798241"
+                }
+            ]
         }
     },
     "appointments": [

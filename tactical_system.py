@@ -216,6 +216,8 @@ class TacticalPlan:
     version_history: List[PlanVersion] = field(default_factory=list)  # NUEVO: Historial completo de versiones
     target_date: Optional[str] = None  # NUEVO: Fecha objetivo de la pelea (ISO format)
     target_days_left: int = 30  # NUEVO: Días hasta la pelea
+    weigh_in_date: Optional[str] = None  # Fecha de pesaje (ISO format)
+    fight_weight: Optional[float] = None  # Peso objetivo del combate
     
     def to_dict(self) -> dict:
         return {
@@ -235,6 +237,8 @@ class TacticalPlan:
             "version_history": [v.to_dict() for v in self.version_history],
             "target_date": self.target_date,
             "target_days_left": self.target_days_left,
+            "weigh_in_date": self.weigh_in_date,
+            "fight_weight": self.fight_weight,
         }
     
     @classmethod
@@ -256,6 +260,8 @@ class TacticalPlan:
             version_history=[PlanVersion.from_dict(v) for v in data.get("version_history", [])],
             target_date=data.get("target_date"),
             target_days_left=data.get("target_days_left", 30),
+            weigh_in_date=data.get("weigh_in_date"),
+            fight_weight=data.get("fight_weight"),
         )
 
 
@@ -810,9 +816,13 @@ def validate_plan_advanced(plan: TacticalPlan, athlete_weight: Optional[float] =
 
 def generate_training_calendar(plan: TacticalPlan, target_date: str) -> List[Dict]:
     """
-    Genera un calendario de entrenamiento día a día desde hoy hasta la fecha objetivo.
-    Cada día incluye: fecha, fase de entrenamiento projetada, drills sugeridos, notas nutricionales.
-    Retorna lista de dict con estructura de calendario.
+    Genera un calendario de entrenamiento DETALLADO día a día desde hoy hasta la fecha objetivo.
+    Cada día incluye tareas ESPECÍFICAS basadas en:
+    - Técnicas del game plan (rounds)
+    - Debilidades del rival
+    - Phaseprogresión
+    - Planes nutricionales concretos
+    - Recuperación y control de fatiga
     """
     from datetime import datetime as dt, timedelta as td
     
@@ -824,71 +834,233 @@ def generate_training_calendar(plan: TacticalPlan, target_date: str) -> List[Dic
         days_until_fight = (target - today).days
     except:
         return []
+
+    weigh_in_date = None
+    try:
+        if plan.weigh_in_date:
+            weigh_in_date = dt.fromisoformat(plan.weigh_in_date).date()
+    except Exception:
+        weigh_in_date = None
     
     if days_until_fight <= 0:
         return []
     
-    # Determinar fases según days_until_fight
-    phase_breakdown = {
-        "base_building": (days_until_fight, days_until_fight - int(days_until_fight * 0.6)),  # 60% del tiempo
-        "volume_technical": (int(days_until_fight * 0.6), int(days_until_fight * 0.2)),  # 40% del tiempo
-        "high_intensity": (int(days_until_fight * 0.2), 15),  # Últimas 2 semanas
-        "tapering": (14, 7),  # Última semana
-        "peak_week": (7, 0),  # Última semana antes de pelea
+    # MAPA TÉCNICO: Extraer técnicas del game plan para cada round
+    round_technique_map = {}
+    for r in plan.game_plan_rounds:
+        round_technique_map[r.round_number] = {
+            'focus': r.focus,
+            'techniques': r.techniques,
+            'contingency': r.contingency
+        }
+    
+    # DEBILIDADES A EXPLOTAR
+    weaknesses_to_exploit = plan.opponent.weaknesses if plan.opponent.weaknesses else ["General defense"]
+    
+    # MAPA DE EJERCICIOS POR FASE Y ENFOQUE
+    drill_library = {
+        'Striking': ['Pad work (jabs, crosses)', 'Kick drills', 'Head movement drills', 'Distance management'],
+        'Grappling': ['Takedown drills', 'Clinch work', 'Top control', 'Submission chains'],
+        'Balanced': ['Mixed sparring', 'Technical wrestling', 'Striking combinations', 'Transition drills'],
+        'Clinch': ['Clinch entries', 'Clinch defense', 'Clinch striking', 'Clinch takedowns'],
+        'Footwork': ['Lateral movement', 'Range control', 'Base maintenance', 'Angle cutting'],
+        'Defense': ['Head movement', 'Sprawl practice', 'Distance management', 'Postural defense'],
+        'Conditioning': ['High-intensity cardio', 'Sled pushes', 'Battle ropes', 'Energy system work'],
+        'Recovery': ['Light aerobic work', 'Mobility', 'Stretching', 'Breathing work']
     }
     
     # Generar calendario día por día
     for day_offset in range(0, days_until_fight + 1):
         current_date = today + td(days=day_offset)
         days_left = days_until_fight - day_offset
+
+        is_weigh_in_day = bool(weigh_in_date and current_date == weigh_in_date)
+        is_fight_day = current_date == target
         
-        # Determinar fase del día
-        if days_left > 14:
-            phase = "BASE BUILDING - Volumen Alto"
-            intensity = "40-60%"
+        # =====================================================================
+        # DETERMINAR FASE - más específico
+        # =====================================================================
+        if is_fight_day:
+            phase_name = "COMBATE"
+            phase_focus = "Activación final y ejecución"
+            intensity_level = "Máxima"
+            session_type = "Warm-up + Combate"
+        elif is_weigh_in_day:
+            phase_name = "PESAJE"
+            phase_focus = "Corte final y control"
+            intensity_level = "Muy Baja"
+            session_type = "Pesaje + descarga"
+        elif weigh_in_date and current_date > weigh_in_date and current_date < target:
+            phase_name = "POST-PESAJE"
+            phase_focus = "Rehidratación y activación"
+            intensity_level = "Baja"
+            session_type = "Refeed + activación"
+        elif days_left > 21:
+            phase_name = "FASE 1: BASE BUILD"
+            phase_focus = "Volumen y fundamentos"
+            intensity_level = "Moderada"
+            session_type = "Técnica + Volumen"
+        elif days_left > 14:
+            phase_name = "FASE 2: FORÇA"
+            phase_focus = "Potencia y explosividad"
+            intensity_level = "Alta"
+            session_type = "Técnica + Intensidad"
         elif days_left > 7:
-            phase = "PRE-PELEA - Alta Intensidad"
-            intensity = "70-85%"
+            phase_name = "FASE 3: PRE-PELEA"
+            phase_focus = "Game plan específico"
+            intensity_level = "Muy Alta"
+            session_type = "Game plan training"
         elif days_left > 3:
-            phase = "TAPERING - Bajo Volumen"
-            intensity = "50-70%"
-        elif days_left >= 0:
-            phase = "PEAK WEEK - Explosividad"
-            intensity = "30-50%"
+            phase_name = "TAPERING: Descarga"
+            phase_focus = "Técnica pura, sin fatiga"
+            intensity_level = "Baja"
+            session_type = "Técnica + Recuperación"
         else:
-            phase = "PELEA"
-            intensity = "100%"
+            phase_name = "SEMANA DE PELEA"
+            phase_focus = "Mentalización y preparación mental"
+            intensity_level = "Muy Baja"
+            session_type = "Descanso activo"
         
-        # Seleccionar drills según fase
-        if "BASE" in phase:
-            suggested_drills = plan.drill_focus + ["Cardio", "Fuerza base"]
-        elif "HIGH" in phase:
-            suggested_drills = plan.drill_focus + ["Sparring intenso", "Simulación de rounds"]
-        elif "TAPER" in phase:
-            suggested_drills = ["Técnica pura", "Movimiento"]
+        # =====================================================================
+        # GENERAR TAREAS ESPECÍFICAS DEL DÍA
+        # =====================================================================
+        day_tasks = []
+        special_day = is_weigh_in_day or is_fight_day or (weigh_in_date and current_date > weigh_in_date and current_date < target)
+        weakness = ''
+
+        if is_weigh_in_day:
+            task_1 = "⚖️ PESAJE OFICIAL\n  → Presentarte en peso objetivo"
+            task_2 = "💧 CORTO FINAL\n  → Mantener solo activación ligera y control de líquidos"
+            task_3 = "🍽️ REHIDRATACIÓN INMEDIATA\n  → Electrolitos, carbohidratos rápidos y sales"
+            task_4 = "🧠 CONTROL MENTAL\n  → Respiración, visualización y no gastar energía"
+            day_tasks.extend([task_1, task_2, task_3, task_4])
+        elif is_fight_day:
+            task_1 = "🥊 COMBATE\n  → Warm-up, activación neuromuscular y ejecución del plan"
+            task_2 = "🎯 ENTRADA AL PLAN\n  → Primeros intercambios según la estrategia definida"
+            task_3 = "⚡ ADMINISTRAR ENERGÍA\n  → Ritmo, control del esfuerzo y adaptación al rival"
+            task_4 = "🧠 ENFOQUE MENTAL\n  → Seguir instrucciones, respirar y mantener calma"
+            day_tasks.extend([task_1, task_2, task_3, task_4])
+        elif weigh_in_date and current_date > weigh_in_date and current_date < target:
+            task_1 = "💦 REHIDRATACIÓN\n  → Recuperar volumen, sodio y glucógeno"
+            task_2 = "🥗 COMIDA DE RECUPERACIÓN\n  → Carbohidratos fáciles + proteína magra"
+            task_3 = "🧪 ACTIVACIÓN\n  → Movilidad, sombra ligera y timing"
+            task_4 = "🧠 AJUSTE TÁCTICO\n  → Repasar plan de combate sin fatigar"
+            day_tasks.extend([task_1, task_2, task_3, task_4])
         else:
-            suggested_drills = ["Descanso / Recuperación", "Visualización"]
+            # Distribución de rounds a entrenar (cada 3-4 días enfoca un round diferente)
+            round_to_focus = ((day_offset // 3) % len(round_technique_map)) + 1 if round_technique_map else 1
+            
+            # Tarea 1: ENFOQUE TÉCNICO ESPECÍFICO
+            if round_to_focus in round_technique_map:
+                round_data = round_technique_map[round_to_focus]
+                task_1 = f"🥊 ROUND {round_to_focus} - {round_data['focus']}"
+                if round_data['techniques']:
+                    task_1 += f"\n  → Técnicas: {', '.join(round_data['techniques'][:2])}"
+            else:
+                task_1 = "🥊 Trabajo técnico general del game plan"
+            
+            day_tasks.append(task_1)
+            
+            # Tarea 2: ADAPTACIÓN AL RIVAL
+            weakness_idx = day_offset % len(weaknesses_to_exploit)
+            weakness = weaknesses_to_exploit[weakness_idx]
+            
+            if "Striking" in str(plan.opponent.style):
+                task_2 = f"🛡️ EXPLOTAR DEBILIDAD: {weakness}\n  → Drills defensivos + ataques de rango"
+            elif "Grappling" in str(plan.opponent.style):
+                task_2 = f"🛡️ EXPLOTAR DEBILIDAD: {weakness}\n  → Trabajo de clinch + takedowns"
+            else:
+                task_2 = f"🛡️ EXPLOTAR DEBILIDAD: {weakness}\n  → Sparring técnico mixto"
+            
+            day_tasks.append(task_2)
+            
+            # Tarea 3: DRILLS BASADOS EN FASE
+            if "BASE" in phase_name:
+                drills_to_do = drill_library.get('Striking', []) + drill_library.get('Conditioning', [])
+                task_3 = f"⚙️ DRILLS VOLUMEN\n  → {', '.join(drills_to_do[:3])}"
+            elif "FORÇA" in phase_name:
+                drills_to_do = drill_library.get('Balanced', []) + [d for d in drill_library.get('Striking', []) if 'combinations' in d.lower()]
+                task_3 = f"⚙️ DRILLS ALTA INTENSIDAD\n  → {', '.join(drills_to_do[:3])}"
+            elif "PRE" in phase_name:
+                drills_to_do = drill_library.get('Balanced', [])
+                task_3 = f"⚙️ SPARRING GAME PLAN\n  → {', '.join(drills_to_do[:2])}"
+            elif "TAPER" in phase_name:
+                drills_to_do = ["Técnica sin resistencia", "Movimiento puro", "Posicionamiento"]
+                task_3 = f"⚙️ TÉCNICA PURA (Sin fatiga)\n  → {', '.join(drills_to_do[:2])}"
+            else:  # Fight week
+                drills_to_do = ["Shadowboxing", "Visualización", "Movilidad"]
+                task_3 = f"⚙️ DESCANSO ACTIVO\n  → {', '.join(drills_to_do[:2])}"
+            
+            day_tasks.append(task_3)
+            
+            # Tarea 4: CONTINGENCIA (cada 2 semanas)
+            if day_offset % 14 == 0 and round_technique_map and round_to_focus in round_technique_map:
+                contingency = round_technique_map[round_to_focus].get('contingency', '')
+                if contingency:
+                    task_4 = f"🔄 ENTRENAR CONTINGENCIA\n  → {contingency[:80]}"
+                    day_tasks.append(task_4)
         
-        # Notas nutricionales por fase
-        if "BASE" in phase:
-            nutrition = "Dieta de ganancia: proteína alta + carbohidratos complejos"
-        elif "HIGH" in phase:
-            nutrition = "Carbohidratos para mantener energía en sparring intenso"
-        elif "TAPER" in phase:
-            nutrition = "Reducir sodio, mantener proteína, aumentar hidratación"
+        # =====================================================================
+        # NUTRICIÓN ESPECÍFICA
+        # =====================================================================
+        if is_weigh_in_day:
+            nutrition = "🍽️ Corte de peso\n  → Sódio mínimo, líquidos controlados y comida ligera"
+        elif is_fight_day:
+            nutrition = "🍽️ Combate\n  → Comida ligera pre-activación y sales según tolerancia"
+        elif weigh_in_date and current_date > weigh_in_date and current_date < target:
+            nutrition = "🍽️ Rehidratación\n  → Carbohidratos rápidos, sales, agua y proteína fácil"
+        elif "BASE" in phase_name:
+            nutrition = "🍽️ Alto volumen calórico\n  → Proteína: 2g x kg | Carbs: complejos | Grasas: equilibradas"
+        elif "FORÇA" in phase_name:
+            nutrition = "🍽️ Ganancias de fuerza\n  → Proteína: 2.2g x kg | Carbs pre/post: arroz, papas | Creatina"
+        elif "PRE" in phase_name:
+            nutrition = "🍽️ Energía para sparring\n  → Carbs >2.5g x kg | Proteína: 2g x kg | Sodio moderado"
+        elif "TAPER" in phase_name:
+            nutrition = "🍽️ Reducción gradual sodio\n  → Proteína: 2g x kg | Carbs: moderados | Agua: abundante"
         else:
-            nutrition = "Ayuno o comida ligera pre-pelea"
+            nutrition = "🍽️ Pre-pelea\n  → Ayuno ligero matutino | Comida ligera 3h previa | Hidratación"
         
+        # =====================================================================
+        # RECUPERACIÓN Y CONTROL
+        # =====================================================================
+        if is_weigh_in_day:
+            recovery = "😴 Control de fatiga y calma\n  → Sin carga, respiración y preparación mental"
+        elif is_fight_day:
+            recovery = "😴 Post-combate\n  → Recuperación, enfriamiento y seguimiento médico"
+        elif weigh_in_date and current_date > weigh_in_date and current_date < target:
+            recovery = "😴 Activación suave\n  → Movilidad, caminatas y sueño suficiente"
+        elif days_left <= 3:
+            recovery = "😴 MÁXIMA RECUPERACIÓN\n  → Sueño 9h+ | Hielo/Calor | Masaje"
+        elif days_left <= 7:
+            recovery = "😴 Recuperación prioritaria\n  → Sueño 8-9h | Movilidad 15 min diarios"
+        else:
+            recovery = "😴 Dormire 7-8h + Movilidad 3x semana"
+        
+        # =====================================================================
+        # MONITOREO Y CHECKPOINTS
+        # =====================================================================
+        checkpoint_msg = ""
+        if day_offset % 7 == 0 and day_offset > 0:
+            checkpoint_msg = "✅ CHECKPOINT SEMANAL: Revisar video, ajustar si es necesario"
+        
+        # =====================================================================
+        # CONSTRUIR ENTRADA DEL CALENDARIO
+        # =====================================================================
         day_entry = {
             "date": current_date.isoformat(),
             "day_number": day_offset + 1,
             "days_left": days_left,
-            "phase": phase,
-            "intensity": intensity,
-            "drills": suggested_drills[:3],  # Top 3
+            "phase": phase_name,
+            "phase_focus": phase_focus,
+            "intensity": intensity_level,
+            "session_type": session_type,
+            "tasks": day_tasks,  # Tareas específicas del día
             "nutrition": nutrition,
-            "opponent_focus": plan.opponent.name if day_offset % 3 == 0 else None,  # Cada 3 días recordar el rival
-            "checkpoint": "Revisar avance" if day_offset % 7 == 0 else None,  # Weekly checkpoints
+            "recovery": recovery,
+            "opponent_name": plan.opponent.name,
+            "opponent_weakness": weakness,
+            "checkpoint": checkpoint_msg if checkpoint_msg else None,
+            "day_of_week": current_date.strftime("%A"),
         }
         
         calendar.append(day_entry)
@@ -902,17 +1074,16 @@ def generate_training_calendar(plan: TacticalPlan, target_date: str) -> List[Dic
 
 def generate_calendar_pdf(plan: TacticalPlan, target_date: str) -> bytes:
     """
-    Genera un PDF con el calendario de entrenamiento día a día + plan táctico.
-    Retorna bytes del PDF.
+    Genera un PDF DETALLADO con el calendario de entrenamiento día a día.
+    Incluye tareas específicas, nutrición, recuperación, etc.
     """
     from io import BytesIO
-    from calendar import monthrange
-    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.pagesizes import letter, A4
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
     from datetime import datetime as dt
     
     # Obtener calendario
@@ -923,268 +1094,283 @@ def generate_calendar_pdf(plan: TacticalPlan, target_date: str) -> bytes:
     # Buffer para PDF
     pdf_buffer = BytesIO()
     
-    # Crear documento
+    # Crear documento (usar letter que es más grande)
     doc = SimpleDocTemplate(
         pdf_buffer,
         pagesize=letter,
-        rightMargin=0.5 * inch,
-        leftMargin=0.5 * inch,
-        topMargin=0.75 * inch,
-        bottomMargin=0.75 * inch,
+        rightMargin=0.6 * inch,
+        leftMargin=0.6 * inch,
+        topMargin=0.6 * inch,
+        bottomMargin=0.6 * inch,
     )
     
-    # Estilos
+    # Estilos mejorados
     styles = getSampleStyleSheet()
+    
     title_style = ParagraphStyle(
-        'CustomTitle',
+        'Title',
         parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#E63946'),  # Rojo deportivo
-        spaceAfter=6,
+        fontSize=28,
+        textColor=colors.HexColor('#E63946'),
+        spaceAfter=4,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'Subtitle',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor=colors.HexColor('#1D3557'),
+        spaceAfter=8,
         alignment=TA_CENTER,
         fontName='Helvetica-Bold'
     )
     
     heading_style = ParagraphStyle(
-        'CustomHeading',
+        'Heading',
         parent=styles['Heading2'],
-        fontSize=14,
-        textColor=colors.HexColor('#1D3557'),  # Azul oscuro
-        spaceAfter=10,
-        spaceBefore=10,
+        fontSize=12,
+        textColor=colors.HexColor('#E63946'),
+        spaceAfter=8,
+        spaceBefore=6,
         fontName='Helvetica-Bold',
     )
     
-    normal_style = ParagraphStyle(
-        'CustomNormal',
+    day_header_style = ParagraphStyle(
+        'DayHeader',
+        parent=styles['Heading3'],
+        fontSize=11,
+        textColor=colors.HexColor('#1D3557'),
+        spaceAfter=4,
+        fontName='Helvetica-Bold'
+    )
+    
+    task_style = ParagraphStyle(
+        'Task',
         parent=styles['Normal'],
-        fontSize=10,
+        fontSize=9,
         textColor=colors.HexColor('#333333'),
-        leading=14,
+        leading=11,
+        leftIndent=10,
+    )
+    
+    normal_style = ParagraphStyle(
+        'Normal',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#333333'),
+        leading=12,
     )
     
     small_style = ParagraphStyle(
-        'CustomSmall',
+        'Small',
         parent=styles['Normal'],
         fontSize=8,
-        textColor=colors.HexColor('#666666'),
+        textColor=colors.HexColor('#555555'),
         leading=10,
     )
     
     # Contenido
     content = []
     
-    # PORTADA
-    content.append(Spacer(1, 0.5 * inch))
-    content.append(Paragraph(f"🥊 PLAN TÁCTICO MMA", title_style))
-    content.append(Spacer(1, 0.2 * inch))
-    
-    # Información del rival
-    opp_name = plan.opponent.name
-    opp_style = plan.opponent.style.value if hasattr(plan.opponent.style, 'value') else str(plan.opponent.style)
-    content.append(Paragraph(f"vs <b>{opp_name}</b> ({opp_style})", heading_style))
+    # === PORTADA ===
+    content.append(Spacer(1, 0.3 * inch))
+    content.append(Paragraph("🥊 PLAN TÁCTICO MMA", title_style))
     content.append(Spacer(1, 0.15 * inch))
     
+    opp_name = plan.opponent.name
+    opp_style = plan.opponent.style.value if hasattr(plan.opponent.style, 'value') else str(plan.opponent.style)
+    content.append(Paragraph(f"<b>vs {opp_name}</b> ({opp_style})", subtitle_style))
+    content.append(Spacer(1, 0.25 * inch))
+    
+    # Fechas
     try:
         target_dt = dt.fromisoformat(target_date).date()
         today_dt = dt.now().date()
         days_left = (target_dt - today_dt).days
-        content.append(Paragraph(f"📅 Fecha Pelea: {target_dt.strftime('%d/%m/%Y')} | ⏱️ Días: {max(0, days_left)}", normal_style))
+        content.append(Paragraph(
+            f"📅 Fecha del combate: <b>{target_dt.strftime('%d de %B de %Y')}</b>",
+            day_header_style
+        ))
+        content.append(Paragraph(
+            f"⏱️ Días de preparación: <b>{max(0, days_left)} días</b>",
+            day_header_style
+        ))
+        if plan.weigh_in_date:
+            try:
+                weigh_dt = dt.fromisoformat(plan.weigh_in_date).date()
+                content.append(Paragraph(
+                    f"⚖️ Día de pesaje: <b>{weigh_dt.strftime('%d de %B de %Y')}</b>",
+                    day_header_style
+                ))
+            except Exception:
+                pass
+        if plan.fight_weight is not None:
+            try:
+                fight_weight_value = float(plan.fight_weight)
+                content.append(Paragraph(
+                    f"🏷️ Peso objetivo del combate: <b>{fight_weight_value:.1f} kg</b>",
+                    day_header_style
+                ))
+            except Exception:
+                content.append(Paragraph(
+                    f"🏷️ Peso objetivo del combate: <b>{plan.fight_weight}</b>",
+                    day_header_style
+                ))
     except:
         pass
     
-    content.append(Spacer(1, 0.3 * inch))
+    content.append(Spacer(1, 0.2 * inch))
     
-    # RESUMEN DE ROUNDS
-    content.append(Paragraph("📋 GAME PLAN POR ROUNDS", heading_style))
+    # === RESUMEN DEL RIVAL ===
+    content.append(Paragraph("📋 ANÁLISIS DEL RIVAL", heading_style))
+    
+    content.append(Paragraph(
+        f"<b>Estilo de lucha:</b> {opp_style}",
+        normal_style
+    ))
+    
+    if plan.opponent.strengths:
+        content.append(Paragraph(
+            f"<b>Fortalezas:</b> {', '.join(plan.opponent.strengths)}",
+            normal_style
+        ))
+    
+    if plan.opponent.weaknesses:
+        content.append(Paragraph(
+            f"<b>Debilidades a explotar:</b> {', '.join(plan.opponent.weaknesses)}",
+            normal_style
+        ))
+    
+    content.append(Spacer(1, 0.15 * inch))
+    
+    # === GAME PLAN ===
+    content.append(Paragraph("🎯 GAME PLAN POR ROUNDS", heading_style))
     
     for rnd in plan.game_plan_rounds:
-        round_text = f"<b>Round {rnd.round_number}:</b> {rnd.focus}"
-        content.append(Paragraph(round_text, normal_style))
+        content.append(Paragraph(
+            f"<b>Round {rnd.round_number}:</b> {rnd.focus}",
+            day_header_style
+        ))
         
         if rnd.techniques:
-            tech_text = f"<b>Técnicas:</b> {', '.join(rnd.techniques)}"
-            content.append(Paragraph(tech_text, small_style))
+            tech_list = '<br/>'.join([f"  • {t}" for t in rnd.techniques])
+            content.append(Paragraph(f"<b>Técnicas:</b><br/>{tech_list}", task_style))
         
         if rnd.contingency:
-            cont_text = f"<b>Plan B:</b> {rnd.contingency}"
-            content.append(Paragraph(cont_text, small_style))
+            content.append(Paragraph(
+                f"<b>Plan B:</b> {rnd.contingency}",
+                task_style
+            ))
+        
+        content.append(Spacer(1, 0.08 * inch))
+    
+    content.append(PageBreak())
+    
+    # === CALENDARIO DETALLADO DÍA A DÍA ===
+    content.append(Paragraph("📅 CALENDARIO DE ENTRENAMIENTO DETALLADO", heading_style))
+    content.append(Spacer(1, 0.1 * inch))
+    
+    # Agrupar por fase
+    phases_seen = set()
+    for day_data in calendar_data:
+        phase_name = day_data.get('phase', '')
+        
+        if phase_name not in phases_seen:
+            # Nueva fase encontrada - crear sección
+            phases_seen.add(phase_name)
+            content.append(Spacer(1, 0.05 * inch))
+            content.append(Paragraph(f"{'='*60}", small_style))
+            content.append(Paragraph(
+                f"📌 {phase_name}",
+                heading_style
+            ))
+            content.append(Paragraph(
+                f"Enfoque: {day_data.get('phase_focus', '')} | Intensidad: {day_data.get('intensity', '')}",
+                small_style
+            ))
+            content.append(Spacer(1, 0.08 * inch))
+        
+        # === ENTRADA DEL DÍA ===
+        date_obj = dt.fromisoformat(day_data['date']).date()
+        day_name = date_obj.strftime('%A').capitalize()
+        
+        day_title = f"DÍA {day_data['day_number']} - {date_obj.strftime('%d/%m/%Y')} ({day_name})"
+        if day_data['days_left'] == 0:
+            day_title += " 🏁 COMBATE"
+        else:
+            day_title += f" [{day_data['days_left']} días para combate]"
+        
+        content.append(Paragraph(day_title, day_header_style))
+        
+        # Tareas del día
+        tasks = day_data.get('tasks', [])
+        if tasks:
+            for task in tasks:
+                # Reemplazar saltos de línea para Paragraph
+                task_html = task.replace('\n', '<br/>')
+                content.append(Paragraph(f"  {task_html}", task_style))
+            content.append(Spacer(1, 0.05 * inch))
+        
+        # Nutrición
+        nutrition = day_data.get('nutrition', '')
+        if nutrition:
+            nutrition_html = nutrition.replace('\n', '<br/>')
+            content.append(Paragraph(f"<b>🍽️ Nutrición:</b> {nutrition_html}", task_style))
+        
+        # Recuperación
+        recovery = day_data.get('recovery', '')
+        if recovery:
+            recovery_html = recovery.replace('\n', '<br/>')
+            content.append(Paragraph(f"<b>😴 Recuperación:</b> {recovery_html}", task_style))
+        
+        # Checkpoint
+        checkpoint = day_data.get('checkpoint')
+        if checkpoint:
+            content.append(Paragraph(f"<b>✅ {checkpoint}</b>", task_style))
         
         content.append(Spacer(1, 0.1 * inch))
-    
-    content.append(PageBreak())
-    
-    # CALENDARIO VISUAL POR MES (Lunes-Domingo)
-    content.append(Paragraph("📅 CALENDARIO DE ENTRENAMIENTO", heading_style))
-
-    date_to_entry = {d.get("date"): d for d in calendar_data}
-    start_date = dt.fromisoformat(calendar_data[0]["date"]).date()
-    end_date = dt.fromisoformat(calendar_data[-1]["date"]).date()
-
-    content.append(Paragraph(
-        f"Inicio del plan: <b>{start_date.strftime('%d/%m/%Y')}</b> &nbsp;&nbsp;&nbsp; Objetivo: <b>{end_date.strftime('%d/%m/%Y')}</b>",
-        normal_style
-    ))
-    content.append(Spacer(1, 0.15 * inch))
-
-    legend_data = [[
-        "Recorte", "Sparring/Alta", "Base Técnica", "Tapering", "Peak"
-    ]]
-    legend_table = Table(legend_data, colWidths=[1.1*inch, 1.3*inch, 1.2*inch, 1.0*inch, 0.9*inch])
-    legend_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#ffb703')),
-        ('BACKGROUND', (1, 0), (1, 0), colors.HexColor('#f94144')),
-        ('BACKGROUND', (2, 0), (2, 0), colors.HexColor('#90e0ef')),
-        ('BACKGROUND', (3, 0), (3, 0), colors.HexColor('#ffd166')),
-        ('BACKGROUND', (4, 0), (4, 0), colors.HexColor('#ef476f')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-    ]))
-    content.append(legend_table)
-    content.append(Spacer(1, 0.15 * inch))
-
-    month_names_es = {
-        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
-        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-    }
-    weekday_headers = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-
-    def _month_iter(start_d, end_d):
-        y, m = start_d.year, start_d.month
-        while (y, m) <= (end_d.year, end_d.month):
-            yield y, m
-            if m == 12:
-                y += 1
-                m = 1
-            else:
-                m += 1
-
-    def _cell_color(day_entry):
-        if not day_entry:
-            return colors.HexColor('#f2f2f2')
-        phase = str(day_entry.get('phase', '')).upper()
-        days_left = int(day_entry.get('days_left', 0))
-        if 7 < days_left <= 14:
-            return colors.HexColor('#ffb703')
-        if 'PEAK' in phase:
-            return colors.HexColor('#ef476f')
-        if 'TAPER' in phase:
-            return colors.HexColor('#ffd166')
-        if 'PRE-PELEA' in phase or 'HIGH' in phase:
-            return colors.HexColor('#f94144')
-        if 'BASE' in phase:
-            return colors.HexColor('#90e0ef')
-        return colors.white
-
-    for (year, month) in _month_iter(start_date, end_date):
-        content.append(Paragraph(f"{month_names_es[month]} {year}", heading_style))
-
-        first_weekday, num_days = monthrange(year, month)  # Monday=0
-        table_data = [weekday_headers]
-
-        current_day = 1
-        week = [""] * 7
-        for wd in range(first_weekday, 7):
-            date_iso = dt(year, month, current_day).date().isoformat()
-            day_entry = date_to_entry.get(date_iso)
-            if day_entry:
-                tag = ""
-                phase = str(day_entry.get('phase', '')).upper()
-                days_left = int(day_entry.get('days_left', 0))
-                if 7 < days_left <= 14:
-                    tag = "RECORTE"
-                elif 'PEAK' in phase:
-                    tag = "PEAK"
-                elif 'TAPER' in phase:
-                    tag = "TAPER"
-                elif 'PRE-PELEA' in phase or 'HIGH' in phase:
-                    tag = "SPARRING"
-                elif 'BASE' in phase:
-                    tag = "BASE"
-                week[wd] = f"{current_day}\n{day_entry.get('intensity', '')}\n{tag}"
-            else:
-                week[wd] = ""
-            current_day += 1
-        table_data.append(week)
-
-        while current_day <= num_days:
-            week = [""] * 7
-            for wd in range(7):
-                if current_day > num_days:
+        
+        # Salto de página cada 5 días o cuando cambio de fase
+        if day_data['day_number'] % 5 == 0:
+            next_phase = None
+            for d in calendar_data:
+                if d['day_number'] == day_data['day_number'] + 1:
+                    next_phase = d.get('phase')
                     break
-                date_iso = dt(year, month, current_day).date().isoformat()
-                day_entry = date_to_entry.get(date_iso)
-                if day_entry:
-                    tag = ""
-                    phase = str(day_entry.get('phase', '')).upper()
-                    days_left = int(day_entry.get('days_left', 0))
-                    if 7 < days_left <= 14:
-                        tag = "RECORTE"
-                    elif 'PEAK' in phase:
-                        tag = "PEAK"
-                    elif 'TAPER' in phase:
-                        tag = "TAPER"
-                    elif 'PRE-PELEA' in phase or 'HIGH' in phase:
-                        tag = "SPARRING"
-                    elif 'BASE' in phase:
-                        tag = "BASE"
-                    week[wd] = f"{current_day}\n{day_entry.get('intensity', '')}\n{tag}"
-                else:
-                    week[wd] = f"{current_day}"
-                current_day += 1
-            table_data.append(week)
-
-        cal_table = Table(table_data, colWidths=[1.05*inch]*7, rowHeights=[0.30*inch] + [0.85*inch]*(len(table_data)-1))
-        style_cmds = [
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1D3557')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('FONTSIZE', (0, 0), (-1, 0), 8),
-            ('FONTSIZE', (0, 1), (-1, -1), 7),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('LEFTPADDING', (0, 1), (-1, -1), 3),
-            ('RIGHTPADDING', (0, 1), (-1, -1), 3),
-            ('TOPPADDING', (0, 1), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
-        ]
-
-        for r in range(1, len(table_data)):
-            for c in range(7):
-                value = table_data[r][c]
-                if not value:
-                    style_cmds.append(('BACKGROUND', (c, r), (c, r), colors.HexColor('#f2f2f2')))
-                    continue
-                first_line = str(value).split('\n')[0]
-                try:
-                    day_num = int(first_line)
-                    date_iso = dt(year, month, day_num).date().isoformat()
-                except Exception:
-                    date_iso = None
-                day_entry = date_to_entry.get(date_iso) if date_iso else None
-                style_cmds.append(('BACKGROUND', (c, r), (c, r), _cell_color(day_entry)))
-
-        cal_table.setStyle(TableStyle(style_cmds))
-        content.append(cal_table)
-        content.append(Spacer(1, 0.12 * inch))
-
-        if month != end_date.month or year != end_date.year:
-            content.append(PageBreak())
+            
+            if next_phase and next_phase != phase_name:
+                content.append(PageBreak())
     
-    # FOOTER
+    # === RESUMEN FINAL ===
     content.append(PageBreak())
-    content.append(Paragraph("📌 NOTAS IMPORTANTES", heading_style))
-    content.append(Paragraph(
-        "➤ Este plan es guía. Adapta según tu evolución real.<br/>"
-        "➤ Revisa checkpoints semanales (cada martes).<br/>"
-        "➤ La fase cambiar si falta más/menos tiempo.<br/>"
-        "➤ Consulta con tu entrenador ante dudas.",
-        normal_style
-    ))
+    content.append(Paragraph("📌 INSTRUCCIONES Y CONSEJOS FINALES", heading_style))
+    
+    final_text = """
+    <b>✓ CÓMO USAR ESTE PLAN:</b><br/>
+    1. Este calendario es tu guía concreta día a día.<br/>
+    2. Cada día tiene tareas ESPECÍFICAS para prepararte contra tu rival.<br/>
+    3. Sigue las fases: progresa de volumen → intensidad → descarga → peak.<br/>
+    4. Monitorea tu nutrición según la fase (carbohidatos varían mucho).<br/>
+    5. Los checkpoints semanales son críticos para ajustar si falta/sobra tiempo.<br/>
+    <br/>
+    <b>✓ SI ALGO NO VA BIEN:</b><br/>
+    • Aumenta volumen si sientes que te falta resistencia.<br/>
+    • Reduce intensidad si acumulas fatiga o lesiones.<br/>
+    • Modifica nutrición si pierdes/ganas peso inesperadamente.<br/>
+    • Consulta con tu entrenador de clinch/lucha si hay técnicas nuevas.<br/>
+    <br/>
+    <b>✓ ÚLTIMA SEMANA (PEAK WEEK):</b><br/>
+    • Máxima recuperación, mínimo volumen.<br/>
+    • Técnica pura sin resistencia.<br/>
+    • Dormir 9+ horas diarias.<br/>
+    • Mantener el peso objective 2-3 días antes.<br/>
+    <br/>
+    <b>¡ÉXITO EN TU COMBATE! 🥊</b>
+    """
+    
+    content.append(Paragraph(final_text, normal_style))
     
     # Build PDF
     doc.build(content)

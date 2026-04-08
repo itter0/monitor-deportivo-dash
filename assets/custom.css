@@ -28,3 +28,36 @@
 .rc-slider-track {
     background-color: #ff0000 !important;
 }
+
+/* Mejor contraste del wizard táctico */
+.tactical-modal .Select-control {
+    background-color: #111111 !important;
+    border: 1px solid #444444 !important;
+}
+
+.tactical-modal .Select-menu-outer {
+    background-color: #111111 !important;
+    border: 1px solid #444444 !important;
+}
+
+.tactical-modal .Select-option {
+    background-color: #111111 !important;
+    color: #f2f2f2 !important;
+}
+
+.tactical-modal .Select-value-label,
+.tactical-modal .Select-placeholder,
+.tactical-modal .Select-input > input {
+    color: #f2f2f2 !important;
+}
+
+.tactical-modal .DateInput,
+.tactical-modal .DateInput_input {
+    background-color: #111111 !important;
+    color: #f2f2f2 !important;
+    border: 1px solid #444444 !important;
+}
+
+.tactical-modal .SingleDatePickerInput {
+    border: 1px solid #444444 !important;
+}
