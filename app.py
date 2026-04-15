@@ -565,6 +565,9 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 
+# Exponer el servidor Flask para despliegue con Gunicorn (Render)
+server = app.server
+
 # --- CONFIGURACIÓN VISUAL ESTILO OCTAGON PRO ---
 # --- CONFIGURACIÓN VISUAL ESTILO TÁCTICO / OCTAGON (ACTUALIZADO) ---
 COLORS = {
@@ -7212,13 +7215,15 @@ if __name__ == '__main__':
     
     # Pausa para asegurar que data/sensor_data_stream.csv existe antes de que Dash cargue 
     
-    print("🚀 Servidor RehabiDesk levantando en http://127.0.0.1:8050")
+    port = int(os.environ.get("PORT", 8050))
+    debug_mode = os.environ.get("DASH_DEBUG", "false").lower() == "true"
+    print(f"🚀 Servidor RehabiDesk levantando en http://0.0.0.0:{port}")
     
     # 2. Ejecución del servidor
     # debug=True + use_reloader=False es la combinación más estable para hilos secundarios
     app.run(
-        debug=True, 
+        debug=debug_mode,
         host='0.0.0.0', 
-        port=8050, 
+        port=port,
         use_reloader=False # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
     )
