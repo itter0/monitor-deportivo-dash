@@ -46,7 +46,7 @@ Dejamos atrás las suposiciones. Transformamos señales fisiológicas en tiempo 
 
 Únete a la élite de las MMA y profesionaliza tu carrera hoy mismo. 
 
-🔗 **Accede a la Plataforma:** [Octagon Pro Live](https://monitor-deportivo-dash-5h69.onrender.com/)
+🔗 **Accede a la Plataforma:** [Octagon Pro Live](https://monitor-deportivo-dash-wuvv.onrender.com)
 
 **Octagon Pro: Donde la táctica y la medicina se encuentran para crear campeones.**
 
