@@ -5957,6 +5957,7 @@ def get_meal_plans_layout(username, full_name, current_search=""):
     
     return html.Div([
         get_user_navbar("🍽️", full_name.upper(), "PLANES DE COMIDA", current_search),
+        dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-meal-plans", href=f"/{current_search}", color="primary", style={'margin': '15px 24px 0'}),
         
         html.Div([
             dbc.Card([

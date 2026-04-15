@@ -649,3 +649,205 @@ body {
     .octagon-button:active {
         transform: translateY(0);
     }
+
+    /* Registro: Perfil de luchador y salud (solo color en esta sección) */
+    .octagon-auth-shell #register-birthdate .DateInput_input {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+    }
+
+    .octagon-auth-shell #register-weight-class .Select-control,
+    .octagon-auth-shell #register-specialty .Select-control,
+    .octagon-auth-shell #register-health-status .Select-control,
+    .octagon-auth-shell #register-injury-type .Select-control,
+    .octagon-auth-shell #register-blood-type .Select-control,
+    .octagon-auth-shell #register-weight-class .Select__control,
+    .octagon-auth-shell #register-specialty .Select__control,
+    .octagon-auth-shell #register-health-status .Select__control,
+    .octagon-auth-shell #register-injury-type .Select__control,
+    .octagon-auth-shell #register-blood-type .Select__control {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border-color: #2563eb !important;
+    }
+
+    .octagon-auth-shell #register-weight-class .Select-placeholder,
+    .octagon-auth-shell #register-specialty .Select-placeholder,
+    .octagon-auth-shell #register-health-status .Select-placeholder,
+    .octagon-auth-shell #register-injury-type .Select-placeholder,
+    .octagon-auth-shell #register-blood-type .Select-placeholder,
+    .octagon-auth-shell #register-weight-class .Select-value-label,
+    .octagon-auth-shell #register-specialty .Select-value-label,
+    .octagon-auth-shell #register-health-status .Select-value-label,
+    .octagon-auth-shell #register-injury-type .Select-value-label,
+    .octagon-auth-shell #register-blood-type .Select-value-label,
+    .octagon-auth-shell #register-weight-class .Select-input > input,
+    .octagon-auth-shell #register-specialty .Select-input > input,
+    .octagon-auth-shell #register-health-status .Select-input > input,
+    .octagon-auth-shell #register-injury-type .Select-input > input,
+    .octagon-auth-shell #register-blood-type .Select-input > input,
+    .octagon-auth-shell #register-weight-class .Select__single-value,
+    .octagon-auth-shell #register-specialty .Select__single-value,
+    .octagon-auth-shell #register-health-status .Select__single-value,
+    .octagon-auth-shell #register-injury-type .Select__single-value,
+    .octagon-auth-shell #register-blood-type .Select__single-value,
+    .octagon-auth-shell #register-weight-class .Select__placeholder,
+    .octagon-auth-shell #register-specialty .Select__placeholder,
+    .octagon-auth-shell #register-health-status .Select__placeholder,
+    .octagon-auth-shell #register-injury-type .Select__placeholder,
+    .octagon-auth-shell #register-blood-type .Select__placeholder,
+    .octagon-auth-shell #register-weight-class .Select__input-container,
+    .octagon-auth-shell #register-specialty .Select__input-container,
+    .octagon-auth-shell #register-health-status .Select__input-container,
+    .octagon-auth-shell #register-injury-type .Select__input-container,
+    .octagon-auth-shell #register-blood-type .Select__input-container {
+        color: #000000 !important;
+    }
+
+    .octagon-auth-shell #register-weight-class .Select-menu-outer,
+    .octagon-auth-shell #register-specialty .Select-menu-outer,
+    .octagon-auth-shell #register-health-status .Select-menu-outer,
+    .octagon-auth-shell #register-injury-type .Select-menu-outer,
+    .octagon-auth-shell #register-blood-type .Select-menu-outer,
+    .octagon-auth-shell #register-weight-class .Select__menu,
+    .octagon-auth-shell #register-specialty .Select__menu,
+    .octagon-auth-shell #register-health-status .Select__menu,
+    .octagon-auth-shell #register-injury-type .Select__menu,
+    .octagon-auth-shell #register-blood-type .Select__menu,
+    .octagon-auth-shell #register-weight-class .Select-option,
+    .octagon-auth-shell #register-specialty .Select-option,
+    .octagon-auth-shell #register-health-status .Select-option,
+    .octagon-auth-shell #register-injury-type .Select-option,
+    .octagon-auth-shell #register-blood-type .Select-option,
+    .octagon-auth-shell #register-weight-class .Select__option,
+    .octagon-auth-shell #register-specialty .Select__option,
+    .octagon-auth-shell #register-health-status .Select__option,
+    .octagon-auth-shell #register-injury-type .Select__option,
+    .octagon-auth-shell #register-blood-type .Select__option {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+
+    /* Ajuste puntual: valor seleccionado en tipo de sangre */
+    .octagon-auth-shell #register-blood-type.Select--single > .Select-control .Select-value,
+    .octagon-auth-shell #register-blood-type .Select-value-label,
+    .octagon-auth-shell #register-blood-type .Select-value-label:link,
+    .octagon-auth-shell #register-blood-type .Select-value-label:visited,
+    .octagon-auth-shell #register-blood-type .Select-value-label:hover,
+    .octagon-auth-shell #register-blood-type .Select-value-label:active,
+    .octagon-auth-shell #register-blood-type .Select__single-value,
+    .octagon-auth-shell #register-blood-type .Select__value-container {
+        color: #000000 !important;
+    }
+
+    .octagon-auth-shell #register-blood-type .Select-arrow,
+    .octagon-auth-shell #register-blood-type .Select__indicator,
+    .octagon-auth-shell #register-blood-type .Select__dropdown-indicator {
+        color: #000000 !important;
+        border-top-color: #000000 !important;
+    }
+
+    /* Registro: valor ya elegido (texto fijo visible en negro) */
+    .octagon-auth-shell #register-weight-class .has-value.Select--single > .Select-control .Select-value,
+    .octagon-auth-shell #register-specialty .has-value.Select--single > .Select-control .Select-value,
+    .octagon-auth-shell #register-health-status .has-value.Select--single > .Select-control .Select-value,
+    .octagon-auth-shell #register-injury-type .has-value.Select--single > .Select-control .Select-value,
+    .octagon-auth-shell #register-blood-type .has-value.Select--single > .Select-control .Select-value,
+    .octagon-auth-shell #register-weight-class .has-value.Select--single > .Select-control .Select-value .Select-value-label,
+    .octagon-auth-shell #register-specialty .has-value.Select--single > .Select-control .Select-value .Select-value-label,
+    .octagon-auth-shell #register-health-status .has-value.Select--single > .Select-control .Select-value .Select-value-label,
+    .octagon-auth-shell #register-injury-type .has-value.Select--single > .Select-control .Select-value .Select-value-label,
+    .octagon-auth-shell #register-blood-type .has-value.Select--single > .Select-control .Select-value .Select-value-label,
+    .octagon-auth-shell #register-weight-class .Select-value,
+    .octagon-auth-shell #register-specialty .Select-value,
+    .octagon-auth-shell #register-health-status .Select-value,
+    .octagon-auth-shell #register-injury-type .Select-value,
+    .octagon-auth-shell #register-blood-type .Select-value {
+        color: #000000 !important;
+        opacity: 1 !important;
+    }
+
+    .octagon-auth-shell #register-weight-class .has-value .Select-value-label,
+    .octagon-auth-shell #register-specialty .has-value .Select-value-label,
+    .octagon-auth-shell #register-health-status .has-value .Select-value-label,
+    .octagon-auth-shell #register-injury-type .has-value .Select-value-label,
+    .octagon-auth-shell #register-blood-type .has-value .Select-value-label,
+    .octagon-auth-shell #register-weight-class .has-value .Select__single-value,
+    .octagon-auth-shell #register-specialty .has-value .Select__single-value,
+    .octagon-auth-shell #register-health-status .has-value .Select__single-value,
+    .octagon-auth-shell #register-injury-type .has-value .Select__single-value,
+    .octagon-auth-shell #register-blood-type .has-value .Select__single-value {
+        color: #000000 !important;
+    }
+
+    .octagon-auth-shell #register-birthdate input,
+    .octagon-auth-shell #register-birthdate .DateInput_input,
+    .octagon-auth-shell #register-birthdate .DateInput_input__focused {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        opacity: 1 !important;
+    }
+
+    .octagon-auth-shell #register-weight-class .Select-control .Select-value,
+    .octagon-auth-shell #register-weight-class .Select-control .Select-value-label,
+    .octagon-auth-shell #register-specialty .Select-control .Select-value,
+    .octagon-auth-shell #register-specialty .Select-control .Select-value-label,
+    .octagon-auth-shell #register-health-status .Select-control .Select-value,
+    .octagon-auth-shell #register-health-status .Select-control .Select-value-label,
+    .octagon-auth-shell #register-injury-type .Select-control .Select-value,
+    .octagon-auth-shell #register-injury-type .Select-control .Select-value-label,
+    .octagon-auth-shell #register-blood-type .Select-control .Select-value,
+    .octagon-auth-shell #register-blood-type .Select-control .Select-value-label,
+    .octagon-auth-shell #register-weight-class .has-value .Select-value,
+    .octagon-auth-shell #register-weight-class .has-value .Select-value-label,
+    .octagon-auth-shell #register-specialty .has-value .Select-value,
+    .octagon-auth-shell #register-specialty .has-value .Select-value-label,
+    .octagon-auth-shell #register-health-status .has-value .Select-value,
+    .octagon-auth-shell #register-health-status .has-value .Select-value-label,
+    .octagon-auth-shell #register-injury-type .has-value .Select-value,
+    .octagon-auth-shell #register-injury-type .has-value .Select-value-label,
+    .octagon-auth-shell #register-blood-type .has-value .Select-value,
+    .octagon-auth-shell #register-blood-type .has-value .Select-value-label {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        opacity: 1 !important;
+    }
+
+    .octagon-auth-shell #register-weight-class [class*="singleValue"],
+    .octagon-auth-shell #register-specialty [class*="singleValue"],
+    .octagon-auth-shell #register-health-status [class*="singleValue"],
+    .octagon-auth-shell #register-injury-type [class*="singleValue"],
+    .octagon-auth-shell #register-blood-type [class*="singleValue"] {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        opacity: 1 !important;
+    }
+
+    .octagon-auth-shell #register-weight-class .dash-dropdown-value:not(.dash-dropdown-placeholder),
+    .octagon-auth-shell #register-specialty .dash-dropdown-value:not(.dash-dropdown-placeholder),
+    .octagon-auth-shell #register-health-status .dash-dropdown-value:not(.dash-dropdown-placeholder),
+    .octagon-auth-shell #register-injury-type .dash-dropdown-value:not(.dash-dropdown-placeholder),
+    .octagon-auth-shell #register-blood-type .dash-dropdown-value:not(.dash-dropdown-placeholder),
+    .octagon-auth-shell #register-weight-class .dash-dropdown-value:not(.dash-dropdown-placeholder) *,
+    .octagon-auth-shell #register-specialty .dash-dropdown-value:not(.dash-dropdown-placeholder) *,
+    .octagon-auth-shell #register-health-status .dash-dropdown-value:not(.dash-dropdown-placeholder) *,
+    .octagon-auth-shell #register-injury-type .dash-dropdown-value:not(.dash-dropdown-placeholder) *,
+    .octagon-auth-shell #register-blood-type .dash-dropdown-value:not(.dash-dropdown-placeholder) * {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        opacity: 1 !important;
+    }
+
+    .octagon-auth-shell #register-birthdate .dash-datepicker-input {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        opacity: 1 !important;
+    }
+
+    .octagon-auth-shell #register-weight-class:has(.dash-dropdown-value:not(.dash-dropdown-placeholder)),
+    .octagon-auth-shell #register-specialty:has(.dash-dropdown-value:not(.dash-dropdown-placeholder)),
+    .octagon-auth-shell #register-health-status:has(.dash-dropdown-value:not(.dash-dropdown-placeholder)),
+    .octagon-auth-shell #register-injury-type:has(.dash-dropdown-value:not(.dash-dropdown-placeholder)),
+    .octagon-auth-shell #register-blood-type:has(.dash-dropdown-value:not(.dash-dropdown-placeholder)) {
+        color: #000000 !important;
+    }

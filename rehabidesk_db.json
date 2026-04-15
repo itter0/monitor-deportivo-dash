@@ -496,6 +496,26 @@
                     "codo"
                 ]
             }
+        },
+        "luchador123": {
+            "password": "123456",
+            "role": "paciente",
+            "full_name": "lulu",
+            "member_since": "2026-04-15T07:01:56.946964",
+            "profile": {
+                "email": "hinosenso@gmail.com",
+                "phone": "333222333",
+                "address": "M\u00f3stoles",
+                "dni": "1234678d",
+                "birth_date": "1900-01-30",
+                "emergency_contact": "juan",
+                "emergency_phone": "123456789",
+                "weight_class": "featherweight",
+                "specialty": "Sparring",
+                "blood_type": "B+",
+                "health_status": "listo",
+                "injury_types": []
+            }
         }
     },
     "appointments": [
