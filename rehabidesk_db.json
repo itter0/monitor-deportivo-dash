@@ -1598,6 +1598,15 @@
                 },
                 "timestamp": "2026-03-10T21:58:27.282352",
                 "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Hombro"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "sin_dificultad",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2026-04-15T16:53:18.220500",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
             }
         ]
     },
@@ -2743,6 +2752,18 @@
                 "duration_seconds": 180,
                 "sets": 3,
                 "reps": 12
+            },
+            {
+                "exercise_id": "burpees",
+                "start_time": "2026-04-15T16:57:47.074069",
+                "end_time": "2026-04-15T16:57:51.886057",
+                "duration_seconds": 4,
+                "duration_formatted": "00:04",
+                "exercise_name": "Burpees (Sentadillas de Potencia)",
+                "completed": true,
+                "timestamp": "2026-04-15T16:57:51.886057",
+                "sets": 4,
+                "reps": 8
             }
         ]
     }

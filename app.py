@@ -945,6 +945,19 @@ HEALTHY_FIGHTER_EXERCISES = [
 ]
 
 
+def get_known_exercises_catalog():
+    """Devuelve un catálogo único de ejercicios por id como fallback del store."""
+    catalog = []
+    seen_ids = set()
+    for group in (KNEE_EXERCISES, ELBOW_EXERCISES, SHOULDER_EXERCISES, HEALTHY_FIGHTER_EXERCISES):
+        for exercise in group:
+            ex_id = exercise.get('id')
+            if ex_id and ex_id not in seen_ids:
+                seen_ids.add(ex_id)
+                catalog.append(exercise)
+    return catalog
+
+
 # CUESTIONARIOS ESPECIALIZADOS PARA PACIENTES (Se mantienen)
 QUESTIONNAIRES = {
     'dolor_rodilla': {
@@ -4395,15 +4408,11 @@ app.layout = html.Div([
         # Salidas de datos y Gráficos
         html.Div(id='bpm-output'),
         html.Div(id='doctor-bpm-output'),
-        html.Div(id='ecg-status-msg'),
-        html.Div(id='imu-status-msg'),
         dcc.Graph(id='ecg-graph'),
         dcc.Graph(id='doctor-ecg-graph'),
         dcc.Graph(id='questionnaire-q1-graph'),
         dcc.Graph(id='questionnaire-q2-graph'),
         dcc.Graph(id='exercise-history-graph'),
-        dcc.Graph(id='live-ecg-graph'),
-        dcc.Graph(id='live-imu-graph'),
         
         # Contenedores de layouts dinámicos
         html.Div(id='appointments-table-container'),
@@ -4415,9 +4424,6 @@ app.layout = html.Div([
         html.Div(id='doctor-ecg-container'),
         html.Div(id='selected-questionnaire-content'),
         html.Div(id='questionnaire-submission-feedback'),
-        html.Div(id='exercise-execution-content'),
-        html.Div(id='exercise-survey-content'),
-        html.Div(id='exercise-timer'),
         
         # Selectores
         dcc.Dropdown(id='doctor-patient-select'),
@@ -4430,9 +4436,6 @@ app.layout = html.Div([
         html.Button(id='doctor-load-ecg-stress-btn'),
         html.Button(id='associate-patient-button'),
         html.Button(id='disassociate-patient-button'),
-        html.Button(id='finish-exercise-btn'),
-        html.Button(id='cancel-exercise-btn'),
-        html.Button(id='submit-exercise-survey'),
         
     ], style={'display': 'none'}), # Mantiene todo el bloque invisible
 
@@ -5025,8 +5028,10 @@ def start_exercise(start_clicks, image_clicks, exercises):
         exercise_id = json.loads(trigger_id)['index']
     except:
         return False, html.Div(), None, None, True 
+
+    exercise_pool = exercises if isinstance(exercises, list) and exercises else get_known_exercises_catalog()
     
-    exercise = next((ex for ex in exercises if ex['id'] == exercise_id), None)
+    exercise = next((ex for ex in exercise_pool if ex.get('id') == exercise_id), None)
     if not exercise:
         return False, html.Div(), None, None, True 
     
@@ -5078,7 +5083,7 @@ def start_exercise(start_clicks, image_clicks, exercises):
         
         html.Div([
             html.H6("⏰ Tiempo de ejercicio:", style={'color': COLORS['primary'], 'marginBottom': '10px'}),
-            html.Div(id='exercise-timer', style={
+            html.Div('00:00', id='exercise-timer', style={
                 'fontSize': '24px',
                 'fontWeight': 'bold',
                 'textAlign': 'center',
@@ -5114,8 +5119,11 @@ def finish_exercise_and_show_survey(n_clicks, exercise_id, start_time, exercises
     end_time = datetime.now()
     start_time_obj = datetime.fromisoformat(start_time) if start_time else end_time
     duration_seconds = int((end_time - start_time_obj).total_seconds())
+    duration_label = f"{duration_seconds // 60:02d}:{duration_seconds % 60:02d}"
+
+    exercise_pool = exercises if isinstance(exercises, list) and exercises else get_known_exercises_catalog()
     
-    exercise = next((ex for ex in exercises if ex['id'] == exercise_id), None) if exercise_id else None
+    exercise = next((ex for ex in exercise_pool if ex.get('id') == exercise_id), None) if exercise_id else None
     
     survey_content = html.Div([
         html.H4("📊 Datos del Ejercicio Completado", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
@@ -5123,7 +5131,7 @@ def finish_exercise_and_show_survey(n_clicks, exercise_id, start_time, exercises
         html.Div([
             html.H5("Ejercicio completado:", style={'marginBottom': '10px'}),
             html.P(f"💪 {exercise['title'] if exercise else 'Ejercicio no especificado'}", style={'fontWeight': 'bold'}),
-            html.P(f"⏱️ Duración: {duration_seconds} segundos"),
+            html.P(f"⏱️ Duración: {duration_label} ({duration_seconds} segundos)"),
             html.P(f"📅 Fecha: {end_time.strftime('%d/%m/%Y %H:%M')}")
         ], style={
             'background': '#f8f9fa',
@@ -5148,6 +5156,7 @@ def finish_exercise_and_show_survey(n_clicks, exercise_id, start_time, exercises
             'start_time': start_time,
             'end_time': end_time.isoformat(),
             'duration_seconds': duration_seconds,
+            'duration_formatted': duration_label,
             'exercise_name': exercise['title'] if exercise else 'Desconocido',
             'completed': True,
             'timestamp': end_time.isoformat(),
@@ -6590,7 +6599,7 @@ def display_selected_patient_data(patient_username):
                         html.Span(f"{ex.get('sets', 'N/A')} × {ex.get('reps', 'N/A')} repeticiones"),
                         html.Br(),
                         html.Strong(f"Duración: "),
-                        html.Span(f"{ex['duration_seconds']} segundos" if ex.get('duration_seconds') else "No registrada")
+                        html.Span(ex.get('duration_formatted') or (f"{ex['duration_seconds']} segundos" if ex.get('duration_seconds') else "No registrada"))
                     ], style={'marginBottom': '15px', 'padding': '10px', 'background': '#111111', 'borderRadius': '8px', 'border': f'1px solid {COLORS["border_soft"]}', 'color': '#ffffff'})
                 ]) for ex in ex_list
             ], style={'maxHeight': '400px', 'overflowY': 'auto'})
