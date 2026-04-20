@@ -17,6 +17,20 @@ import subprocess
 import signal
 import base64
 
+QUIET_CONSOLE = os.environ.get("QUIET_CONSOLE", "true").lower() == "true"
+
+def print(*args, **kwargs):
+    """Silencia mensajes de depuración en modo normal sin ocultar errores reales."""
+    if not QUIET_CONSOLE:
+        return _builtins.print(*args, **kwargs)
+
+    message = " ".join(str(arg) for arg in args)
+    suppressed_prefixes = ("DEBUG:", "[DEBUG]", "🚀 Servidor RehabiDesk levantando")
+    if message.startswith(suppressed_prefixes):
+        return None
+
+    return _builtins.print(*args, **kwargs)
+
 from tactical_system import (
     OpponentProfile,
     TacticalPlan,
