@@ -7,14 +7,14 @@ import plotly.graph_objects as go
 import json
 import pandas as pd
 import numpy as np
+import logging
+import flask.cli as flask_cli
+import builtins as _builtins
 from urllib.parse import urlparse, parse_qs, urlencode
 import os
 import re 
 import subprocess
 import signal
-import threading
-import csv  
-import time 
 import base64
 
 from tactical_system import (
@@ -37,13 +37,20 @@ from meal_plan_system import (
 # --- INICIALIZACIÓN DE DUMMIES PARA BASE DE DATOS Y SENSORES ---
 # --------------------------------------------------------------------------
 
-STREAM_FILE = "data/sensor_data_stream.csv" # Mueve el stream a la carpeta data
-# Asegúrate de que la carpeta existe antes de que el simulador empiece
-if not os.path.exists('data'):
-    os.makedirs('data')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ECG_REAL_FILE = os.path.join(BASE_DIR, "data", "raw_datasets", "ecg_real.csv")
+try:
+    df_ecg_global = pd.read_csv(ECG_REAL_FILE)
+    if "ecg_value" not in df_ecg_global.columns:
+        raise ValueError("Falta la columna 'ecg_value' en el CSV de ECG real")
+    if "timestamp" not in df_ecg_global.columns:
+        raise ValueError("Falta la columna 'timestamp' en el CSV de ECG real")
+except Exception as e:
+    print(f"⚠️ No se pudo cargar {ECG_REAL_FILE}: {e}")
+    df_ecg_global = pd.DataFrame(columns=["timestamp", "ecg_value"])
 
 # Archivo de persistencia de la base de datos (CRÍTICO)
-DB_FILE = 'rehabidesk_db.json'
+DB_FILE = os.path.join(BASE_DIR, 'rehabidesk_db.json')
 
 # Base de datos DUMMY (Diccionario simple) - Ahora globalmente mutable
 _USER_DB = {}
@@ -567,6 +574,27 @@ app = dash.Dash(
 
 # Exponer el servidor Flask para despliegue con Gunicorn (Render)
 server = app.server
+
+QUIET_CONSOLE = os.environ.get("QUIET_CONSOLE", "true").lower() == "true"
+if QUIET_CONSOLE:
+    logging.getLogger("werkzeug").setLevel(logging.ERROR)
+    logging.getLogger("werkzeug").propagate = False
+    app.logger.setLevel(logging.ERROR)
+    server.logger.setLevel(logging.ERROR)
+    flask_cli.show_server_banner = lambda *args, **kwargs: None
+
+
+def print(*args, **kwargs):
+    """Silencia mensajes de depuración en modo normal sin ocultar errores reales."""
+    if not QUIET_CONSOLE:
+        return _builtins.print(*args, **kwargs)
+
+    message = " ".join(str(arg) for arg in args)
+    suppressed_prefixes = ("DEBUG:", "[DEBUG]", "🚀 Servidor RehabiDesk levantando")
+    if message.startswith(suppressed_prefixes):
+        return None
+
+    return _builtins.print(*args, **kwargs)
 
 # --- CONFIGURACIÓN VISUAL ESTILO OCTAGON PRO ---
 # --- CONFIGURACIÓN VISUAL ESTILO TÁCTICO / OCTAGON (ACTUALIZADO) ---
@@ -3406,6 +3434,7 @@ def get_patient_dashboard(username, full_name, current_search=""):
                     ], style=STYLES['card_header_tactical']),
                     dcc.Graph(id="ecg-graph", config={'displayModeBar': False}),
                     html.Div(id="bpm-output", className="mt-2", style={'color': COLORS['primary'], 'fontWeight': '900', 'fontSize': '1.2em'}),
+                    html.Div(id="ecg-data-source-status", className="mt-1", style={'color': COLORS['muted'], 'fontWeight': '600', 'fontSize': '0.95em'}),
                 ], style=STYLES['card']),
 
                 exercise_grid,
@@ -4149,6 +4178,7 @@ def get_patient_data_viewer_layout(username, full_name, current_search=""):
                         html.H4("❤️ Monitorización ECG", style={'color':COLORS['primary'], 'marginBottom': '15px'}),
                         dcc.Graph(id="doctor-ecg-graph", figure=initial_ecg_fig), 
                         html.Div(id="doctor-bpm-output", children=initial_bpm_text, className="mt-2 fw-bold", style={'color': COLORS['primary'], 'fontSize': '1.2em'}),
+                        html.Div(id="doctor-ecg-data-source-status", className="mt-1", style={'color': COLORS['muted'], 'fontWeight': '600', 'fontSize': '0.95em'}),
                     ], style=STYLES['card'])
                 ]),
                 dcc.Store(id='doctor-selected-patient-username', data=None)
@@ -4362,106 +4392,51 @@ app.layout = html.Div([
     get_edit_appointment_modal(),
     get_edit_profile_modal(),
 
-    # --- CONTENEDOR FANTASMA (Invisible) ---nav-view-patient-appointments-btn
-# --- CONTENEDOR FANTASMA (Invisible) ---
-    html.Div([
-        # Botones de navegación 
-        html.Button(id='nav-dashboard-btn'),    
-        html.Button(id='nav-dashboard-btn-2'),
-        html.Button(id='nav-dashboard-btn-3'),
-        html.Button(id='nav-dashboard-btn-4'),
-        html.Button(id='health-alert-container'),
-        html.Button(id='nav-dashboard-btn-patient-appt'),
-        html.Button(id='nav-patient-viewer-btn'),
-        html.Button(id='nav-view-appointments-btn'),
-        html.Button(id='nav-view-patient-appointments-btn'),
-        html.Button(id='nav-my-data-btn'),
-        html.Button(id='nav-my-questionnaires-btn'),
-        html.Button(id='logout-button'),
-        
-        # Citas y Gestión
-        html.Button(id='dash-view-appointments-btn'),
-        html.Button(id='schedule-appointment-btn'),
-        html.Div(id='schedule-appointment-btn-modal-trigger'),
-        html.Div(id='appointment-schedule-feedback'),
-        html.Div(id='patient-appt-action-feedback'),
-        
-        # Formulario de Perfil 
-        dcc.Input(id='edit-fullname'),
-        dcc.Input(id='edit-email'),
-        dcc.Input(id='edit-phone'),
-        dcc.Input(id='edit-address'),
-        dcc.Input(id='edit-dni'),
-        dcc.DatePickerSingle(id='edit-birthdate'),
-        dcc.Input(id='edit-emergency-contact'),
-        dcc.Input(id='edit-emergency-phone'),
-        dcc.Dropdown(id='edit-blood-type'),
-        dcc.Dropdown(id='edit-weight-class'),
-        dcc.Input(id='edit-current-weight'),
-        dcc.Textarea(id='edit-allergies'),
-        dcc.Textarea(id='edit-medications'),
-        dcc.Textarea(id='edit-conditions'),
-        html.Button(id='open-edit-profile-modal-btn'),
-        html.Button(id='save-profile-btn'),
-        html.Button(id='cancel-profile-btn'),
-        
-        # Salidas de datos y Gráficos
-        html.Div(id='bpm-output'),
-        html.Div(id='doctor-bpm-output'),
-        dcc.Graph(id='ecg-graph'),
-        dcc.Graph(id='doctor-ecg-graph'),
-        dcc.Graph(id='questionnaire-q1-graph'),
-        dcc.Graph(id='questionnaire-q2-graph'),
-        dcc.Graph(id='exercise-history-graph'),
-        
-        # Contenedores de layouts dinámicos
-        html.Div(id='appointments-table-container'),
-        html.Div(id='appointments-table-container-all'),
-        html.Div(id='appointments-table-container-today'),
-        html.Div(id='appointments-table-container-past'),
-        html.Div(id='patient-appointments-list'),
-        html.Div(id='doctor-patient-display'),
-        html.Div(id='doctor-ecg-container'),
-        html.Div(id='selected-questionnaire-content'),
-        html.Div(id='questionnaire-submission-feedback'),
-        
-        # Selectores
-        dcc.Dropdown(id='doctor-patient-select'),
-        dcc.Dropdown(id='questionnaire-select'),
-        dcc.Dropdown(id='unassigned-patient-select'),
-        dcc.Dropdown(id='assigned-patient-select-disassociate'),
-        
-        # Otros
-        html.Button(id='load-ecg-stress-btn'),
-        html.Button(id='doctor-load-ecg-stress-btn'),
-        html.Button(id='associate-patient-button'),
-        html.Button(id='disassociate-patient-button'),
-        
-    ], style={'display': 'none'}), # Mantiene todo el bloque invisible
-
     # --- Contenido Dinámico Real ---
-
     html.Div(id='page-content'),
 ])
 
 # NUEVO CALLBACK: Actualiza el gráfico de ECG en el Visor del Médico
 # NUEVO CALLBACK: Actualiza el gráfico de ECG en el Visor del Médico
+def get_ecg_window_from_memory(n_intervals, window_size=50):
+    if df_ecg_global.empty:
+        return pd.DataFrame(columns=["timestamp", "ecg", "status_ecg", "status_imu"])
+
+    total_rows = len(df_ecg_global)
+    start_idx = (n_intervals * window_size) % total_rows
+    end_idx = start_idx + window_size
+
+    if end_idx <= total_rows:
+        window = df_ecg_global.iloc[start_idx:end_idx].copy()
+    else:
+        first_part = df_ecg_global.iloc[start_idx:].copy()
+        second_part = df_ecg_global.iloc[: end_idx % total_rows].copy()
+        window = pd.concat([first_part, second_part], ignore_index=True)
+
+    window = window.rename(columns={"ecg_value": "ecg"})
+    window["ecg"] = pd.to_numeric(window["ecg"], errors="coerce").fillna(0.0)
+    window["status_ecg"] = np.where(window["ecg"].abs() > 1.5, "RED_FLAG_ARRHYTHMIA", "NORMAL")
+    window["status_imu"] = "NORMAL"
+    return window
+
+
 @app.callback(
     [Output("ecg-graph", "figure"),
-     Output("bpm-output", "children")],
+     Output("bpm-output", "children"),
+     Output("ecg-data-source-status", "children")],
     [Input('sensor-interval', 'n_intervals')],
     [State('url', 'pathname')]
 )
 def update_main_dashboard_auto(n, pathname):
-    # Solo actualizar si el usuario está en el Dashboard y el archivo existe
-    if pathname != '/' or not os.path.exists(STREAM_FILE):
-        return dash.no_update, dash.no_update
+    # Solo actualizar si el usuario está en el Dashboard y hay ECG cargado en memoria
+    if pathname != '/' or df_ecg_global.empty:
+        return dash.no_update, dash.no_update, dash.no_update
     
     try:
-        # 1. Leer los últimos datos del stream
-        df = pd.read_csv(STREAM_FILE).tail(50)
+        # 1. Leer una ventana de 50 puntos desde memoria (con loop infinito)
+        df = get_ecg_window_from_memory(n, window_size=50)
         if df.empty:
-            return dash.no_update, dash.no_update
+            return dash.no_update, dash.no_update, dash.no_update
 
         y_data = df['ecg'].tolist()
         
@@ -4508,27 +4483,30 @@ def update_main_dashboard_auto(n, pathname):
 
         # 5. Cálculo de BPM (Lógica simplificada para el dashboard)
         bpm = 75 + (max(y_data) * 5)
-        return fig, f"❤️ Frecuencia Cardíaca: {bpm:.1f} BPM"
+        source_msg = f"📡 ECG real cargado: {len(df_ecg_global)} muestras ({ECG_REAL_FILE})"
+        return fig, f"❤️ Frecuencia Cardíaca: {bpm:.1f} BPM", source_msg
 
     except Exception as e:
         print(f"Error en callback de ECG: {e}")
-        return dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update
     
     # Callback para actualizar el estado de salud y alertas en el visor del médico
 @app.callback(
     [Output('health-alert-container', 'children'),
-     Output('doctor-ecg-graph', 'figure', allow_duplicate=True)],
+     Output('doctor-ecg-graph', 'figure', allow_duplicate=True),
+     Output('doctor-bpm-output', 'children', allow_duplicate=True),
+     Output('doctor-ecg-data-source-status', 'children')],
     [Input('sensor-interval', 'n_intervals')],
     [State('doctor-selected-patient-username', 'data')],
     prevent_initial_call=True
 )
 def monitor_patient_health(n, selected_patient):
-    if not selected_patient or not os.path.exists(STREAM_FILE):
-        return dash.no_update, dash.no_update
+    if not selected_patient or df_ecg_global.empty:
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
     try:
-        # Leer los últimos 100 registros para análisis de tendencias
-        df = pd.read_csv(STREAM_FILE).tail(100)
+        # Leer 100 registros desde memoria para análisis de tendencias
+        df = get_ecg_window_from_memory(n, window_size=100)
         
         alerts = []
         # 1. Detectar Arritmia (Datos del ECG)
@@ -4552,11 +4530,15 @@ def monitor_patient_health(n, selected_patient):
         fig = go.Figure(go.Scatter(x=df['timestamp'], y=df['ecg'], line=dict(color=line_color)))
         fig.update_layout(template="plotly_white", margin=dict(l=20, r=20, t=40, b=20), height=300)
 
-        return alerts, fig
+        bpm = 75 + (float(df['ecg'].max()) * 5)
+        bpm_msg = f"❤️ Frecuencia Cardíaca: {bpm:.1f} BPM"
+        source_msg = f"📡 ECG real cargado: {len(df_ecg_global)} muestras ({ECG_REAL_FILE})"
+
+        return alerts, fig, bpm_msg, source_msg
 
     except Exception as e:
         print(f"Error en monitorización: {e}")
-        return dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 
@@ -6785,19 +6767,19 @@ def export_patient_data_to_csv(n_clicks, patient_username):
 )
 def update_sensor_charts(n, is_open):
     """Actualiza las gráficas con ejes y cuadrículas totalmente fijas para evitar parpadeos"""
-    if not is_open or not os.path.exists(STREAM_FILE):
+    if not is_open or df_ecg_global.empty:
         empty_fig = go.Figure().update_layout(height=250, template="plotly_white")
         return empty_fig, empty_fig, "⏸️ Esperando datos...", "⏸️ Esperando datos..."
     
     try:
-        # 1. Cargar los últimos 50 puntos
-        df = pd.read_csv(STREAM_FILE).tail(50)
+        # 1. Cargar 50 puntos desde memoria avanzando con n_intervals y módulo
+        df = get_ecg_window_from_memory(n, window_size=50)
         if df.empty or len(df) < 2:
             return dash.no_update, dash.no_update, "📊 Recolectando...", "📊 Recolectando..."
         
         x_vals = list(range(50))
         y_ecg = df['ecg'].tolist()
-        y_imu = df['accel_x'].tolist()
+        y_imu = []
         
         # Relleno preventivo para mantener el ancho de la línea constante al inicio
         while len(y_ecg) < 50: y_ecg.insert(0, None)
@@ -6828,33 +6810,21 @@ def update_sensor_charts(n, is_open):
             uirevision='constant'   # Mantiene el estado de la UI entre actualizaciones
         )
 
-        # 3. Gráfica IMU Rígida
-        has_fatigue = (df['status_imu'] == 'RED_FLAG_FATIGUE').any()
-        fig_imu = go.Figure(go.Scatter(
-            x=x_vals, y=y_imu, mode='lines', fill='tozeroy', 
-            line=dict(color="#f59e0b" if has_fatigue else "#3b82f6", width=2.5),
-            hoverinfo='none'
-        ))
-        
+        # 3. Gráfica IMU vacía por ahora (sin datos reales IMU)
+        fig_imu = go.Figure()
         fig_imu.update_layout(
             height=250,
             margin=dict(l=60, r=20, t=40, b=40),
             template="plotly_white",
-            title="📐 Ángulo de Rodilla (Grados)",
+            title="📐 IMU (sin datos)",
             xaxis=dict(range=[0, 49], fixedrange=True, showgrid=True, gridcolor="#f0f0f0"),
-            yaxis=dict(
-                range=[0, 100],     # Rango fijo para el ángulo de la rodilla
-                fixedrange=True,
-                tickformat="d",     # Formato entero para estabilidad
-                dtick=25,           # Divisiones claras
-                gridcolor="#f0f0f0"
-            ),
+            yaxis=dict(range=[0, 100], fixedrange=True, gridcolor="#f0f0f0"),
             showlegend=False,
             uirevision='constant'
         )
         
         ecg_msg = "⚠️ ARRITMIA DETECTADA" if has_arrhythmia else "✅ Ritmo Normal"
-        imu_msg = "⚠️ FATIGA DETECTADA" if has_fatigue else "✅ Movimiento Fluido"
+        imu_msg = "⏸️ IMU sin datos"
         
         return fig_ecg, fig_imu, ecg_msg, imu_msg
         
@@ -7158,81 +7128,23 @@ def update_exercises_on_injury_change(add_clicks, remove_clicks, patient_usernam
         print(f"Error updating exercises: {e}")
         return dash.no_update
 
-# --- FUNCIONES DEL SIMULADOR ---
-def generate_ecg_sample(t, base_bpm=75):
-    heart_rate = base_bpm / 60.0
-    ecg = 0.5 * np.sin(2 * np.pi * heart_rate * t)
-    qrs_time = t % (1.0 / heart_rate)
-    if 0.1 < qrs_time < 0.2:
-        ecg += 0.8 * np.exp(-((qrs_time - 0.15) ** 2) / 0.001)
-    noise = np.random.normal(0, 0.05)
-    ecg += noise
-    status = "RED_FLAG_ARRHYTHMIA" if abs(noise) > 0.12 else "NORMAL"
-    return ecg, status
-
-def generate_imu_sample(t, exercise_phase='extension'):
-    angle = min(90, 45 * np.sin(0.5 * t) + 45) if exercise_phase == 'extension' else max(0, 90 - 45 * np.sin(0.5 * t))
-    accel_x = angle
-    accel_y = np.random.normal(0, 2)
-    accel_z = np.random.normal(10, 1)
-    gyro_x = 20 * np.cos(0.5 * t)
-    gyro_y = np.random.normal(0, 1)
-    gyro_z = np.random.normal(0, 1)
-    status = "RED_FLAG_FATIGUE" if abs(accel_y) > 5 or abs(gyro_y) > 3 else "NORMAL"
-    return accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, status
-
-def init_stream_file():
-    with open(STREAM_FILE, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['timestamp', 'ecg', 'accel_x', 'accel_y', 'accel_z', 
-                        'gyro_x', 'gyro_y', 'gyro_z', 'status_ecg', 'status_imu'])
-
-def run_simulator():
-    init_stream_file()
-    start_time = time.time()
-    sample_count = 0
-    FAST_SAMPLE_RATE = 0.1 
-    while True:
-        try:
-            current_time = time.time() - start_time
-            exercise_phase = 'extension' if (sample_count // 20) % 2 == 0 else 'flexion'
-            base_bpm = 75 + 10 * np.sin(0.1 * current_time)
-            ecg, status_ecg = generate_ecg_sample(current_time, base_bpm)
-            imu_data = generate_imu_sample(current_time, exercise_phase)
-            with open(STREAM_FILE, 'a', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow([
-                    datetime.now().strftime('%H:%M:%S.%f')[:-3],
-                    f"{ecg:.4f}", f"{imu_data[0]:.2f}", f"{imu_data[1]:.2f}", f"{imu_data[2]:.2f}",
-                    f"{imu_data[3]:.2f}", f"{imu_data[4]:.2f}", f"{imu_data[5]:.2f}",
-                    status_ecg, imu_data[6]
-                ])
-            sample_count += 1
-            time.sleep(FAST_SAMPLE_RATE)
-        except Exception as e:
-            print(f"⚠️ Error en simulador: {e}")
-            break
-
 # ==========================================================================
 # --- INICIO DEL SISTEMA ---
 # ==========================================================================
 if __name__ == '__main__':
-    # 1. Iniciar el simulador PRIMERO
-    print("✅ Iniciando hilos de simulación...")
-    simulation_thread = threading.Thread(target=run_simulator, daemon=True)
-    simulation_thread.start()
-    
-    # Pausa para asegurar que data/sensor_data_stream.csv existe antes de que Dash cargue 
-    
     port = int(os.environ.get("PORT", 8050))
     debug_mode = os.environ.get("DASH_DEBUG", "false").lower() == "true"
-    print(f"🚀 Servidor RehabiDesk levantando en http://0.0.0.0:{port}")
+    is_render = os.environ.get("RENDER") == "true" or bool(os.environ.get("RENDER_SERVICE_ID"))
+    host = "0.0.0.0" if is_render else "127.0.0.1"
+    if not QUIET_CONSOLE:
+        print(f"🚀 Servidor RehabiDesk levantando en http://{host}:{port}")
     
     # 2. Ejecución del servidor
     # debug=True + use_reloader=False es la combinación más estable para hilos secundarios
     app.run(
         debug=debug_mode,
-        host='0.0.0.0', 
+        host=host,
         port=port,
-        use_reloader=False # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
+        use_reloader=False, # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
+        dev_tools_silence_routes_logging=True
     )
