@@ -11,8 +11,9 @@ Schema Versioning: v1.0 a partir de 2026-03-25
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
+import re
 
 # ============================================================================
 # ENUMS Y CONSTANTES DEL DOMINIO TÁCTICO
@@ -725,6 +726,586 @@ COMMON_DRILLS = [
     "striking_distance", "clinch_drills", "wrestling_takedown",
     "submission_defense", "footwork_drills", "cardio",
 ]
+
+
+class TacticalPlanningService:
+    """Servicio de lógica táctica consumido por la capa de UI (Dash)."""
+
+    WEIGHT_CLASS_LIMITS_KG = {
+        'flyweight': 56.7,
+        'bantamweight': 61.2,
+        'featherweight': 65.8,
+        'lightweight': 70.3,
+        'welterweight': 77.1,
+        'middleweight': 83.9,
+        'light_heavyweight': 93.0,
+        'heavyweight': 120.2,
+    }
+
+    @staticmethod
+    def parse_csv_values(text):
+        return [t.strip() for t in str(text or '').split(',') if t.strip()]
+
+    @staticmethod
+    def get_default_tactical_rounds():
+        return [
+            {'round_number': 1, 'title': 'Round 1 - Lectura y control', 'details': ''},
+            {'round_number': 2, 'title': 'Round 2 - Presión y ajustes', 'details': ''},
+            {'round_number': 3, 'title': 'Round 3 - Cierre inteligente', 'details': ''},
+        ]
+
+    @staticmethod
+    def parse_selected_fight_data(selected_fight_data):
+        if isinstance(selected_fight_data, dict):
+            return selected_fight_data
+        if isinstance(selected_fight_data, str) and selected_fight_data.strip():
+            try:
+                parsed = json.loads(selected_fight_data)
+                return parsed if isinstance(parsed, dict) else None
+            except Exception:
+                return None
+        return None
+
+    @staticmethod
+    def get_weight_class_limit(weight_class):
+        return TacticalPlanningService.WEIGHT_CLASS_LIMITS_KG.get(str(weight_class or '').strip())
+
+    @staticmethod
+    def infer_weight_direction(user_db, username, selected_direction, target_weight=None):
+        direction = str(selected_direction or 'auto').strip().lower()
+        if direction in ['cut', 'gain', 'maintain']:
+            return direction
+
+        profile = user_db.get(username, {}).get('profile', {})
+        current_weight = profile.get('current_weight')
+
+        try:
+            current_weight = float(current_weight)
+        except (TypeError, ValueError):
+            return 'maintain'
+
+        try:
+            target_weight = float(target_weight) if target_weight not in [None, ''] else None
+        except (TypeError, ValueError):
+            target_weight = None
+
+        if target_weight is not None:
+            diff = current_weight - target_weight
+            if diff > 0.75:
+                return 'cut'
+            if diff < -0.75:
+                return 'gain'
+            return 'maintain'
+
+        limit = TacticalPlanningService.get_weight_class_limit(profile.get('weight_class'))
+        if not limit:
+            return 'maintain'
+
+        diff = current_weight - limit
+        if diff > 1.5:
+            return 'cut'
+        if diff < -2.5:
+            return 'gain'
+        return 'maintain'
+
+    @staticmethod
+    def get_next_fight_date_for_user(user_db, username):
+        try:
+            user_fights = user_db.get(username, {}).get('fights', [])
+            future_dates = []
+            for fight in user_fights:
+                date_str = fight.get('date')
+                if not date_str:
+                    continue
+                dt = datetime.fromisoformat(str(date_str))
+                if dt.date() >= datetime.now().date():
+                    future_dates.append(dt.date())
+            return min(future_dates).isoformat() if future_dates else None
+        except Exception:
+            return None
+
+    @staticmethod
+    def resolve_target_date(user_db, start_date_str, prep_window, username):
+        if not start_date_str:
+            return None
+        start_dt = datetime.fromisoformat(start_date_str).date()
+        if prep_window == 'week':
+            return (start_dt + timedelta(days=7)).isoformat()
+        if prep_window == 'month':
+            return (start_dt + timedelta(days=30)).isoformat()
+        if prep_window == 'two_months':
+            return (start_dt + timedelta(days=60)).isoformat()
+        if prep_window == 'next_fight':
+            next_fight = TacticalPlanningService.get_next_fight_date_for_user(user_db, username)
+            return next_fight or (start_dt + timedelta(days=30)).isoformat()
+        return None
+
+    @staticmethod
+    def extract_round_techniques(title, details):
+        text = f"{title or ''} {details or ''}".lower()
+        keyword_map = {
+            'jab': ['jab'],
+            'cross': ['cross', 'recto'],
+            'hook': ['hook', 'gancho'],
+            'low kick': ['low kick', 'patada baja'],
+            'high kick': ['high kick', 'patada alta'],
+            'clinch': ['clinch'],
+            'derribo': ['derribo', 'takedown'],
+            'sprawl': ['sprawl'],
+            'ground and pound': ['ground and pound', 'gnp'],
+            'control de distancia': ['distancia', 'distance'],
+        }
+
+        techniques = []
+        for canonical, aliases in keyword_map.items():
+            if any(alias in text for alias in aliases):
+                techniques.append(canonical)
+
+        if not techniques:
+            chunks = [c.strip() for c in re.split(r'[\n,;.]', str(details or '')) if c.strip()]
+            techniques = chunks[:2]
+
+        return techniques[:3]
+
+    @staticmethod
+    def generate_phase_plan(start_date, target_date, user_db, username, weight_direction, custom_notes, selected_fight_data):
+        if not start_date or not target_date:
+            return []
+
+        try:
+            start_dt = datetime.fromisoformat(start_date).date()
+            target_dt = datetime.fromisoformat(target_date).date()
+        except Exception:
+            return []
+
+        if target_dt <= start_dt:
+            return []
+
+        selected_fight = TacticalPlanningService.parse_selected_fight_data(selected_fight_data)
+        fight_target_weight = selected_fight.get('target_weight') if selected_fight else None
+        fight_weigh_in_date = selected_fight.get('weigh_in_date') if selected_fight else None
+        resolved_direction = TacticalPlanningService.infer_weight_direction(user_db, username, weight_direction, fight_target_weight)
+
+        nutrition_by_goal = {
+            'cut': 'Nutrición: déficit leve, proteína alta, control de sodio e hidratación.',
+            'gain': 'Nutrición: superávit limpio, énfasis en proteína y recuperación.',
+            'maintain': 'Nutrición: mantenimiento calórico, enfoque en rendimiento.'
+        }
+        focus_suffix_by_goal = {
+            'cut': ' + sesiones de acondicionamiento para corte progresivo',
+            'gain': ' + bloques de fuerza para ganancia funcional',
+            'maintain': ' + estabilidad de carga y recuperación'
+        }
+
+        total_days = (target_dt - start_dt).days
+        if total_days <= 10:
+            phase_template = [
+                ('Base breve', 0.35, 'Técnica limpia y volumen controlado'),
+                ('Intensificación', 0.40, 'Sparring específico y simulación táctica'),
+                ('Descarga + pelea', 0.25, 'Bajar volumen, mantener velocidad y precisión'),
+            ]
+        elif total_days <= 45:
+            phase_template = [
+                ('Base técnica', 0.40, 'Consolidar fundamentos y ritmo aeróbico'),
+                ('Específico rival', 0.35, 'Trabajos dirigidos a fortalezas/debilidades rival'),
+                ('Puesta a punto', 0.25, 'Ajuste fino, gestión de carga y recorte'),
+            ]
+        else:
+            phase_template = [
+                ('Base de desarrollo', 0.35, 'Volumen y mejoras estructurales'),
+                ('Especialización', 0.35, 'Simulaciones de combate por escenarios'),
+                ('Pre-competitiva', 0.20, 'Picos de intensidad y decisiones rápidas'),
+                ('Descarga final', 0.10, 'Recuperación activa y afilado táctico'),
+            ]
+
+        phases = []
+        cursor = start_dt
+        for idx, (name, ratio, focus) in enumerate(phase_template):
+            if idx == len(phase_template) - 1:
+                end_dt = target_dt
+            else:
+                duration = max(1, int(total_days * ratio))
+                end_dt = min(target_dt, cursor + timedelta(days=duration))
+
+            focus_with_goal = f"{focus}{focus_suffix_by_goal.get(resolved_direction, '')}"
+            if custom_notes:
+                focus_with_goal = f"{focus_with_goal}. Nota coach: {str(custom_notes).strip()}"
+            if selected_fight:
+                if fight_target_weight not in [None, '']:
+                    focus_with_goal = f"{focus_with_goal}. Peso objetivo combate: {fight_target_weight} kg"
+                if fight_weigh_in_date:
+                    focus_with_goal = f"{focus_with_goal}. Pesaje: {fight_weigh_in_date}"
+
+            phases.append({
+                'phase': name,
+                'start': cursor.isoformat(),
+                'end': end_dt.isoformat(),
+                'focus': focus_with_goal,
+                'weight_goal': resolved_direction,
+                'nutrition_note': nutrition_by_goal.get(resolved_direction, nutrition_by_goal['maintain']),
+                'fight_target_weight': fight_target_weight,
+                'weigh_in_date': fight_weigh_in_date
+            })
+
+            cursor = end_dt + timedelta(days=1)
+            if cursor > target_dt:
+                break
+
+        return phases
+
+    @staticmethod
+    def build_pdf_bytes(opponent_name, opponent_style, strengths, weaknesses, notes, target_date, rounds_store, selected_fight_data):
+        if not opponent_name or not target_date:
+            return b''
+
+        style_value = opponent_style if opponent_style in ['Striking', 'Grappling', 'Balanced'] else 'Balanced'
+        profile = OpponentProfile(
+            name=opponent_name,
+            style=OpponentStyle(style_value),
+            strengths=TacticalPlanningService.parse_csv_values(strengths),
+            weaknesses=TacticalPlanningService.parse_csv_values(weaknesses),
+            notes=notes or ''
+        )
+
+        rounds = rounds_store or TacticalPlanningService.get_default_tactical_rounds()
+        game_rounds = []
+        for idx, r in enumerate(rounds):
+            game_rounds.append({
+                'round_number': idx + 1,
+                'focus': r.get('title', ''),
+                'techniques': TacticalPlanningService.extract_round_techniques(r.get('title', ''), r.get('details', '')),
+                'contingency': r.get('details', '')
+            })
+
+        selected_fight = TacticalPlanningService.parse_selected_fight_data(selected_fight_data)
+        fight_weight_value = None
+        if selected_fight and selected_fight.get('target_weight') not in [None, '']:
+            try:
+                fight_weight_value = float(selected_fight.get('target_weight'))
+            except (TypeError, ValueError):
+                fight_weight_value = None
+
+        plan_obj = TacticalPlan.from_dict({
+            'fight_id': 'pdf-preview',
+            'opponent': profile.to_dict(),
+            'my_specialty': 'Balanced',
+            'my_phase': 'Base (Volumen Alto)',
+            'game_plan_rounds': game_rounds,
+            'contingencies': [],
+            'drill_focus': ['mixed_drills'],
+            'injury_restrictions': {},
+            'target_date': target_date,
+            'weigh_in_date': selected_fight.get('weigh_in_date') if selected_fight else None,
+            'fight_weight': fight_weight_value
+        })
+
+        return generate_calendar_pdf(plan_obj, target_date)
+
+    @staticmethod
+    def update_phase_list(trigger_raw, phase_store, start_date, target_date):
+        phases = list(phase_store or [])
+
+        if trigger_raw == 'tactical-add-phase-btn':
+            base_start = start_date or datetime.now().date().isoformat()
+            base_end = target_date or (datetime.now().date() + timedelta(days=7)).isoformat()
+            phases.append({
+                'phase': f"Fase {len(phases) + 1}",
+                'start': base_start,
+                'end': base_end,
+                'focus': 'Personaliza esta fase según tus necesidades.',
+                'weight_goal': 'maintain',
+                'nutrition_note': 'Nutrición: mantenimiento calórico, enfoque en rendimiento.'
+            })
+            return phases
+
+        if trigger_raw and trigger_raw.startswith('{'):
+            try:
+                trigger = json.loads(trigger_raw)
+            except Exception:
+                trigger = {}
+            idx = trigger.get('index') if isinstance(trigger, dict) else None
+            if isinstance(idx, int) and 0 <= idx < len(phases):
+                phases.pop(idx)
+                return phases
+
+        return None
+
+    @staticmethod
+    def sync_phase_edits(names, starts, ends, focuses, phase_store):
+        existing = phase_store or []
+        if not existing:
+            return None
+
+        updated = []
+        for idx, phase in enumerate(existing):
+            phase_data = phase if isinstance(phase, dict) else {}
+            start_value = starts[idx] if idx < len(starts or []) and starts[idx] else phase_data.get('start', '')
+            end_value = ends[idx] if idx < len(ends or []) and ends[idx] else phase_data.get('end', '')
+            start_value = str(start_value or '')[:10] if start_value else ''
+            end_value = str(end_value or '')[:10] if end_value else ''
+
+            updated.append({
+                **phase_data,
+                'phase': (names[idx] if idx < len(names or []) and names[idx] else phase_data.get('phase', '')),
+                'start': start_value,
+                'end': end_value,
+                'focus': (focuses[idx] if idx < len(focuses or []) and focuses[idx] else phase_data.get('focus', '')),
+            })
+        return updated
+
+    @staticmethod
+    def manage_rounds(trigger_raw, rounds_store, opponent_name, opponent_style, strengths, weaknesses, title_values, detail_values):
+        rounds = rounds_store or TacticalPlanningService.get_default_tactical_rounds()
+
+        if not trigger_raw:
+            return rounds
+
+        if trigger_raw == 'tactical-add-round-btn':
+            rounds.append({'round_number': len(rounds) + 1, 'title': f'Round {len(rounds) + 1}', 'details': ''})
+            return rounds
+
+        if trigger_raw == 'tactical-reset-rounds-btn':
+            return TacticalPlanningService.get_default_tactical_rounds()
+
+        if trigger_raw.startswith('{'):
+            try:
+                trigger = json.loads(trigger_raw)
+            except Exception:
+                trigger = None
+            if isinstance(trigger, dict) and trigger.get('type') == 'tactical-delete-round-btn':
+                idx = trigger.get('index')
+                rounds = [r for i, r in enumerate(rounds) if i != idx]
+                if not rounds:
+                    rounds = TacticalPlanningService.get_default_tactical_rounds()
+                for i, r in enumerate(rounds):
+                    r['round_number'] = i + 1
+                return rounds
+
+        if trigger_raw == 'tactical-autogenerate-rounds-btn':
+            style_value = opponent_style if opponent_style in ['Striking', 'Grappling', 'Balanced'] else 'Balanced'
+            profile = OpponentProfile(
+                name=opponent_name or 'Rival',
+                style=OpponentStyle(style_value),
+                strengths=TacticalPlanningService.parse_csv_values(strengths),
+                weaknesses=TacticalPlanningService.parse_csv_values(weaknesses),
+                notes=''
+            )
+            tactical_plan = generate_initial_tactical_plan(
+                opponent=profile,
+                athlete_specialty=OpponentStyle.BALANCED,
+                camp_phase=CampPhase.BASE_BUILDING,
+                num_rounds=max(1, len(rounds))
+            )
+            generated = []
+            for rnd in tactical_plan.game_plan_rounds:
+                generated.append({
+                    'round_number': rnd.round_number,
+                    'title': rnd.focus,
+                    'details': f"Técnicas: {', '.join(rnd.techniques)}. Plan B: {rnd.contingency}"
+                })
+            return generated
+
+        updated = []
+        for idx, rnd in enumerate(rounds):
+            updated.append({
+                'round_number': idx + 1,
+                'title': (title_values[idx] if idx < len(title_values or []) else rnd.get('title', '')) or '',
+                'details': (detail_values[idx] if idx < len(detail_values or []) else rnd.get('details', '')) or '',
+            })
+        return updated
+
+    @staticmethod
+    def review_plan(user_db, username, opponent_name, opponent_style, strengths, weaknesses, target_date, rounds_store, selected_fight_data):
+        rounds_store = rounds_store or []
+        game_rounds = []
+        contingencies = []
+        for idx, r in enumerate(rounds_store):
+            contingency_text = r.get('details', '')
+            game_rounds.append({
+                'round_number': idx + 1,
+                'focus': r.get('title', ''),
+                'techniques': TacticalPlanningService.extract_round_techniques(r.get('title', ''), r.get('details', '')),
+                'contingency': contingency_text
+            })
+            if contingency_text:
+                contingencies.append({
+                    'scenario_name': f'Contingency Round {idx + 1}',
+                    'trigger': contingency_text[:100],
+                    'response_techniques': TacticalPlanningService.extract_round_techniques(r.get('title', ''), contingency_text),
+                    'risk_level': 'medium'
+                })
+
+        profile = user_db.get(username, {}).get('profile', {})
+        athlete_weight_raw = profile.get('current_weight')
+        try:
+            athlete_weight = float(athlete_weight_raw) if athlete_weight_raw not in [None, ''] else None
+        except (TypeError, ValueError):
+            athlete_weight = None
+
+        selected_fight = TacticalPlanningService.parse_selected_fight_data(selected_fight_data)
+        weight_class_limit = TacticalPlanningService.get_weight_class_limit(profile.get('weight_class'))
+        if selected_fight and selected_fight.get('target_weight') not in [None, '']:
+            try:
+                weight_class_limit = float(selected_fight.get('target_weight'))
+            except (TypeError, ValueError):
+                pass
+
+        plan_obj = TacticalPlan.from_dict({
+            'fight_id': 'preview',
+            'opponent': {
+                'name': opponent_name or '',
+                'style': opponent_style or 'Balanced',
+                'strengths': TacticalPlanningService.parse_csv_values(strengths),
+                'weaknesses': TacticalPlanningService.parse_csv_values(weaknesses),
+                'notes': ''
+            },
+            'my_specialty': 'Balanced',
+            'my_phase': 'Base (Volumen Alto)',
+            'game_plan_rounds': game_rounds,
+            'contingencies': contingencies,
+            'drill_focus': ['mixed_drills'],
+            'injury_restrictions': {},
+            'target_date': target_date,
+        })
+
+        review = validate_plan_advanced(plan_obj, athlete_weight=athlete_weight, weight_class_limit=weight_class_limit)
+        return review
+
+    @staticmethod
+    def auto_fix_rounds(rounds_store):
+        rounds = rounds_store or TacticalPlanningService.get_default_tactical_rounds()
+        fixed = []
+        for idx, r in enumerate(rounds):
+            raw_title = (r.get('title') or '').strip()
+            raw_details = (r.get('details') or '').strip()
+            title = raw_title if len(raw_title) >= 5 else f"Round {idx + 1} - Presión y control"
+
+            details = raw_details
+            if not details:
+                details = "Plan A: jab, low kick y control de distancia. Plan B: clinch + derribo si pierde el centro."
+            elif len(TacticalPlanningService.extract_round_techniques(title, details)) == 0:
+                details = f"{details}. Añadir: jab y control de distancia."
+
+            fixed.append({'round_number': idx + 1, 'title': title, 'details': details})
+        return fixed
+
+    @staticmethod
+    def build_plan_dict_for_save(user_db, username, editing_fight_id, prep_window, start_date, target_date,
+                                 weight_direction, phase_custom_notes, selected_fight_data, opponent_name,
+                                 opponent_style, strengths, weaknesses, stance, reach, cardio, notes,
+                                 rounds_store, phases_store, existing_plan):
+        selected_fight = TacticalPlanningService.parse_selected_fight_data(selected_fight_data)
+        fight_id = editing_fight_id or f"fight-{datetime.now().timestamp()}"
+        created_at = existing_plan.get('created_at') if existing_plan else datetime.now().isoformat()
+
+        start_dt = datetime.fromisoformat(start_date).date()
+        target_dt = datetime.fromisoformat(target_date).date()
+        plan_target_date = selected_fight.get('date') if selected_fight and selected_fight.get('date') else target_date
+
+        fight_target_weight = None
+        if selected_fight:
+            try:
+                fight_target_weight = float(selected_fight.get('target_weight')) if selected_fight.get('target_weight') not in [None, ''] else None
+            except (TypeError, ValueError):
+                fight_target_weight = None
+
+        rounds = rounds_store or TacticalPlanningService.get_default_tactical_rounds()
+        game_plan_rounds = []
+        contingencies = []
+        for idx, r in enumerate(rounds):
+            contingency_text = r.get('details', '')
+            game_plan_rounds.append({
+                'round_number': idx + 1,
+                'focus': r.get('title', ''),
+                'techniques': TacticalPlanningService.extract_round_techniques(r.get('title', ''), r.get('details', '')),
+                'contingency': contingency_text
+            })
+            if contingency_text:
+                contingencies.append(contingency_text)
+
+        first_phase = (phases_store or [{}])[0]
+        primary_phase_name = first_phase.get('phase', 'Base (Volumen Alto)') if isinstance(first_phase, dict) else 'Base (Volumen Alto)'
+
+        return {
+            'fight_id': fight_id,
+            'linked_fight': selected_fight if selected_fight else (existing_plan.get('linked_fight') if existing_plan else None),
+            'opponent': {
+                'name': opponent_name,
+                'style': opponent_style or 'Balanced',
+                'strengths': TacticalPlanningService.parse_csv_values(strengths),
+                'weaknesses': TacticalPlanningService.parse_csv_values(weaknesses),
+                'notes': notes or '',
+                'stance': stance or '',
+                'reach': reach or '',
+                'cardio': cardio or ''
+            },
+            'my_specialty': user_db.get(username, {}).get('profile', {}).get('specialty', 'Balanced'),
+            'my_phase': primary_phase_name,
+            'game_plan_rounds': game_plan_rounds,
+            'contingencies': contingencies,
+            'drill_focus': [],
+            'injury_restrictions': {},
+            'created_at': created_at,
+            'status': 'active',
+            'execution_logs': [],
+            'version': '2.0',
+            'adaptive_adjustments': [],
+            'version_history': existing_plan.get('version_history', []) if existing_plan else [],
+            'target_date': plan_target_date,
+            'target_days_left': max(0, (datetime.fromisoformat(plan_target_date).date() - datetime.now().date()).days) if plan_target_date else max(0, (target_dt - datetime.now().date()).days),
+            'start_date': start_date,
+            'prep_window': prep_window,
+            'camp_phases': phases_store or [],
+            'weight_direction': weight_direction or 'auto',
+            'phase_custom_notes': phase_custom_notes or '',
+            'fight_weight': fight_target_weight,
+            'weigh_in_date': selected_fight.get('weigh_in_date') if selected_fight else (existing_plan.get('weigh_in_date') if existing_plan else None)
+        }
+
+    @staticmethod
+    def parse_action_trigger(trigger_raw):
+        if not trigger_raw or not trigger_raw.startswith('{'):
+            return None, None
+        try:
+            trigger = json.loads(trigger_raw)
+        except Exception:
+            return None, None
+        if not isinstance(trigger, dict):
+            return None, None
+        return trigger.get('type'), trigger.get('index')
+
+    @staticmethod
+    def build_rounds_store_from_plan(plan):
+        rounds = plan.get('game_plan_rounds', []) if isinstance(plan, dict) else []
+        rounds_store = []
+        for rnd in rounds:
+            rounds_store.append({
+                'round_number': rnd.get('round_number', len(rounds_store) + 1),
+                'title': rnd.get('focus', ''),
+                'details': rnd.get('contingency', '')
+            })
+        return rounds_store
+
+    @staticmethod
+    def build_edit_form_data(plan):
+        opponent = plan.get('opponent', {}) if isinstance(plan, dict) else {}
+        return {
+            'prep_window': plan.get('prep_window', 'month'),
+            'start_date': plan.get('start_date', datetime.now().date().isoformat()),
+            'target_date': plan.get('target_date', (datetime.now().date() + timedelta(days=30)).isoformat()),
+            'weight_direction': plan.get('weight_direction', 'auto'),
+            'phase_custom_notes': plan.get('phase_custom_notes', ''),
+            'opponent_name': opponent.get('name', ''),
+            'opponent_style': opponent.get('style', 'Balanced'),
+            'opponent_strengths': ', '.join(opponent.get('strengths', [])) if isinstance(opponent.get('strengths', []), list) else '',
+            'opponent_weaknesses': ', '.join(opponent.get('weaknesses', [])) if isinstance(opponent.get('weaknesses', []), list) else '',
+            'opponent_stance': opponent.get('stance', ''),
+            'opponent_reach': opponent.get('reach', ''),
+            'opponent_cardio': opponent.get('cardio', ''),
+            'opponent_notes': opponent.get('notes', ''),
+            'rounds_store': TacticalPlanningService.build_rounds_store_from_plan(plan) or TacticalPlanningService.get_default_tactical_rounds(),
+            'camp_phases': plan.get('camp_phases', []),
+        }
 
 
 # ============================================================================

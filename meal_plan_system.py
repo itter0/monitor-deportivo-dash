@@ -7,6 +7,110 @@ from enum import Enum
 from datetime import datetime
 
 
+class MealPlanService:
+    """Orquesta la lógica de planes de comida consumida por la capa Dash."""
+
+    @staticmethod
+    def build_draft(
+        name,
+        generation_logic,
+        current_weight,
+        target_weight,
+        duration,
+        weight_change,
+        dietary_constraints,
+        food_preferences,
+        meals_per_day,
+        fight_context,
+    ):
+        generated = generate_personalized_meal_plan(
+            name=name,
+            generation_logic=generation_logic,
+            current_weight=current_weight,
+            target_weight=target_weight,
+            duration_days=duration,
+            selected_weight_change=weight_change,
+            dietary_constraints=dietary_constraints,
+            food_preferences=food_preferences,
+            meals_per_day=meals_per_day,
+            fight_context=fight_context,
+        )
+
+        review = validate_meal_plan_advanced({
+            'duration': generated.get('duration'),
+            'target_weight': generated.get('target_weight'),
+            'current_weight': current_weight,
+            'generation_logic': generated.get('generation_logic')
+        })
+
+        generated_meta = {
+            'generation_logic': generated.get('generation_logic'),
+            'generated_macros': generated.get('generated_macros', {}),
+            'dietary_constraints': dietary_constraints or '',
+            'food_preferences': food_preferences or '',
+            'meals_per_day': meals_per_day,
+        }
+        return generated, review, generated_meta
+
+    @staticmethod
+    def build_plan_for_save(
+        name,
+        generation_logic,
+        weight_change,
+        target_weight,
+        duration,
+        status,
+        dietary_constraints,
+        food_preferences,
+        meals_per_day,
+        description,
+        notes,
+        generated_meta,
+        current_weight,
+    ):
+        try:
+            target_weight_val = float(target_weight) if target_weight not in [None, ''] else None
+        except (TypeError, ValueError):
+            target_weight_val = None
+
+        try:
+            duration_val = int(duration) if duration and duration > 0 else 30
+        except (TypeError, ValueError):
+            duration_val = 30
+
+        selected_logic = generation_logic or 'template'
+        macros_data = {}
+        if isinstance(generated_meta, dict):
+            selected_logic = generated_meta.get('generation_logic') or selected_logic
+            if isinstance(generated_meta.get('generated_macros'), dict):
+                macros_data = generated_meta.get('generated_macros')
+
+        meal_plan = {
+            'name': str(name or '').strip(),
+            'weight_change': weight_change or 'none',
+            'target_weight': target_weight_val,
+            'duration': duration_val,
+            'status': status or 'active',
+            'generation_logic': selected_logic,
+            'generated_macros': macros_data,
+            'dietary_constraints': dietary_constraints or '',
+            'food_preferences': food_preferences or '',
+            'meals_per_day': meals_per_day if meals_per_day else 5,
+            'current_weight': current_weight,
+            'description': description or '',
+            'notes': notes or '',
+            'created_date': datetime.now().isoformat(),
+        }
+        return meal_plan, validate_meal_plan_advanced(meal_plan)
+
+    @staticmethod
+    def delete_plan_by_index(meal_plans, idx):
+        plans = list(meal_plans or [])
+        if isinstance(idx, int) and 0 <= idx < len(plans):
+            plans.pop(idx)
+        return plans
+
+
 class MealPlanGenerationMode(str, Enum):
     TEMPLATE = "template"
     GOAL_BASED = "goal_based"

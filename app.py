@@ -32,20 +32,14 @@ def print(*args, **kwargs):
     return _builtins.print(*args, **kwargs)
 
 from tactical_system import (
-    OpponentProfile,
-    TacticalPlan,
-    OpponentStyle,
-    CampPhase,
-    generate_initial_tactical_plan,
-    validate_plan_advanced,
-    generate_training_calendar,
-    generate_calendar_pdf,
+    TacticalPlanningService,
 )
 
 from meal_plan_system import (
-    generate_personalized_meal_plan,
-    validate_meal_plan_advanced,
+    MealPlanService,
 )
+from questionnaires import QuestionnaireService
+from app_services import AppointmentService, ExerciseService, FightService
 
 # --------------------------------------------------------------------------
 # --- INICIALIZACIÓN DE DUMMIES PARA BASE DE DATOS Y SENSORES ---
@@ -120,6 +114,7 @@ _APPOINTMENTS_DB = []
 _PATIENT_INFO_DB = {}
 _QUESTIONNAIRE_HISTORY_DB = {}
 _EXERCISE_HISTORY_DB = {}
+_EXERCISE_ALERTS_DB = {}
 
 # Funciones dummy de SENSORS (Asegurando que load_ecg_and_compute_bpm existe)
 try:
@@ -245,6 +240,7 @@ class DummyDB:
             'patient_info': _PATIENT_INFO_DB,
             'questionnaire_history': _QUESTIONNAIRE_HISTORY_DB,
             'exercise_history': _EXERCISE_HISTORY_DB,
+            'exercise_alerts': _EXERCISE_ALERTS_DB,
         }
         try:
             with open(DB_FILE, 'w') as f:
@@ -254,7 +250,7 @@ class DummyDB:
 
     def load_data(self):
         """Carga la base de datos desde el archivo JSON."""
-        global _USER_DB, _APPOINTMENTS_DB, _PATIENT_INFO_DB, _QUESTIONNAIRE_HISTORY_DB, _EXERCISE_HISTORY_DB
+        global _USER_DB, _APPOINTMENTS_DB, _PATIENT_INFO_DB, _QUESTIONNAIRE_HISTORY_DB, _EXERCISE_HISTORY_DB, _EXERCISE_ALERTS_DB
         if os.path.exists(DB_FILE):
             try:
                 with open(DB_FILE, 'r') as f:
@@ -264,6 +260,7 @@ class DummyDB:
                     _PATIENT_INFO_DB = data.get('patient_info', {})
                     _QUESTIONNAIRE_HISTORY_DB = data.get('questionnaire_history', {})
                     _EXERCISE_HISTORY_DB = data.get('exercise_history', {})
+                    _EXERCISE_ALERTS_DB = data.get('exercise_alerts', {})
                 print(f"DEBUG: Datos cargados desde {DB_FILE}. Usuarios: {len(_USER_DB)}")
                 return True
             except (json.JSONDecodeError, IOError, EOFError) as e:
@@ -508,6 +505,16 @@ class DummyDB:
         self.save_data() # Persistencia
         print(f"DEBUG: Cuestionario {questionnaire_data['questionnaire_id']} guardado para {username}.")
 
+    def save_exercise_alert(self, username, alert_data):
+        if username not in _EXERCISE_ALERTS_DB:
+            _EXERCISE_ALERTS_DB[username] = []
+        _EXERCISE_ALERTS_DB[username].append(alert_data)
+        self.save_data()
+
+    def get_exercise_alerts(self, username):
+        alerts = _EXERCISE_ALERTS_DB.get(username, [])
+        return sorted(alerts, key=lambda a: a.get('timestamp', ''), reverse=True)
+
     def save_tactical_plan(self, username, tactical_plan_dict):
         """Crea o actualiza un plan táctico por fight_id y lo persiste."""
         if username not in _USER_DB:
@@ -610,6 +617,7 @@ class DummyDB:
             'patient_info': patient_info,
             'questionnaires': questionnaires,
             'exercises': exercises,
+            'exercise_alerts': self.get_exercise_alerts(username),
             'appointments': appointments
         }
 
@@ -1242,23 +1250,12 @@ QUESTIONNAIRES['movilidad_hombro'] = {
 
 def get_recommended_questionnaires(health_status, injury_types=None):
     """Retorna cuestionarios recomendados según estado de salud y lesiones."""
-    if health_status == 'listo':
-        return ['funcionalidad']
-
-    if health_status == 'lesionado' and injury_types:
-        if not isinstance(injury_types, list):
-            injury_types = [injury_types]
-
-        selected = []
-        seen = set()
-        for injury in injury_types:
-            for q_id in QUESTIONNAIRES_BY_INJURY.get(injury, []):
-                if q_id in QUESTIONNAIRES and q_id not in seen:
-                    selected.append(q_id)
-                    seen.add(q_id)
-        return selected
-
-    return ['funcionalidad']
+    recommended = QuestionnaireService.get_recommended_questionnaires(
+        health_status,
+        injury_types,
+        QUESTIONNAIRES_BY_INJURY,
+    )
+    return [qid for qid in recommended if qid in QUESTIONNAIRES]
 
 
 def render_fights_list(fights):
@@ -1354,47 +1351,19 @@ def render_tactical_plans_section(username):
 
 
 def parse_csv_values(text):
-    return [t.strip() for t in str(text or '').split(',') if t.strip()]
+    return TacticalPlanningService.parse_csv_values(text)
 
 
 def get_default_tactical_rounds():
-    return [
-        {'round_number': 1, 'title': 'Round 1 - Lectura y control', 'details': ''},
-        {'round_number': 2, 'title': 'Round 2 - Presión y ajustes', 'details': ''},
-        {'round_number': 3, 'title': 'Round 3 - Cierre inteligente', 'details': ''},
-    ]
+    return TacticalPlanningService.get_default_tactical_rounds()
 
 
 def get_next_fight_date_for_user(username):
-    try:
-        user_fights = _USER_DB.get(username, {}).get('fights', [])
-        future_dates = []
-        for fight in user_fights:
-            date_str = fight.get('date')
-            if not date_str:
-                continue
-            dt = datetime.fromisoformat(str(date_str))
-            if dt.date() >= datetime.now().date():
-                future_dates.append(dt.date())
-        return min(future_dates).isoformat() if future_dates else None
-    except Exception:
-        return None
+    return TacticalPlanningService.get_next_fight_date_for_user(_USER_DB, username)
 
 
 def resolve_target_date(start_date_str, prep_window, username):
-    if not start_date_str:
-        return None
-    start_dt = datetime.fromisoformat(start_date_str).date()
-    if prep_window == 'week':
-        return (start_dt + timedelta(days=7)).isoformat()
-    if prep_window == 'month':
-        return (start_dt + timedelta(days=30)).isoformat()
-    if prep_window == 'two_months':
-        return (start_dt + timedelta(days=60)).isoformat()
-    if prep_window == 'next_fight':
-        next_fight = get_next_fight_date_for_user(username)
-        return next_fight or (start_dt + timedelta(days=30)).isoformat()
-    return None
+    return TacticalPlanningService.resolve_target_date(_USER_DB, start_date_str, prep_window, username)
 
 
 def render_tactical_rounds_editor(rounds):
@@ -1454,86 +1423,19 @@ WEIGHT_CLASS_LIMITS_KG = {
 
 
 def get_weight_class_limit(weight_class):
-    return WEIGHT_CLASS_LIMITS_KG.get(str(weight_class or '').strip())
+    return TacticalPlanningService.get_weight_class_limit(weight_class)
 
 
 def infer_weight_direction(username, selected_direction, target_weight=None):
-    direction = str(selected_direction or 'auto').strip().lower()
-    if direction in ['cut', 'gain', 'maintain']:
-        return direction
-
-    profile = _USER_DB.get(username, {}).get('profile', {})
-    current_weight = profile.get('current_weight')
-
-    try:
-        current_weight = float(current_weight)
-    except (TypeError, ValueError):
-        return 'maintain'
-
-    try:
-        target_weight = float(target_weight) if target_weight not in [None, ''] else None
-    except (TypeError, ValueError):
-        target_weight = None
-
-    if target_weight is not None:
-        diff = current_weight - target_weight
-        if diff > 0.75:
-            return 'cut'
-        if diff < -0.75:
-            return 'gain'
-        return 'maintain'
-
-    weight_class = profile.get('weight_class')
-    limit = get_weight_class_limit(weight_class)
-
-    if not limit:
-        return 'maintain'
-
-    diff = current_weight - limit
-    if diff > 1.5:
-        return 'cut'
-    if diff < -2.5:
-        return 'gain'
-    return 'maintain'
+    return TacticalPlanningService.infer_weight_direction(_USER_DB, username, selected_direction, target_weight)
 
 
 def parse_selected_fight_data(selected_fight_data):
-    if isinstance(selected_fight_data, dict):
-        return selected_fight_data
-    if isinstance(selected_fight_data, str) and selected_fight_data.strip():
-        try:
-            parsed = json.loads(selected_fight_data)
-            return parsed if isinstance(parsed, dict) else None
-        except Exception:
-            return None
-    return None
+    return TacticalPlanningService.parse_selected_fight_data(selected_fight_data)
 
 
 def extract_round_techniques(title, details):
-    text = f"{title or ''} {details or ''}".lower()
-    keyword_map = {
-        'jab': ['jab'],
-        'cross': ['cross', 'recto'],
-        'hook': ['hook', 'gancho'],
-        'low kick': ['low kick', 'patada baja'],
-        'high kick': ['high kick', 'patada alta'],
-        'clinch': ['clinch'],
-        'derribo': ['derribo', 'takedown'],
-        'sprawl': ['sprawl'],
-        'ground and pound': ['ground and pound', 'gnp'],
-        'control de distancia': ['distancia', 'distance'],
-    }
-
-    techniques = []
-    for canonical, aliases in keyword_map.items():
-        if any(alias in text for alias in aliases):
-            techniques.append(canonical)
-
-    if not techniques:
-        chunks = [c.strip() for c in re.split(r'[\n,;.]', str(details or '')) if c.strip()]
-        techniques = chunks[:2]
-
-    return techniques[:3]
+    return TacticalPlanningService.extract_round_techniques(title, details)
 
 # --- FUNCIONES AUXILIARES PARA GRÁFICAS ---
 def create_questionnaire_plot(questionnaires):
@@ -1646,13 +1548,8 @@ def create_questionnaire_plot(questionnaires):
     prevent_initial_call=True
 )
 def sync_fight_weighin_date(fight_date):
-    if not fight_date:
-        return dash.no_update
-    try:
-        fight_dt = datetime.fromisoformat(fight_date).date()
-    except Exception:
-        return dash.no_update
-    return (fight_dt - timedelta(days=1)).isoformat()
+    weigh_in = FightService.sync_weighin_date(fight_date)
+    return weigh_in if weigh_in else dash.no_update
 
 
 @app.callback(
@@ -1676,49 +1573,23 @@ def add_fight_entry(n_clicks, fight_date, fight_target_weight, weigh_in_date, op
     if not n_clicks or n_clicks == 0:
         return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
-    if not username:
-        return html.Div("❌ Usuario no autenticado.", style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    ok, message, fights = FightService.add_fight_entry(
+        _USER_DB,
+        username,
+        fight_date,
+        fight_target_weight,
+        weigh_in_date,
+        opponent,
+        location,
+        current_weight,
+    )
+    if not ok:
+        return html.Div(message, style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
-    if not fight_date or not opponent or not location:
-        return html.Div("⚠️ Completa fecha, oponente y lugar del combate.", style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
-
-    if username not in _USER_DB:
-        return html.Div("❌ Usuario no encontrado en la base de datos.", style={'color': 'red'}), dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
-
-    try:
-        target_weight_value = float(fight_target_weight) if fight_target_weight not in [None, ''] else None
-    except (TypeError, ValueError):
-        target_weight_value = None
-
-    if not weigh_in_date:
-        try:
-            weigh_in_date = (datetime.fromisoformat(fight_date).date() - timedelta(days=1)).isoformat()
-        except Exception:
-            weigh_in_date = None
-
-    fights = _USER_DB[username].get('fights', [])
-    fights.append({
-        'date': fight_date,
-        'opponent': opponent.strip(),
-        'location': location.strip(),
-        'target_weight': target_weight_value,
-        'weigh_in_date': weigh_in_date,
-    })
-    _USER_DB[username]['fights'] = fights
-    
-    # Actualizar peso actual en el perfil si se proporciona
-    if current_weight not in [None, '']:
-        try:
-            profile_data = _USER_DB[username].get('profile', {})
-            profile_data['current_weight'] = float(current_weight)
-            _USER_DB[username]['profile'] = profile_data
-        except (TypeError, ValueError):
-            pass
-    
     db.save_data()
 
     return (
-        html.Div("✅ Combate agregado correctamente.", style={'color': 'green'}),
+        html.Div(message, style={'color': 'green'}),
         render_fights_list(fights),
         "",
         "",
@@ -1813,20 +1684,8 @@ def load_fights_for_selector(is_open, username):
     """Carga la lista de combates cuando se abre el modal"""
     if not is_open or not username:
         return []
-    
-    fights = _USER_DB.get(username, {}).get('fights', [])
-    if not fights:
-        return []
-    
-    # Crear opciones en formato: "04/27/2026 vs Opponent @ Location"
-    options = [
-        {
-            'label': f"📅 {fight.get('date', 'N/A')} vs {fight.get('opponent', 'Rival')} @ {fight.get('location', 'Unknown')} | ⚖️ {fight.get('target_weight', 'N/A')} kg | 🗓️ {fight.get('weigh_in_date', 'N/A')}",
-            'value': json.dumps(fight)
-        }
-        for fight in fights
-    ]
-    return options
+
+    return FightService.get_fight_selector_options(_USER_DB, username)
 
 
 @app.callback(
@@ -1938,87 +1797,15 @@ def generate_tactical_phase_plan(n_clicks, start_date, target_date, username, we
     if not n_clicks:
         return dash.no_update
 
-    if not start_date or not target_date:
-        return []
-
-    try:
-        start_dt = datetime.fromisoformat(start_date).date()
-        target_dt = datetime.fromisoformat(target_date).date()
-    except Exception:
-        return []
-
-    if target_dt <= start_dt:
-        return []
-
-    selected_fight = parse_selected_fight_data(selected_fight_data)
-    fight_target_weight = selected_fight.get('target_weight') if selected_fight else None
-    fight_weigh_in_date = selected_fight.get('weigh_in_date') if selected_fight else None
-    resolved_direction = infer_weight_direction(username, weight_direction, fight_target_weight)
-    nutrition_by_goal = {
-        'cut': 'Nutrición: déficit leve, proteína alta, control de sodio e hidratación.',
-        'gain': 'Nutrición: superávit limpio, énfasis en proteína y recuperación.',
-        'maintain': 'Nutrición: mantenimiento calórico, enfoque en rendimiento.'
-    }
-    focus_suffix_by_goal = {
-        'cut': ' + sesiones de acondicionamiento para corte progresivo',
-        'gain': ' + bloques de fuerza para ganancia funcional',
-        'maintain': ' + estabilidad de carga y recuperación'
-    }
-
-    phases = []
-    total_days = (target_dt - start_dt).days
-    if total_days <= 10:
-        phase_template = [
-            ('Base breve', 0.35, 'Técnica limpia y volumen controlado'),
-            ('Intensificación', 0.40, 'Sparring específico y simulación táctica'),
-            ('Descarga + pelea', 0.25, 'Bajar volumen, mantener velocidad y precisión'),
-        ]
-    elif total_days <= 45:
-        phase_template = [
-            ('Base técnica', 0.40, 'Consolidar fundamentos y ritmo aeróbico'),
-            ('Específico rival', 0.35, 'Trabajos dirigidos a fortalezas/debilidades rival'),
-            ('Puesta a punto', 0.25, 'Ajuste fino, gestión de carga y recorte'),
-        ]
-    else:
-        phase_template = [
-            ('Base de desarrollo', 0.35, 'Volumen y mejoras estructurales'),
-            ('Especialización', 0.35, 'Simulaciones de combate por escenarios'),
-            ('Pre-competitiva', 0.20, 'Picos de intensidad y decisiones rápidas'),
-            ('Descarga final', 0.10, 'Recuperación activa y afilado táctico'),
-        ]
-
-    cursor = start_dt
-    for idx, (name, ratio, focus) in enumerate(phase_template):
-        if idx == len(phase_template) - 1:
-            end_dt = target_dt
-        else:
-            duration = max(1, int(total_days * ratio))
-            end_dt = min(target_dt, cursor + timedelta(days=duration))
-
-        focus_with_goal = f"{focus}{focus_suffix_by_goal.get(resolved_direction, '')}"
-        if custom_notes:
-            focus_with_goal = f"{focus_with_goal}. Nota coach: {str(custom_notes).strip()}"
-        if selected_fight:
-            if fight_target_weight not in [None, '']:
-                focus_with_goal = f"{focus_with_goal}. Peso objetivo combate: {fight_target_weight} kg"
-            if fight_weigh_in_date:
-                focus_with_goal = f"{focus_with_goal}. Pesaje: {fight_weigh_in_date}"
-
-        phases.append({
-            'phase': name,
-            'start': cursor.isoformat(),
-            'end': end_dt.isoformat(),
-            'focus': focus_with_goal,
-            'weight_goal': resolved_direction,
-            'nutrition_note': nutrition_by_goal.get(resolved_direction, nutrition_by_goal['maintain']),
-            'fight_target_weight': fight_target_weight,
-            'weigh_in_date': fight_weigh_in_date
-        })
-        cursor = end_dt + timedelta(days=1)
-        if cursor > target_dt:
-            break
-
-    return phases
+    return TacticalPlanningService.generate_phase_plan(
+        start_date,
+        target_date,
+        _USER_DB,
+        username,
+        weight_direction,
+        custom_notes,
+        selected_fight_data,
+    )
 
 
 @app.callback(
@@ -2032,32 +1819,8 @@ def generate_tactical_phase_plan(n_clicks, start_date, target_date, username, we
 )
 def update_tactical_phase_list(add_click, delete_clicks, phase_store, start_date, target_date):
     trigger_raw = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else None
-    phases = list(phase_store or [])
-
-    if trigger_raw == 'tactical-add-phase-btn':
-        base_start = start_date or datetime.now().date().isoformat()
-        base_end = target_date or (datetime.now().date() + timedelta(days=7)).isoformat()
-        phases.append({
-            'phase': f"Fase {len(phases) + 1}",
-            'start': base_start,
-            'end': base_end,
-            'focus': 'Personaliza esta fase según tus necesidades.',
-            'weight_goal': 'maintain',
-            'nutrition_note': 'Nutrición: mantenimiento calórico, enfoque en rendimiento.'
-        })
-        return phases
-
-    if trigger_raw and trigger_raw.startswith('{'):
-        try:
-            trigger = json.loads(trigger_raw)
-        except Exception:
-            trigger = {}
-        idx = trigger.get('index') if isinstance(trigger, dict) else None
-        if isinstance(idx, int) and 0 <= idx < len(phases):
-            phases.pop(idx)
-            return phases
-
-    return dash.no_update
+    updated = TacticalPlanningService.update_phase_list(trigger_raw, phase_store, start_date, target_date)
+    return updated if updated is not None else dash.no_update
 
 
 @app.callback(
@@ -2070,28 +1833,8 @@ def update_tactical_phase_list(add_click, delete_clicks, phase_store, start_date
     prevent_initial_call=True
 )
 def sync_tactical_phase_edits(names, starts, ends, focuses, phase_store):
-    existing = phase_store or []
-    if not existing:
-        return dash.no_update
-
-    updated = []
-    for idx, phase in enumerate(existing):
-        phase_data = phase if isinstance(phase, dict) else {}
-        start_value = starts[idx] if idx < len(starts or []) and starts[idx] else phase_data.get('start', '')
-        end_value = ends[idx] if idx < len(ends or []) and ends[idx] else phase_data.get('end', '')
-
-        # dcc.DatePickerSingle devuelve fecha en formato YYYY-MM-DD o None
-        start_value = str(start_value or '')[:10] if start_value else ''
-        end_value = str(end_value or '')[:10] if end_value else ''
-
-        updated.append({
-            **phase_data,
-            'phase': (names[idx] if idx < len(names or []) and names[idx] else phase_data.get('phase', '')),
-            'start': start_value,
-            'end': end_value,
-            'focus': (focuses[idx] if idx < len(focuses or []) and focuses[idx] else phase_data.get('focus', '')),
-        })
-    return updated
+    updated = TacticalPlanningService.sync_phase_edits(names, starts, ends, focuses, phase_store)
+    return updated if updated is not None else dash.no_update
 
 
 @app.callback(
@@ -2191,65 +1934,17 @@ def render_tactical_phase_plan_editor(phase_store):
 )
 def manage_tactical_rounds(add_clicks, reset_clicks, autogen_clicks, delete_clicks, title_values, detail_values,
                            rounds_store, opponent_name, opponent_style, strengths, weaknesses):
-    rounds = rounds_store or get_default_tactical_rounds()
     trigger_raw = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else None
-
-    if not trigger_raw:
-        return rounds
-
-    if trigger_raw == 'tactical-add-round-btn':
-        rounds.append({'round_number': len(rounds) + 1, 'title': f'Round {len(rounds) + 1}', 'details': ''})
-        return rounds
-
-    if trigger_raw == 'tactical-reset-rounds-btn':
-        return get_default_tactical_rounds()
-
-    if trigger_raw.startswith('{'):
-        try:
-            trigger = json.loads(trigger_raw)
-        except Exception:
-            trigger = None
-        if isinstance(trigger, dict) and trigger.get('type') == 'tactical-delete-round-btn':
-            idx = trigger.get('index')
-            rounds = [r for i, r in enumerate(rounds) if i != idx]
-            if not rounds:
-                rounds = get_default_tactical_rounds()
-            for i, r in enumerate(rounds):
-                r['round_number'] = i + 1
-            return rounds
-
-    if trigger_raw == 'tactical-autogenerate-rounds-btn':
-        style_value = opponent_style if opponent_style in ['Striking', 'Grappling', 'Balanced'] else 'Balanced'
-        profile = OpponentProfile(
-            name=opponent_name or 'Rival',
-            style=OpponentStyle(style_value),
-            strengths=parse_csv_values(strengths),
-            weaknesses=parse_csv_values(weaknesses),
-            notes=''
-        )
-        tactical_plan = generate_initial_tactical_plan(
-            opponent=profile,
-            athlete_specialty=OpponentStyle.BALANCED,
-            camp_phase=CampPhase.BASE_BUILDING,
-            num_rounds=max(1, len(rounds))
-        )
-        generated = []
-        for rnd in tactical_plan.game_plan_rounds:
-            generated.append({
-                'round_number': rnd.round_number,
-                'title': rnd.focus,
-                'details': f"Técnicas: {', '.join(rnd.techniques)}. Plan B: {rnd.contingency}"
-            })
-        return generated
-
-    updated = []
-    for idx, rnd in enumerate(rounds):
-        updated.append({
-            'round_number': idx + 1,
-            'title': (title_values[idx] if idx < len(title_values or []) else rnd.get('title', '')) or '',
-            'details': (detail_values[idx] if idx < len(detail_values or []) else rnd.get('details', '')) or '',
-        })
-    return updated
+    return TacticalPlanningService.manage_rounds(
+        trigger_raw,
+        rounds_store,
+        opponent_name,
+        opponent_style,
+        strengths,
+        weaknesses,
+        title_values,
+        detail_values,
+    )
 
 
 @app.callback(
@@ -2278,61 +1973,18 @@ def review_tactical_plan(n_clicks, username, opponent_name, opponent_style, stre
     if not n_clicks:
         return dash.no_update, dash.no_update
 
-    rounds_store = rounds_store or []
-    game_rounds = []
-    contingencies = []
-    for idx, r in enumerate(rounds_store):
-        contingency_text = r.get('details', '')
-        game_rounds.append({
-            'round_number': idx + 1,
-            'focus': r.get('title', ''),
-            'techniques': extract_round_techniques(r.get('title', ''), r.get('details', '')),
-            'contingency': contingency_text
-        })
-        if contingency_text:
-            # Crear structure de ContingencyScenario desde texto
-            contingencies.append({
-                'scenario_name': f'Contingency Round {idx + 1}',
-                'trigger': contingency_text[:100],
-                'response_techniques': extract_round_techniques(r.get('title', ''), contingency_text),
-                'risk_level': 'medium'
-            })
-
-    profile = _USER_DB.get(username, {}).get('profile', {})
-    athlete_weight_raw = profile.get('current_weight')
     try:
-        athlete_weight = float(athlete_weight_raw) if athlete_weight_raw not in [None, ''] else None
-    except (TypeError, ValueError):
-        athlete_weight = None
-
-    selected_fight = parse_selected_fight_data(selected_fight_data)
-    weight_class_limit = get_weight_class_limit(profile.get('weight_class'))
-    if selected_fight and selected_fight.get('target_weight') not in [None, '']:
-        try:
-            weight_class_limit = float(selected_fight.get('target_weight'))
-        except (TypeError, ValueError):
-            pass
-
-    plan_obj = TacticalPlan.from_dict({
-        'fight_id': 'preview',
-        'opponent': {
-            'name': opponent_name or '',
-            'style': opponent_style or 'Balanced',
-            'strengths': parse_csv_values(strengths),
-            'weaknesses': parse_csv_values(weaknesses),
-            'notes': ''
-        },
-        'my_specialty': 'Balanced',
-        'my_phase': 'Base (Volumen Alto)',
-        'game_plan_rounds': game_rounds,
-        'contingencies': contingencies,
-        'drill_focus': ['mixed_drills'],
-        'injury_restrictions': {},
-        'target_date': target_date,
-    })
-
-    try:
-        review = validate_plan_advanced(plan_obj, athlete_weight=athlete_weight, weight_class_limit=weight_class_limit)
+        review = TacticalPlanningService.review_plan(
+            _USER_DB,
+            username,
+            opponent_name,
+            opponent_style,
+            strengths,
+            weaknesses,
+            target_date,
+            rounds_store,
+            selected_fight_data,
+        )
     except Exception as exc:
         error_msg = html.Div([
             html.H6('Problema en revisión', style={'color': '#ff6b6b'}),
@@ -2372,20 +2024,7 @@ def auto_fix_tactical_plan(n_clicks, review_store, rounds_store):
     if not n_clicks:
         return dash.no_update, dash.no_update, dash.no_update
 
-    rounds = rounds_store or get_default_tactical_rounds()
-    fixed = []
-    for idx, r in enumerate(rounds):
-        raw_title = (r.get('title') or '').strip()
-        raw_details = (r.get('details') or '').strip()
-        title = raw_title if len(raw_title) >= 5 else f"Round {idx + 1} - Presión y control"
-
-        details = raw_details
-        if not details:
-            details = "Plan A: jab, low kick y control de distancia. Plan B: clinch + derribo si pierde el centro."
-        elif len(extract_round_techniques(title, details)) == 0:
-            details = f"{details}. Añadir: jab y control de distancia."
-
-        fixed.append({'round_number': idx + 1, 'title': title, 'details': details})
+    fixed = TacticalPlanningService.auto_fix_rounds(rounds_store)
 
     msg = html.Div([
         html.P("✅ Correcciones autoimplementadas sobre los rounds.", style={'color': '#00ff88', 'marginBottom': '4px'}),
@@ -2441,71 +2080,28 @@ def save_tactical_plan_wizard(
 
     selected_fight = parse_selected_fight_data(selected_fight_data)
     existing = db.get_tactical_plan_by_fight_id(username, editing_fight_id) if editing_fight_id else None
-    fight_id = editing_fight_id or f"fight-{datetime.now().timestamp()}"
-    created_at = existing.get('created_at') if existing else datetime.now().isoformat()
-    start_dt = datetime.fromisoformat(start_date).date()
-    target_dt = datetime.fromisoformat(target_date).date()
-    plan_target_date = selected_fight.get('date') if selected_fight and selected_fight.get('date') else target_date
-
-    fight_target_weight = None
-    if selected_fight:
-        try:
-            fight_target_weight = float(selected_fight.get('target_weight')) if selected_fight.get('target_weight') not in [None, ''] else None
-        except (TypeError, ValueError):
-            fight_target_weight = None
-
-    rounds = rounds_store or get_default_tactical_rounds()
-    game_plan_rounds = []
-    contingencies = []
-    for idx, r in enumerate(rounds):
-        contingency_text = r.get('details', '')
-        game_plan_rounds.append({
-            'round_number': idx + 1,
-            'focus': r.get('title', ''),
-            'techniques': extract_round_techniques(r.get('title', ''), r.get('details', '')),
-            'contingency': contingency_text
-        })
-        if contingency_text:
-            contingencies.append(contingency_text)
-
-    first_phase = (phases_store or [{}])[0]
-    primary_phase_name = first_phase.get('phase', 'Base (Volumen Alto)') if isinstance(first_phase, dict) else 'Base (Volumen Alto)'
-
-    plan_dict = {
-        'fight_id': fight_id,
-        'linked_fight': selected_fight if selected_fight else (existing.get('linked_fight') if existing else None),
-        'opponent': {
-            'name': opponent_name,
-            'style': opponent_style or 'Balanced',
-            'strengths': parse_csv_values(strengths),
-            'weaknesses': parse_csv_values(weaknesses),
-            'notes': notes or '',
-            'stance': stance or '',
-            'reach': reach or '',
-            'cardio': cardio or ''
-        },
-        'my_specialty': _USER_DB.get(username, {}).get('profile', {}).get('specialty', 'Balanced'),
-        'my_phase': primary_phase_name,
-        'game_plan_rounds': game_plan_rounds,
-        'contingencies': contingencies,
-        'drill_focus': [],
-        'injury_restrictions': {},
-        'created_at': created_at,
-        'status': 'active',
-        'execution_logs': [],
-        'version': '2.0',
-        'adaptive_adjustments': [],
-        'version_history': existing.get('version_history', []) if existing else [],
-        'target_date': plan_target_date,
-        'target_days_left': max(0, (datetime.fromisoformat(plan_target_date).date() - datetime.now().date()).days) if plan_target_date else max(0, (target_dt - datetime.now().date()).days),
-        'start_date': start_date,
-        'prep_window': prep_window,
-        'camp_phases': phases_store or [],
-        'weight_direction': weight_direction or 'auto',
-        'phase_custom_notes': phase_custom_notes or '',
-        'fight_weight': fight_target_weight,
-        'weigh_in_date': selected_fight.get('weigh_in_date') if selected_fight else (existing.get('weigh_in_date') if existing else None)
-    }
+    plan_dict = TacticalPlanningService.build_plan_dict_for_save(
+        _USER_DB,
+        username,
+        editing_fight_id,
+        prep_window,
+        start_date,
+        target_date,
+        weight_direction,
+        phase_custom_notes,
+        selected_fight_data,
+        opponent_name,
+        opponent_style,
+        strengths,
+        weaknesses,
+        stance,
+        reach,
+        cardio,
+        notes,
+        rounds_store,
+        phases_store,
+        existing,
+    )
 
     ok = db.save_tactical_plan(username, plan_dict)
     if not ok:
@@ -2553,19 +2149,10 @@ def handle_tactical_actions_wizard(edit_clicks, archive_clicks, restore_clicks, 
         return _base_response(html.Div("❌ Usuario no identificado", style={'color': 'red'}))
 
     trigger_raw = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else None
-    if not trigger_raw or not trigger_raw.startswith('{'):
+    action_type, fight_id = TacticalPlanningService.parse_action_trigger(trigger_raw)
+    if not action_type or not fight_id:
         return _base_response()
 
-    try:
-        trigger = json.loads(trigger_raw)
-    except Exception:
-        trigger = None
-
-    fight_id = trigger.get('index') if isinstance(trigger, dict) else None
-    if not fight_id:
-        return _base_response()
-
-    action_type = trigger.get('type')
     if action_type == 'archive-tactical-plan-btn':
         ok = db.archive_tactical_plan(username, fight_id)
         new_refresh = (refresh or 0) + 1
@@ -2588,35 +2175,27 @@ def handle_tactical_actions_wizard(edit_clicks, archive_clicks, restore_clicks, 
         payload[0] = render_tactical_plans_section(username)
         return tuple(payload)
 
-    opponent = plan.get('opponent', {})
-    rounds = plan.get('game_plan_rounds', [])
-    rounds_store = []
-    for rnd in rounds:
-        rounds_store.append({
-            'round_number': rnd.get('round_number', len(rounds_store) + 1),
-            'title': rnd.get('focus', ''),
-            'details': rnd.get('contingency', '')
-        })
+    edit_data = TacticalPlanningService.build_edit_form_data(plan)
 
     payload = [dash.no_update] * 19
     payload[0] = render_tactical_plans_section(username)
     payload[1] = html.Div("📝 Editando plan seleccionado", style={'color': '#87cefa'})
     payload[2] = fight_id
-    payload[3] = plan.get('prep_window', 'month')
-    payload[4] = plan.get('start_date', datetime.now().date().isoformat())
-    payload[5] = plan.get('target_date', (datetime.now().date() + timedelta(days=30)).isoformat())
-    payload[6] = plan.get('weight_direction', 'auto')
-    payload[7] = plan.get('phase_custom_notes', '')
-    payload[8] = opponent.get('name', '')
-    payload[9] = opponent.get('style', 'Balanced')
-    payload[10] = ', '.join(opponent.get('strengths', [])) if isinstance(opponent.get('strengths', []), list) else ''
-    payload[11] = ', '.join(opponent.get('weaknesses', [])) if isinstance(opponent.get('weaknesses', []), list) else ''
-    payload[12] = opponent.get('stance', '')
-    payload[13] = opponent.get('reach', '')
-    payload[14] = opponent.get('cardio', '')
-    payload[15] = opponent.get('notes', '')
-    payload[16] = rounds_store or get_default_tactical_rounds()
-    payload[17] = plan.get('camp_phases', [])
+    payload[3] = edit_data['prep_window']
+    payload[4] = edit_data['start_date']
+    payload[5] = edit_data['target_date']
+    payload[6] = edit_data['weight_direction']
+    payload[7] = edit_data['phase_custom_notes']
+    payload[8] = edit_data['opponent_name']
+    payload[9] = edit_data['opponent_style']
+    payload[10] = edit_data['opponent_strengths']
+    payload[11] = edit_data['opponent_weaknesses']
+    payload[12] = edit_data['opponent_stance']
+    payload[13] = edit_data['opponent_reach']
+    payload[14] = edit_data['opponent_cardio']
+    payload[15] = edit_data['opponent_notes']
+    payload[16] = edit_data['rounds_store']
+    payload[17] = edit_data['camp_phases']
     payload[18] = dash.no_update
     return tuple(payload)
 
@@ -2638,52 +2217,16 @@ def download_tactical_pdf(n_clicks, opponent_name, opponent_style, strengths, we
     if not n_clicks:
         return dash.no_update
 
-    if not opponent_name or not target_date:
-        return dash.no_update
-
-    selected_fight = parse_selected_fight_data(selected_fight_data)
-
-    style_value = opponent_style if opponent_style in ['Striking', 'Grappling', 'Balanced'] else 'Balanced'
-    profile = OpponentProfile(
-        name=opponent_name,
-        style=OpponentStyle(style_value),
-        strengths=parse_csv_values(strengths),
-        weaknesses=parse_csv_values(weaknesses),
-        notes=notes or ''
+    pdf_bytes = TacticalPlanningService.build_pdf_bytes(
+        opponent_name,
+        opponent_style,
+        strengths,
+        weaknesses,
+        notes,
+        target_date,
+        rounds_store,
+        selected_fight_data,
     )
-
-    rounds = rounds_store or get_default_tactical_rounds()
-    game_rounds = []
-    for idx, r in enumerate(rounds):
-        game_rounds.append({
-            'round_number': idx + 1,
-            'focus': r.get('title', ''),
-            'techniques': extract_round_techniques(r.get('title', ''), r.get('details', '')),
-            'contingency': r.get('details', '')
-        })
-
-    fight_weight_value = None
-    if selected_fight and selected_fight.get('target_weight') not in [None, '']:
-        try:
-            fight_weight_value = float(selected_fight.get('target_weight'))
-        except (TypeError, ValueError):
-            fight_weight_value = None
-
-    plan_obj = TacticalPlan.from_dict({
-        'fight_id': 'pdf-preview',
-        'opponent': profile.to_dict(),
-        'my_specialty': 'Balanced',
-        'my_phase': 'Base (Volumen Alto)',
-        'game_plan_rounds': game_rounds,
-        'contingencies': [],
-        'drill_focus': ['mixed_drills'],
-        'injury_restrictions': {},
-        'target_date': target_date,
-        'weigh_in_date': selected_fight.get('weigh_in_date') if selected_fight else None,
-        'fight_weight': fight_weight_value
-    })
-
-    pdf_bytes = generate_calendar_pdf(plan_obj, target_date)
     if not pdf_bytes:
         return dash.no_update
 
@@ -3296,6 +2839,7 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search=""):
         user_menu_items.extend([
             dbc.DropdownMenuItem("Ver Cuestionarios", id="nav-my-questionnaires-btn", n_clicks=0, href=get_full_href("/my-questionnaires")),
             dbc.DropdownMenuItem("Ver Citas", id="nav-view-patient-appointments-btn", n_clicks=0, href=get_full_href("/view-patient-appointments")),
+            dbc.DropdownMenuItem("💪 Ejercicios", id="nav-exercises-btn", n_clicks=0, href=get_full_href("/exercises")),
             dbc.DropdownMenuItem("Planificación Táctica", id="nav-tactical-planning-btn", n_clicks=0, href=get_full_href("/tactical-planning")),
             dbc.DropdownMenuItem("🍽️ Planes de Comida", id="nav-meal-plans-btn", n_clicks=0, href=get_full_href("/meal-plans"))
         ])
@@ -3318,6 +2862,137 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search=""):
         ]),
         user_menu
     ], style=STYLES['navbar'])
+
+
+def render_exercise_alerts(alerts):
+    if not alerts:
+        return html.P("Sin alertas registradas por ECG/IMU.", style={'color': COLORS['muted']})
+
+    cards = []
+    for alert in alerts[:10]:
+        severity = alert.get('severity', 'warning')
+        border_color = '#ef4444' if severity == 'critical' else '#f59e0b'
+        cards.append(
+            html.Div([
+                html.P(alert.get('message', 'Alerta sin detalle'), style={'color': '#ffffff', 'marginBottom': '6px'}),
+                html.P(
+                    f"{alert.get('timestamp', '')} | {alert.get('exercise_name', 'Ejercicio')} | {alert.get('sensor_source', 'sensor')}",
+                    style={'color': COLORS['muted'], 'fontSize': '0.85em', 'marginBottom': 0}
+                )
+            ], style={
+                'backgroundColor': '#111111',
+                'border': f'1px solid {border_color}',
+                'borderRadius': '8px',
+                'padding': '10px',
+                'marginBottom': '10px'
+            })
+        )
+    return cards
+
+
+def get_exercises_layout(username, full_name, current_search=""):
+    patient_data = db.get_complete_user_data(username) or {}
+    profile_data = patient_data.get('profile', {})
+    health_status = profile_data.get('health_status', 'listo')
+    injury_types = profile_data.get('injury_types', [])
+
+    exercises = get_recommended_exercises(health_status, injury_types)
+    if not exercises:
+        exercises = HEALTHY_FIGHTER_EXERCISES if health_status == 'listo' else KNEE_EXERCISES
+
+    exercise_title = ExerciseService.get_exercise_title(health_status, injury_types)
+    exercise_fig = create_exercise_plot(patient_data.get('exercises', []))
+    exercise_alerts = patient_data.get('exercise_alerts', [])
+
+    exercise_grid = html.Div([
+        html.Div([
+            html.Span("💪 ", style={'fontSize': '1.2em'}),
+            exercise_title
+        ], style=STYLES['card_header_tactical']),
+        html.Div([
+            html.Div([
+                html.Img(
+                    src=ex['images'][0],
+                    style={
+                        'width': '100%', 'height': '150px', 'objectFit': 'cover',
+                        'borderRadius': '4px', 'marginBottom': '10px', 'filter': 'brightness(0.8)'
+                    },
+                    id={'type': 'exercise-image', 'index': ex['id']}
+                ),
+                html.H6(ex['title'].upper(), style={'color': 'white', 'fontWeight': 'bold'}),
+                html.P(f"DIFICULTAD: {ex['difficulty'].upper()}", style={'color': COLORS['muted'], 'fontSize': '0.7em'}),
+                html.Button(
+                    'INICIAR',
+                    id={'type': 'start-exercise-btn', 'index': ex['id']},
+                    n_clicks=0,
+                    style=STYLES['button_primary']
+                )
+            ], style={
+                'background': '#111111',
+                'padding': '15px',
+                'border': '1px solid #222',
+                'borderRadius': '4px',
+                'textAlign': 'center'
+            }) for ex in exercises
+        ], style={
+            'display': 'grid',
+            'gridTemplateColumns': 'repeat(auto-fill, minmax(220px, 1fr))',
+            'gap': '15px'
+        })
+    ], id='exercise-grid', style=STYLES['card'])
+
+    exercise_history_list = html.Div([
+        html.Div([
+            html.Span("📚 ", style={'fontSize': '1.2em'}),
+            "Historial de Ejercicios"
+        ], style=STYLES['card_header_tactical']),
+        html.Div([
+            html.Div([
+                html.P([
+                    html.Strong(ex.get('exercise_name', '').upper()),
+                    html.Br(),
+                    html.Span(
+                        f"⏱️ {ex.get('duration_seconds', 0)} SEG | 🔄 {ex.get('sets', 'N/A')} SERIES | {ex.get('timestamp', '')}",
+                        style={'fontSize': '12px', 'color': COLORS['primary']}
+                    )
+                ], style={
+                    'padding': '10px',
+                    'background': '#111',
+                    'borderRadius': '5px',
+                    'marginBottom': '10px',
+                    'border': '1px solid #222'
+                })
+            ]) for ex in (patient_data.get('exercises', [])[:10])
+        ]) if patient_data.get('exercises') else html.P("SIN REGISTROS", style={'color': '#555'})
+    ], style=STYLES['card'])
+
+    return html.Div([
+        get_user_navbar("🧑‍🦽", full_name, "Ejercicios", current_search),
+        html.Div([
+            dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-exercises", href=f"/{current_search}", color="primary",
+                       style={'marginBottom': '20px'}),
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.Span("🚨 ", style={'fontSize': '1.2em'}),
+                        "Alertas Guardadas por Señales"
+                    ], style=STYLES['card_header_tactical']),
+                    html.Div(id='exercise-alerts-list', children=render_exercise_alerts(exercise_alerts))
+                ], style=STYLES['card']),
+                html.Div([
+                    html.Div([
+                        html.Span("📊 ", style={'fontSize': '1.2em'}),
+                        "Progreso de Ejecución"
+                    ], style=STYLES['card_header_tactical']),
+                    dcc.Graph(id="exercise-history-graph", figure=exercise_fig),
+                ], style=STYLES['card']),
+                exercise_history_list,
+            ], style={'flex': 1, 'minWidth': '320px'}),
+            html.Div([
+                exercise_grid,
+            ], style={'flex': 1, 'minWidth': '320px'})
+        ], style={'display': 'flex', 'gap': '20px', 'padding': '24px', 'flexWrap': 'wrap'})
+    ], style=STYLES['main_container'])
 
 # --- DASHBOARDS ---
 
@@ -4273,41 +3948,14 @@ def build_appointments_table(username, role, filter_type='all'):
             appointments = db.get_patient_appointments(username)
         else:
             appointments = []
-        
-        # Filtrar según el tipo
-        now = datetime.now()
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-        
-        if filter_type == 'today':
-            # Citas de hoy
-            appointments = [
-                app for app in appointments
-                if today_start <= datetime.fromisoformat(app['datetime']) <= today_end
-            ]
-        elif filter_type == 'past':
-            # Citas anteriores (pasado)
-            appointments = [
-                app for app in appointments
-                if datetime.fromisoformat(app['datetime']) < today_start
-            ]
-        # Si es 'all', no filtramos, mostramos todas
-            
-        # Ordenar de más reciente a más antiguo
-        appointments.sort(key=lambda x: x['datetime'], reverse=True)
+        appointments = AppointmentService.filter_appointments_by_type(appointments, filter_type)
         
         if not appointments:
             return html.P("📭 No hay citas programadas.", 
                           style={'textAlign': 'center', 'color': COLORS['muted'], 'padding': '40px'})
         
         # Diccionario para mapear estados a texto y colores visibles
-        STATUS_MAP = {
-            'scheduled': {'text': 'Pendiente', 'color': 'warning'},
-            'confirmed': {'text': 'Confirmada', 'color': 'success'},
-            'cancelled': {'text': 'Cancelada', 'color': 'danger'},
-            'attended': {'text': 'Atendida', 'color': 'primary'},
-            'default': {'text': 'Desconocido', 'color': 'muted'}
-        }
+        STATUS_MAP = AppointmentService.STATUS_MAP
         
         table_rows = []
         for app in appointments:
@@ -4930,15 +4578,8 @@ def display_questionnaire(selected_questionnaire, username):
     if not username:
         return html.P("❌ No se pudo identificar al paciente actual. Recarga la sesión.", style={'color': 'red'})
 
-    today_str = date.today().isoformat()
-    
-    # 2. Verificar si ya existe una entrada para hoy de este cuestionario específico
     user_history = _QUESTIONNAIRE_HISTORY_DB.get(username, [])
-    ya_realizado = any(
-        q.get('questionnaire_id') == selected_questionnaire and 
-        q.get('timestamp', '').startswith(today_str) 
-        for q in user_history
-    )
+    ya_realizado = not QuestionnaireService.can_submit_today(user_history, selected_questionnaire)
 
     # 3. Si ya lo hizo, mostramos un mensaje de bloqueo en lugar de las preguntas
     if ya_realizado:
@@ -4958,39 +4599,7 @@ def display_questionnaire(selected_questionnaire, username):
     if not questionnaire:
         return html.P("Cuestionario no encontrado.", style={'color': 'red'})
     
-    questions_content = []
-    for i, question in enumerate(questionnaire['questions']):
-        question_html = html.Div([
-            html.H6(f"{i+1}. {question['question']}", style={'marginBottom': '10px', 'fontWeight': 'bold', 'color': '#ffffff'}),
-        ])
-        
-        component_id = {'type': 'questionnaire-input', 'questionnaire': questionnaire['id'], 'index': question['id']}
-
-        if question['type'] == 'slider':
-            question_html.children.append(
-                dcc.Slider(
-                    id=component_id,
-                    min=question['min'],
-                    max=question['max'],
-                    step=question.get('step', 1),
-                    value=question.get('min', 0),
-                    marks=question.get('marks', {i: str(i) for i in range(question['min'], question['max']+1, max(1, (question['max']-question['min'])//5))}),
-                    tooltip={"placement": "bottom", "always_visible": True}
-                )
-            )
-        elif question['type'] == 'radio':
-            question_html.children.append(
-                dcc.RadioItems(
-                    id=component_id,
-                    options=question['options'],
-                    value=question['options'][0]['value'] if question['options'] else None,
-                    style={'marginBottom': '15px'},
-                    labelStyle={'display': 'block', 'marginBottom': '10px', 'color': '#ffffff', 'fontWeight': '500'}
-                )
-            )
-            
-        questions_content.append(question_html)
-        questions_content.append(html.Hr())
+    questions_content = QuestionnaireService.build_questionnaire_component(questionnaire)
     
     questions_content.append(
         html.Button(
@@ -5044,62 +4653,35 @@ def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, input
     if not username:
         return html.Div("❌ Error de sesión: paciente no identificado.", style={'color': 'red'}), dash.no_update
 
-    # --- NUEVA LÓGICA DE CONTROL: Un cuestionario de cada tipo al día ---
     try:
-        # Obtenemos el historial del paciente
         user_history = _QUESTIONNAIRE_HISTORY_DB.get(username, [])
-        today_str = datetime.now().strftime('%Y-%m-%d') # Obtenemos la fecha de hoy "YYYY-MM-DD"
-
-        # Buscamos si ya existe un registro para este ID hoy
-        ya_realizado_hoy = any(
-            q.get('questionnaire_id') == questionnaire_id and 
-            q.get('timestamp', '').startswith(today_str) 
-            for q in user_history
-        )
-
-        if ya_realizado_hoy:
+        if not QuestionnaireService.can_submit_today(user_history, questionnaire_id):
             return html.Div(
-                "⚠️ Ya has completado este cuestionario hoy. Solo se permite uno al día por tipo.", 
+                "⚠️ Ya has completado este cuestionario hoy. Solo se permite uno al día por tipo.",
                 style={'color': 'orange', 'fontWeight': 'bold', 'padding': '10px', 'border': '1px solid orange', 'borderRadius': '5px'}
             ), dash.no_update
     except Exception as e:
         print(f"Error en la validación de fecha: {e}")
-    # --- FIN DE LA LÓGICA DE CONTROL ---
 
     try:
-        responses = {}
         questionnaire = QUESTIONNAIRES.get(questionnaire_id)
+        if not questionnaire:
+            return html.Div("❌ Cuestionario no encontrado.", style={'color': 'red'}), dash.no_update
 
-        values_by_qid = {}
-        if input_ids and input_values:
-            for comp_id, comp_value in zip(input_ids, input_values):
-                if not isinstance(comp_id, dict):
-                    continue
-                qid = comp_id.get('questionnaire')
-                qindex = comp_id.get('index')
-                if qid and qindex:
-                    if qid not in values_by_qid:
-                        values_by_qid[qid] = {}
-                    values_by_qid[qid][qindex] = comp_value
+        ok, responses, missing = QuestionnaireService.extract_questionnaire_responses(
+            questionnaire,
+            questionnaire_id,
+            input_ids,
+            input_values,
+        )
+        if not ok:
+            return html.Div(f"⚠️ Error: Faltan {len(missing)} respuestas.", style={'color': 'orange'}), dash.no_update
 
-        values_map = values_by_qid.get(questionnaire_id, {})
-
-        if questionnaire:
-            question_ids = [q['id'] for q in questionnaire['questions']]
-
-            missing = [q_id for q_id in question_ids if values_map.get(q_id) is None]
-            if missing:
-                return html.Div(f"⚠️ Error: Faltan {len(missing)} respuestas.", style={'color': 'orange'}), dash.no_update
-
-            for q_id in question_ids:
-                responses[q_id] = values_map.get(q_id)
-
-        questionnaire_data = {
-            'questionnaire_id': questionnaire_id,
-            'responses': responses,
-            'timestamp': datetime.now().isoformat(),
-            'questionnaire_title': questionnaire['title']
-        }
+        questionnaire_data = QuestionnaireService.build_submission_payload(
+            questionnaire_id,
+            questionnaire['title'],
+            responses,
+        )
         
         db.save_specialized_questionnaire(username, questionnaire_data)
         
@@ -5136,7 +4718,7 @@ def start_exercise(start_clicks, image_clicks, exercises):
 
     exercise_pool = exercises if isinstance(exercises, list) and exercises else get_known_exercises_catalog()
     
-    exercise = next((ex for ex in exercise_pool if ex.get('id') == exercise_id), None)
+    exercise = ExerciseService.resolve_exercise(exercise_pool, exercise_id)
     if not exercise:
         return False, html.Div(), None, None, True 
     
@@ -5221,14 +4803,12 @@ def finish_exercise_and_show_survey(n_clicks, exercise_id, start_time, exercises
     if not n_clicks or n_clicks == 0:
         return dash.no_update, False, html.Div(), dash.no_update, dash.no_update
     
-    end_time = datetime.now()
-    start_time_obj = datetime.fromisoformat(start_time) if start_time else end_time
-    duration_seconds = int((end_time - start_time_obj).total_seconds())
+    end_time, duration_seconds = ExerciseService.compute_duration_seconds(start_time)
     duration_label = f"{duration_seconds // 60:02d}:{duration_seconds % 60:02d}"
 
     exercise_pool = exercises if isinstance(exercises, list) and exercises else get_known_exercises_catalog()
     
-    exercise = next((ex for ex in exercise_pool if ex.get('id') == exercise_id), None) if exercise_id else None
+    exercise = ExerciseService.resolve_exercise(exercise_pool, exercise_id) if exercise_id else None
     
     survey_content = html.Div([
         html.H4("📊 Datos del Ejercicio Completado", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
@@ -5398,47 +4978,27 @@ def schedule_appointment(n_clicks, patient_username, date, time, hospital, offic
     if not n_clicks or n_clicks == 0:
         return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
     
-    # --- 1. Validación de campos obligatorios (todos excepto 'Comentarios') ---
-    if not patient_username or not date or not time or not hospital or not office:
-        feedback = html.Div("⚠️ Faltan campos obligatorios para crear la cita (excepto Comentarios).", style={'color': 'red'})
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, feedback, reload_trigger, dash.no_update
-
-    if not user_data or user_data.get('role') != 'medico' or not user_data.get('username'):
-        feedback = html.Div("❌ Sesión inválida para agendar cita. Vuelve a iniciar sesión.", style={'color': 'red'})
+    ok, msg, appointment_datetime = AppointmentService.validate_new_appointment(
+        patient_username,
+        date,
+        time,
+        hospital,
+        office,
+        user_data,
+    )
+    if not ok:
+        feedback = html.Div(msg, style={'color': 'red'})
         return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, feedback, reload_trigger, dash.no_update
 
     try:
-        # Combinar fecha y hora para la validación de tiempo
-        appointment_datetime_str = f"{date} {time}"
-        
-        # Intentar parsear la fecha y hora
-        try:
-            appointment_dt = datetime.strptime(appointment_datetime_str, "%Y-%m-%d %H:%M")
-        except ValueError:
-             feedback = html.Div("❌ Error: Formato de fecha/hora inválido.", style={'color': 'red'})
-             return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, feedback, reload_trigger, dash.no_update
-        
-        # --- 2. Validación de tiempo (debe ser futuro) ---
-        now = datetime.now()
-        if appointment_dt <= now:
-            feedback = html.Div("❌ Error: No se puede crear una cita para un día u hora anterior a la actual.", style={'color': 'red'})
-            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, feedback, reload_trigger, dash.no_update
-            
-        # Si la validación pasa, convertir a formato ISO para guardar
-        appointment_datetime = appointment_dt.isoformat()
-        
-        appointment_data = {
-            'patient_username': patient_username,
-            'professional_username': user_data['username'],
-            'professional_name': user_data['full_name'],
-            'professional_role': user_data['role'],
-            'datetime': appointment_datetime,
-            'hospital': hospital,
-            'office': office,
-            'comments': comments or '',
-            'status': 'scheduled', # Estado inicial: Pendiente de confirmación del paciente
-            'created_at': datetime.now().isoformat()
-        }
+        appointment_data = AppointmentService.build_appointment_payload(
+            patient_username,
+            user_data,
+            appointment_datetime,
+            hospital,
+            office,
+            comments,
+        )
 
         db.schedule_appointment(appointment_data)
         
@@ -5478,17 +5038,9 @@ def handle_patient_appointment_actions(confirm_clicks, cancel_clicks, reload_tri
     action_type = trigger_id['type']
 
     try:
-        new_status = None
-        feedback_msg = ""
-        
-        if 'confirm-appt-patient-btn' in action_type:
-            new_status = 'confirmed'
-            feedback_msg = f"✅ Cita {appointment_id} confirmada con éxito. ¡Aparecerá en Próximas Citas!"
-            
-        elif 'cancel-appt-patient-btn' in action_type:
-            # Si el paciente cancela, el estado final es 'cancelled'
-            new_status = 'cancelled'
-            feedback_msg = f"❌ Cita {appointment_id} cancelada. Historial actualizado."
+        new_status, feedback_msg = AppointmentService.resolve_patient_action(action_type)
+        if not new_status:
+            return dash.no_update, dash.no_update
             
         
         db.update_appointment(appointment_id, {'status': new_status, 'patient_notes': 'Acción del paciente: Cambio de estado.'})
@@ -5874,25 +5426,18 @@ def generate_meal_plan_draft(
             except Exception:
                 fight_context = None
 
-    generated = generate_personalized_meal_plan(
-        name=name,
-        generation_logic=generation_logic,
-        current_weight=current_weight,
-        target_weight=target_weight,
-        duration_days=duration,
-        selected_weight_change=weight_change,
-        dietary_constraints=dietary_constraints,
-        food_preferences=food_preferences,
-        meals_per_day=meals_per_day,
-        fight_context=fight_context,
+    generated, review, generated_meta = MealPlanService.build_draft(
+        name,
+        generation_logic,
+        current_weight,
+        target_weight,
+        duration,
+        weight_change,
+        dietary_constraints,
+        food_preferences,
+        meals_per_day,
+        fight_context,
     )
-
-    review = validate_meal_plan_advanced({
-        'duration': generated.get('duration'),
-        'target_weight': generated.get('target_weight'),
-        'current_weight': current_weight,
-        'generation_logic': generated.get('generation_logic')
-    })
 
     feedback_children = [
         html.P("✅ Borrador generado automáticamente", style={'color': '#00ff88', 'marginBottom': '6px'})
@@ -5903,14 +5448,6 @@ def generate_meal_plan_draft(
                 html.Li(w, style={'color': '#ffd166'}) for w in review.get('warnings', [])
             ], style={'marginBottom': 0})
         )
-
-    generated_meta = {
-        'generation_logic': generated.get('generation_logic'),
-        'generated_macros': generated.get('generated_macros', {}),
-        'dietary_constraints': dietary_constraints or '',
-        'food_preferences': food_preferences or '',
-        'meals_per_day': meals_per_day,
-    }
 
     return generated.get('description', ''), generated.get('notes', ''), html.Div(feedback_children), generated_meta
 
@@ -5946,44 +5483,24 @@ def save_meal_plan(
     if not name or not name.strip():
         return html.Div("⚠️ Debes ingresar un nombre para el plan", style={'color': 'orange'})
     
-    try:
-        target_weight_val = float(target_weight) if target_weight not in [None, ''] else None
-    except (TypeError, ValueError):
-        target_weight_val = None
-    
-    try:
-        duration_val = int(duration) if duration and duration > 0 else 30
-    except (TypeError, ValueError):
-        duration_val = 30
-    
     profile = _USER_DB.get(username, {}).get('profile', {})
     current_weight = profile.get('current_weight')
 
-    selected_logic = generation_logic or 'template'
-    macros_data = {}
-    if isinstance(generated_meta, dict):
-        selected_logic = generated_meta.get('generation_logic') or selected_logic
-        if isinstance(generated_meta.get('generated_macros'), dict):
-            macros_data = generated_meta.get('generated_macros')
-
-    meal_plan = {
-        'name': name.strip(),
-        'weight_change': weight_change or 'none',
-        'target_weight': target_weight_val,
-        'duration': duration_val,
-        'status': status or 'active',
-        'generation_logic': selected_logic,
-        'generated_macros': macros_data,
-        'dietary_constraints': dietary_constraints or '',
-        'food_preferences': food_preferences or '',
-        'meals_per_day': meals_per_day if meals_per_day else 5,
-        'current_weight': current_weight,
-        'description': description or '',
-        'notes': notes or '',
-        'created_date': datetime.now().isoformat()
-    }
-
-    review = validate_meal_plan_advanced(meal_plan)
+    meal_plan, review = MealPlanService.build_plan_for_save(
+        name,
+        generation_logic,
+        weight_change,
+        target_weight,
+        duration,
+        status,
+        dietary_constraints,
+        food_preferences,
+        meals_per_day,
+        description,
+        notes,
+        generated_meta,
+        current_weight,
+    )
     
     user_record = _USER_DB[username]
     meal_plans = user_record.get('meal_plans', [])
@@ -6040,11 +5557,9 @@ def delete_meal_plan(n_clicks_list, username):
         
         user_record = _USER_DB[username]
         meal_plans = user_record.get('meal_plans', [])
-        
-        if 0 <= idx < len(meal_plans):
-            meal_plans.pop(idx)
-            user_record['meal_plans'] = meal_plans
-            db.save_data()
+        updated_meal_plans = MealPlanService.delete_plan_by_index(meal_plans, idx)
+        user_record['meal_plans'] = updated_meal_plans
+        db.save_data()
     except Exception as e:
         print(f"Error deleting meal plan: {e}")
         return dash.no_update
@@ -6315,33 +5830,14 @@ def get_recommended_exercises(health_status, injury_types=None):
     Retorna ejercicios según el estado de salud y lesiones.
     injury_types puede ser una lista de lesiones o None
     """
-    if health_status == 'listo':
-        return HEALTHY_FIGHTER_EXERCISES
-    elif health_status == 'lesionado' and injury_types:
-        # Si es una lista, combinar ejercicios de todas las lesiones
-        if not isinstance(injury_types, list):
-            injury_types = [injury_types]
-        
-        combined_exercises = []
-        seen_ids = set()
-        
-        for injury_type in injury_types:
-            exercises = []
-            if injury_type == 'rodilla':
-                exercises = KNEE_EXERCISES
-            elif injury_type == 'codo':
-                exercises = ELBOW_EXERCISES
-            elif injury_type == 'hombro':
-                exercises = SHOULDER_EXERCISES
-            
-            # Evitar duplicados
-            for ex in exercises:
-                if ex['id'] not in seen_ids:
-                    combined_exercises.append(ex)
-                    seen_ids.add(ex['id'])
-        
-        return combined_exercises
-    return []
+    return ExerciseService.get_recommended_exercises(
+        health_status,
+        injury_types,
+        HEALTHY_FIGHTER_EXERCISES,
+        KNEE_EXERCISES,
+        ELBOW_EXERCISES,
+        SHOULDER_EXERCISES,
+    )
 
 # Callback para mostrar/ocultar el desplegable de tipo de lesión
 @app.callback(
@@ -7208,20 +6704,8 @@ def update_exercises_on_injury_change(add_clicks, remove_clicks, patient_usernam
         
         if not exercises:
             exercises = HEALTHY_FIGHTER_EXERCISES if health_status == 'listo' else KNEE_EXERCISES
-        
-        # Determinar el título del ejercicio
-        if health_status == 'lesionado' and injury_types:
-            injury_names = []
-            for injury in injury_types:
-                if injury == 'rodilla':
-                    injury_names.append('Rodilla')
-                elif injury == 'codo':
-                    injury_names.append('Codo')
-                elif injury == 'hombro':
-                    injury_names.append('Hombro')
-            exercise_title = f"Ejercicios de {' y '.join(injury_names)}"
-        else:
-            exercise_title = 'Ejercicios para Luchador Sano'
+
+        exercise_title = ExerciseService.get_exercise_title(health_status, injury_types)
         
         # Crear el grid actualizado
         exercise_grid = html.Div([
