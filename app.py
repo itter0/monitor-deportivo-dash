@@ -3072,20 +3072,32 @@ def get_login_layout():
 
 
 def get_register_layout():
-    role_title = 'REGISTRO DE LUCHADOR'
-    role_subtitle = 'Crea tu perfil operativo y deja listo el acceso'
-    button_label = 'Registrar luchador'
+    role_title = 'REGISTRO DE USUARIO'
+    role_subtitle = 'Elige tu rol y completa tu perfil'
+    button_label = 'Completar registro'
     medical_style = {'display': 'block'}
 
     return html.Div([
-        dcc.Store(id='register-role-store', data='paciente'),
+        dcc.Store(id='register-role-store', data=None),
         html.Div([
             html.Div([
-                html.Span(role_title, style={'color': 'white', 'fontSize': '30px', 'fontWeight': '900', 'letterSpacing': '3px', 'textAlign': 'center', 'display': 'block'}),
-                html.P(role_subtitle, style={'textAlign': 'center', 'color': COLORS['text_muted'], 'fontSize': '13px', 'letterSpacing': '1px', 'marginTop': '10px', 'marginBottom': '0'})
+                html.Span(role_title, id='register-role-title', style={'color': 'white', 'fontSize': '30px', 'fontWeight': '900', 'letterSpacing': '3px', 'textAlign': 'center', 'display': 'block'}),
+                html.P(role_subtitle, id='register-role-subtitle', style={'textAlign': 'center', 'color': COLORS['text_muted'], 'fontSize': '13px', 'letterSpacing': '1px', 'marginTop': '10px', 'marginBottom': '0'})
             ], style={'marginBottom': '28px'}),
 
             html.Div([
+                html.Label("Tipo de Registro *", style=AUTH_TEXT_STYLE),
+                dcc.Dropdown(
+                    id='register-role-selector',
+                    options=[
+                        {'label': 'Luchador', 'value': 'paciente'},
+                        {'label': 'Médico', 'value': 'medico'}
+                    ],
+                    placeholder='Selecciona el tipo de cuenta',
+                    className='octagon-dropdown',
+                    style=AUTH_DROPDOWN_STYLE
+                ),
+
                 html.Label("Nombre Completo *", style=AUTH_TEXT_STYLE),
                 dcc.Input(id='register-fullname', type='text', placeholder='Ingresa tu nombre completo', style=AUTH_INPUT_STYLE),
 
@@ -3826,14 +3838,14 @@ def get_user_data_layout(username, full_name, role, current_search=""):
                         html.H4("📋 INFORMACIÓN PERSONAL", style=STYLES['card_header_tactical']),
                         dbc.Row([
                             dbc.Col([
-                                html.P([html.Strong("👤 NOMBRE: "), user_data.get('basic_info', {}).get('full_name', full_name)]),
-                                html.P([html.Strong("🎭 ROL: "), role.upper()]),
-                                html.P([html.Strong("📧 EMAIL: "), user_data.get('profile', {}).get('email', 'N/A')]),
+                                html.P([html.Strong("NOMBRE: "), user_data.get('basic_info', {}).get('full_name', full_name)]),
+                                html.P([html.Strong("ROL: "), role.upper()]),
+                                html.P([html.Strong("EMAIL: "), user_data.get('profile', {}).get('email', 'N/A')]),
                             ], width=6),
                             dbc.Col([
-                                html.P([html.Strong("🆔 DNI: "), user_data.get('profile', {}).get('dni', 'N/A')]),
-                                html.P([html.Strong("🎂 NACIMIENTO: "), user_data.get('profile', {}).get('birth_date', 'N/A')]),
-                                html.P([html.Strong("📅 MIEMBRO DESDE: "), user_data.get('basic_info', {}).get('member_since', 'N/A')]),
+                                html.P([html.Strong("DNI: "), user_data.get('profile', {}).get('dni', 'N/A')]),
+                                html.P([html.Strong("NACIMIENTO: "), user_data.get('profile', {}).get('birth_date', 'N/A')]),
+                                html.P([html.Strong("MIEMBRO DESDE: "), user_data.get('basic_info', {}).get('member_since', 'N/A')]),
                             ], width=6)
                         ])
                     ], style=STYLES['card']),
@@ -3843,14 +3855,14 @@ def get_user_data_layout(username, full_name, role, current_search=""):
                         html.H4("🏥 INFORMACIÓN MÉDICA", style=STYLES['card_header_tactical']),
                         dbc.Row([
                             dbc.Col([
-                                html.P([html.Strong("📝 DIAGNÓSTICO: "), user_data.get('patient_info', {}).get('diagnosis', 'N/A')]),
-                                html.P([html.Strong("👨‍⚕️ MÉDICO: "), user_data.get('patient_info', {}).get('doctor_user', 'N/A')]),
-                                html.P([html.Strong("💪 ESTADO SALUD: "), 
+                                html.P([html.Strong("DIAGNÓSTICO: "), user_data.get('patient_info', {}).get('diagnosis', 'N/A')]),
+                                html.P([html.Strong("MÉDICO: "), user_data.get('patient_info', {}).get('doctor_user', 'N/A')]),
+                                html.P([html.Strong("ESTADO SALUD: "), 
                                     ('SANO - Listo para entrenar' if user_data.get('profile', {}).get('health_status') == 'listo' else 'LESIONADO')]),
                             ], width=6),
                             dbc.Col([
-                                html.P([html.Strong("🩸 TIPO SANGRE: "), user_data.get('profile', {}).get('blood_type', 'N/A')]),
-                                html.P([html.Strong("👤 LESIONES: "), 
+                                html.P([html.Strong("TIPO SANGRE: "), user_data.get('profile', {}).get('blood_type', 'N/A')]),
+                                html.P([html.Strong("LESIONES: "), 
                                     (', '.join([l.capitalize() for l in user_data.get('profile', {}).get('injury_types', [])]) if user_data.get('profile', {}).get('injury_types') else 'NINGUNA')]),
                             ], width=6)
                         ])
@@ -4801,6 +4813,38 @@ def handle_registration_visibility(role):
         return hidden
 
 @app.callback(
+    Output('register-role-store', 'data'),
+    Input('register-role-selector', 'value')
+)
+def sync_register_role(selected_role):
+    return selected_role
+
+@app.callback(
+    [Output('register-role-title', 'children'),
+     Output('register-role-subtitle', 'children'),
+     Output('register-button', 'children')],
+    Input('register-role-store', 'data')
+)
+def update_register_role_copy(role):
+    if role == 'medico':
+        return (
+            'REGISTRO DE MÉDICO',
+            'Crea tu cuenta profesional y habilita el panel médico',
+            'Registrar médico'
+        )
+    if role == 'paciente':
+        return (
+            'REGISTRO DE LUCHADOR',
+            'Completa tus datos deportivos y de salud para competir',
+            'Registrar luchador'
+        )
+    return (
+        'REGISTRO DE USUARIO',
+        'Elige si deseas registrarte como luchador o como médico',
+        'Completar registro'
+    )
+
+@app.callback(
     Output('selected-questionnaire-content', 'children'),
     Input('questionnaire-select', 'value'),
     State('current-patient-username', 'data')
@@ -5421,22 +5465,22 @@ def open_edit_profile_modal(n_clicks, user_session, is_open):
     # Define el formulario para médico o paciente (el layout es el mismo, solo varía la sección médica)
     form_content = html.Div([
         # --- Información Personal ---
-        html.H4("📋 Información Personal", style={'color': COLORS['primary'], 'marginBottom': '16px'}),
+        html.H4("Información Personal", style={'color': COLORS['primary'], 'marginBottom': '16px'}),
         
-        html.Label("👤 Nombre Completo"),
+        html.Label("Nombre Completo"),
         # CORRECCIÓN: Asegurar que el nombre completo sea el del basic_info (que se guarda correctamente)
         dcc.Input(id='edit-fullname', type='text', value=user_data['basic_info']['full_name'], style={'width': '100%', 'marginBottom': '10px'}),
         
-        html.Label("📧 Email *"),
+        html.Label("Email *"),
         dcc.Input(id='edit-email', type='email', value=profile.get('email', ''), required=True, style={'width': '100%', 'marginBottom': '10px'}),
         
-        html.Label("📞 Teléfono *"),
+        html.Label("Teléfono *"),
         dcc.Input(id='edit-phone', type='tel', value=profile.get('phone', ''), required=True, style={'width': '100%', 'marginBottom': '10px'}),
         
-        html.Label("🏠 Dirección"),
+        html.Label("Dirección"),
         dcc.Input(id='edit-address', type='text', value=profile.get('address', ''), style={'width': '100%', 'marginBottom': '10px'}),
         
-        html.Label("🆔 DNI/NIE *"),
+        html.Label("DNI/NIE *"),
         dcc.Input(id='edit-dni', type='text', value=profile.get('dni', ''), required=True, style={'width': '100%', 'marginBottom': '10px'}),
         
         html.Label("🎂 Fecha de Nacimiento *"),
@@ -5505,12 +5549,12 @@ def open_edit_profile_modal(n_clicks, user_session, is_open):
         ]) if role == 'paciente' else None,
         
         # --- Contacto de Emergencia ---
-        html.H4("🚨 Contacto de Emergencia", style={'color': COLORS['primary'], 'marginBottom': '16px', 'marginTop': '20px'}),
+        html.H4("Contacto de Emergencia", style={'color': COLORS['primary'], 'marginBottom': '16px', 'marginTop': '20px'}),
         
-        html.Label("👤 Nombre del Contacto *"),
+        html.Label("Nombre del Contacto *"),
         dcc.Input(id='edit-emergency-contact', type='text', value=profile.get('emergency_contact', ''), required=True, style={'width': '100%', 'marginBottom': '10px'}),
         
-        html.Label("📞 Teléfono del Contacto *"),
+        html.Label("Teléfono del Contacto *"),
         dcc.Input(id='edit-emergency-phone', type='tel', value=profile.get('emergency_phone', ''), required=True, style={'width': '100%', 'marginBottom': '10px'}),
 
         dcc.Store(id='profile-user-role', data=role) # Usar dcc.Store para el rol
@@ -6269,7 +6313,8 @@ def register_user_complete(n_clicks, username, password, role, fullname, email, 
     if n_clicks is None or n_clicks == 0:
         return html.Div("⚠️ Haz clic en el botón para registrar", style={'color':'orange'})
 
-    role = role if role in ['medico', 'paciente'] else 'paciente'
+    if role not in ['medico', 'paciente']:
+        return html.Div("⚠️ Debes seleccionar si te registras como luchador o como médico.", style={'color': 'red'})
     
     # Validar campos obligatorios con mensajes específicos
     field_names = {
@@ -6309,6 +6354,12 @@ def register_user_complete(n_clicks, username, password, role, fullname, email, 
             missing_fields.append('Categoría de Peso MMA')
         if not specialty:
             missing_fields.append('Especialidad')
+        if not health_status:
+            missing_fields.append('Estado de Salud Actual')
+        if not blood_type:
+            missing_fields.append('Tipo de Sangre')
+        if health_status == 'lesionado' and not injury_type:
+            missing_fields.append('Tipo de Lesión')
     
     if missing_fields:
         missing_text = ', '.join(missing_fields)
@@ -6505,14 +6556,14 @@ def display_selected_patient_data(patient_username):
             html.H4("📋 Información Personal", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
             dbc.Row([
                 dbc.Col([
-                    html.P([html.Strong("👤 Nombre: ", style={'color': '#ffffff'}), html.Span(user_data.get('basic_info', {}).get('full_name', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
-                    html.P([html.Strong("📧 Email: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('email', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
-                    html.P([html.Strong("📞 Teléfono: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('phone', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Nombre: ", style={'color': '#ffffff'}), html.Span(user_data.get('basic_info', {}).get('full_name', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Email: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('email', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Teléfono: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('phone', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 ], width=6),
                 dbc.Col([
-                    html.P([html.Strong("🆔 DNI: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('dni', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
-                    html.P([html.Strong("🎂 Fecha Nacimiento: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('birth_date', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
-                    html.P([html.Strong("🏠 Dirección: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('address', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("DNI: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('dni', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Fecha Nacimiento: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('birth_date', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Dirección: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('address', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 ], width=6)
             ])
         ], style=STYLES['card'])
@@ -6521,14 +6572,14 @@ def display_selected_patient_data(patient_username):
             html.H4("🏥 Información Médica", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
             dbc.Row([
                 dbc.Col([
-                    html.P([html.Strong("📝 Diagnóstico: ", style={'color': '#ffffff'}), html.Span(user_data.get('patient_info', {}).get('diagnosis', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
-                    html.P([html.Strong("👨‍⚕️ Médico: ", style={'color': '#ffffff'}), html.Span(user_data.get('patient_info', {}).get('doctor_user', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
-                    html.P([html.Strong("🩸 Tipo Sangre: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('blood_type', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Diagnóstico: ", style={'color': '#ffffff'}), html.Span(user_data.get('patient_info', {}).get('diagnosis', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Médico: ", style={'color': '#ffffff'}), html.Span(user_data.get('patient_info', {}).get('doctor_user', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Tipo Sangre: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('blood_type', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 ], width=6),
                 dbc.Col([
-                    html.P([html.Strong("⚠️ Alergias: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('allergies', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
-                    html.P([html.Strong("💊 Medicamentos: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('current_medications', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
-                    html.P([html.Strong("📋 Condiciones: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('medical_conditions', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Alergias: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('allergies', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Medicamentos: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('current_medications', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
+                    html.P([html.Strong("Condiciones: ", style={'color': '#ffffff'}), html.Span(user_data.get('profile', {}).get('medical_conditions', 'N/A'), style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 ], width=6)
             ])
         ], style=STYLES['card'])
@@ -7151,7 +7202,7 @@ if __name__ == '__main__':
     is_render = os.environ.get("RENDER") == "true" or bool(os.environ.get("RENDER_SERVICE_ID"))
     host = "0.0.0.0" if is_render else "127.0.0.1"
     if not QUIET_CONSOLE:
-        print(f"🚀 Servidor RehabiDesk levantando en http://{host}:{port}")
+        print(f"Servidor RehabiDesk levantando en http://{host}:{port}")
     
     # 2. Ejecución del servidor
     # debug=True + use_reloader=False es la combinación más estable para hilos secundarios
