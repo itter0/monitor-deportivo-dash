@@ -53,6 +53,7 @@ from meal_plan_system import (
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ECG_REAL_FILE = os.path.join(BASE_DIR, "data", "raw_datasets", "ecg_real.csv")
+IMU_REAL_FILE = os.path.join(BASE_DIR, "data", "imu_real.csv")
 try:
     df_ecg_global = pd.read_csv(ECG_REAL_FILE)
     if "ecg_value" not in df_ecg_global.columns:
@@ -62,6 +63,53 @@ try:
 except Exception as e:
     print(f"⚠️ No se pudo cargar {ECG_REAL_FILE}: {e}")
     df_ecg_global = pd.DataFrame(columns=["timestamp", "ecg_value"])
+
+
+def _prepare_imu_dataframe(filepath):
+    """Carga IMU real y devuelve un DataFrame homogéneo para streaming."""
+    df_imu_raw = pd.read_csv(filepath)
+    if df_imu_raw.empty:
+        raise ValueError("El CSV de IMU está vacío")
+
+    preferred_cols = [
+        "angle(X,gravityMean)",
+        "tBodyAcc-mean()-X",
+        "tBodyGyro-mean()-Y",
+    ]
+    excluded_cols = {"subject", "activity"}
+    selected_col = None
+
+    for col in preferred_cols:
+        if col in df_imu_raw.columns:
+            selected_col = col
+            break
+
+    if selected_col is None:
+        for col in df_imu_raw.columns:
+            if col.lower() in excluded_cols:
+                continue
+            series_num = pd.to_numeric(df_imu_raw[col], errors="coerce")
+            if series_num.notna().sum() > 0:
+                selected_col = col
+                break
+
+    if selected_col is None:
+        raise ValueError("No se encontró ninguna columna numérica de IMU utilizable")
+
+    imu_series = pd.to_numeric(df_imu_raw[selected_col], errors="coerce").fillna(0.0)
+    df_imu = pd.DataFrame({
+        "timestamp": np.arange(len(imu_series)),
+        "imu_value": imu_series,
+    })
+    return df_imu, selected_col
+
+
+try:
+    df_imu_global, imu_source_col = _prepare_imu_dataframe(IMU_REAL_FILE)
+except Exception as e:
+    print(f"⚠️ No se pudo cargar {IMU_REAL_FILE}: {e}")
+    df_imu_global = pd.DataFrame(columns=["timestamp", "imu_value"])
+    imu_source_col = "N/A"
 
 # Archivo de persistencia de la base de datos (CRÍTICO)
 DB_FILE = os.path.join(BASE_DIR, 'rehabidesk_db.json')
@@ -4426,7 +4474,7 @@ app.layout = html.Div([
 # NUEVO CALLBACK: Actualiza el gráfico de ECG en el Visor del Médico
 def get_ecg_window_from_memory(n_intervals, window_size=50):
     if df_ecg_global.empty:
-        return pd.DataFrame(columns=["timestamp", "ecg", "status_ecg", "status_imu"])
+        return pd.DataFrame(columns=["timestamp", "ecg", "imu", "status_ecg", "status_imu"])
 
     total_rows = len(df_ecg_global)
     start_idx = (n_intervals * window_size) % total_rows
@@ -4441,8 +4489,25 @@ def get_ecg_window_from_memory(n_intervals, window_size=50):
 
     window = window.rename(columns={"ecg_value": "ecg"})
     window["ecg"] = pd.to_numeric(window["ecg"], errors="coerce").fillna(0.0)
+    if not df_imu_global.empty:
+        total_imu_rows = len(df_imu_global)
+        imu_start_idx = (n_intervals * window_size) % total_imu_rows
+        imu_end_idx = imu_start_idx + window_size
+
+        if imu_end_idx <= total_imu_rows:
+            imu_window = df_imu_global.iloc[imu_start_idx:imu_end_idx].copy()
+        else:
+            imu_first_part = df_imu_global.iloc[imu_start_idx:].copy()
+            imu_second_part = df_imu_global.iloc[: imu_end_idx % total_imu_rows].copy()
+            imu_window = pd.concat([imu_first_part, imu_second_part], ignore_index=True)
+
+        imu_window["imu_value"] = pd.to_numeric(imu_window["imu_value"], errors="coerce").fillna(0.0)
+        window["imu"] = imu_window["imu_value"].values[:len(window)]
+    else:
+        window["imu"] = 0.0
+
     window["status_ecg"] = np.where(window["ecg"].abs() > 1.5, "RED_FLAG_ARRHYTHMIA", "NORMAL")
-    window["status_imu"] = "NORMAL"
+    window["status_imu"] = np.where(window["imu"].abs() > 0.9, "RED_FLAG_FATIGUE", "NORMAL")
     return window
 
 
@@ -6844,7 +6909,7 @@ def update_sensor_charts(n, is_open):
         
         x_vals = list(range(50))
         y_ecg = df['ecg'].tolist()
-        y_imu = []
+        y_imu = df['imu'].tolist()
         
         # Relleno preventivo para mantener el ancho de la línea constante al inicio
         while len(y_ecg) < 50: y_ecg.insert(0, None)
@@ -6875,21 +6940,32 @@ def update_sensor_charts(n, is_open):
             uirevision='constant'   # Mantiene el estado de la UI entre actualizaciones
         )
 
-        # 3. Gráfica IMU vacía por ahora (sin datos reales IMU)
-        fig_imu = go.Figure()
+        # 3. Gráfica IMU con datos reales
+        has_imu_warning = (df['status_imu'] == 'RED_FLAG_FATIGUE').any()
+        fig_imu = go.Figure(go.Scatter(
+            x=x_vals,
+            y=y_imu,
+            mode='lines',
+            line=dict(color="#f59e0b" if has_imu_warning else "#3b82f6", width=2.5),
+            hoverinfo='none'
+        ))
         fig_imu.update_layout(
             height=250,
             margin=dict(l=60, r=20, t=40, b=40),
             template="plotly_white",
-            title="📐 IMU (sin datos)",
+            title="📐 IMU (Ángulo/Movimiento en Vivo)",
             xaxis=dict(range=[0, 49], fixedrange=True, showgrid=True, gridcolor="#f0f0f0"),
-            yaxis=dict(range=[0, 100], fixedrange=True, gridcolor="#f0f0f0"),
+            yaxis=dict(range=[-1.2, 1.2], fixedrange=True, gridcolor="#f0f0f0"),
             showlegend=False,
             uirevision='constant'
         )
         
         ecg_msg = "⚠️ ARRITMIA DETECTADA" if has_arrhythmia else "✅ Ritmo Normal"
-        imu_msg = "⏸️ IMU sin datos"
+        imu_msg = (
+            f"⚠️ Movimiento/Fatiga anómala ({imu_source_col})"
+            if has_imu_warning
+            else f"✅ IMU real activa ({imu_source_col})"
+        )
         
         return fig_ecg, fig_imu, ecg_msg, imu_msg
         
