@@ -1,5 +1,7 @@
+
 import dash
 from dash import dcc, html, Input, Output, State, callback_context, ALL
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
 import plotly.express as px
@@ -16,6 +18,8 @@ import re
 import subprocess
 import signal
 import base64
+import io
+from scipy.signal import find_peaks
 
 QUIET_CONSOLE = os.environ.get("QUIET_CONSOLE", "true").lower() == "true"
 
@@ -57,6 +61,10 @@ try:
 except Exception as e:
     print(f"⚠️ No se pudo cargar {ECG_REAL_FILE}: {e}")
     df_ecg_global = pd.DataFrame(columns=["timestamp", "ecg_value"])
+
+# Buffer en memoria del servidor para ECG subido por el usuario.
+df_uploaded_ecg_global = pd.DataFrame(columns=["timestamp", "ecg_value"])
+uploaded_ecg_filename = None
 
 
 def _prepare_imu_dataframe(filepath):
@@ -3181,6 +3189,36 @@ def get_patient_dashboard(username, full_name, current_search=""):
                         html.Span("❤️ ", style={'fontSize': '1.2em'}),
                         "Monitorización en Tiempo Real"
                     ], style=STYLES['card_header_tactical']),
+                    dcc.Upload(
+                        id="ecg-upload",
+                        children=html.Div([
+                            html.Span("📤 Subir CSV de ritmo cardíaco"),
+                            html.Span(" (Time/ECG o timestamp/ecg_value)", style={'color': COLORS['muted'], 'fontSize': '0.85em'})
+                        ]),
+                        accept=".csv,text/csv",
+                        multiple=False,
+                        style={
+                            'width': '100%',
+                            'borderWidth': '1px',
+                            'borderStyle': 'dashed',
+                            'borderRadius': '8px',
+                            'padding': '10px 12px',
+                            'marginBottom': '10px',
+                            'textAlign': 'center',
+                            'cursor': 'pointer',
+                            'color': COLORS['text']
+                        }
+                    ),
+                    dbc.Button(
+                        "↩️ Volver a ECG real",
+                        id="reset-ecg-source-btn",
+                        n_clicks=0,
+                        color="secondary",
+                        size="sm",
+                        className="mb-2",
+                        style={"display": "none"}
+                    ),
+                    html.Div(id="ecg-upload-feedback", className="mb-2", style={'color': COLORS['muted'], 'fontWeight': '600', 'fontSize': '0.9em'}),
                     dcc.Graph(id="ecg-graph", config={'displayModeBar': False}),
                     html.Div(id="bpm-output", className="mt-2", style={'color': COLORS['primary'], 'fontWeight': '900', 'fontSize': '1.2em'}),
                     html.Div(id="ecg-data-source-status", className="mt-1", style={'color': COLORS['muted'], 'fontWeight': '600', 'fontSize': '0.95em'}),
@@ -4100,6 +4138,7 @@ app.layout = html.Div([
     dcc.Store(id='doctor-selected-patient-username', data=None),
     dcc.Store(id='profile-user-role', data=None), # ID reclamado en logs
     dcc.Store(id='user-complete-data', data={}),
+    dcc.Store(id='uploaded-ecg-data', data=None),
 
     # --- Intervalos ---
     dcc.Interval(id='exercise-timer-interval', interval=1000, disabled=True),
@@ -4159,23 +4198,271 @@ def get_ecg_window_from_memory(n_intervals, window_size=50):
     return window
 
 
+def get_ecg_window(n_intervals, source_df, window_size=50):
+    """Extrae una ventana circular de datos ECG desde cualquier DataFrame fuente."""
+    if source_df is None or source_df.empty:
+        return pd.DataFrame(columns=["timestamp", "ecg", "imu", "status_ecg", "status_imu"])
+
+    total_rows = len(source_df)
+    start_idx = (n_intervals * window_size) % total_rows
+    end_idx = start_idx + window_size
+
+    if end_idx <= total_rows:
+        window = source_df.iloc[start_idx:end_idx].copy()
+    else:
+        first_part = source_df.iloc[start_idx:].copy()
+        second_part = source_df.iloc[: end_idx % total_rows].copy()
+        window = pd.concat([first_part, second_part], ignore_index=True)
+
+    window = window.rename(columns={"ecg_value": "ecg"})
+    window["ecg"] = pd.to_numeric(window["ecg"], errors="coerce").fillna(0.0)
+
+    # Sin IMU para archivos subidos manualmente.
+    window["imu"] = 0.0
+    window["status_ecg"] = np.where(window["ecg"].abs() > 1.5, "RED_FLAG_ARRHYTHMIA", "NORMAL")
+    window["status_imu"] = "NORMAL"
+    return window
+
+
+def normalize_uploaded_ecg_dataframe(df_uploaded):
+    """Normaliza columnas de CSV subido a formato timestamp/ecg_value."""
+    if df_uploaded is None or df_uploaded.empty:
+        raise ValueError("El archivo CSV está vacío")
+
+    normalized_cols = {str(col).strip().lower(): col for col in df_uploaded.columns}
+
+    ecg_col = _select_uploaded_ecg_column(df_uploaded, normalized_cols)
+    timestamp_series = _coerce_uploaded_timestamp_series(df_uploaded, normalized_cols)
+
+    ecg_series = pd.to_numeric(df_uploaded[ecg_col], errors="coerce")
+
+    normalized = pd.DataFrame({
+        "timestamp": timestamp_series,
+        "ecg_value": ecg_series,
+    }).dropna(subset=["ecg_value"]).reset_index(drop=True)
+
+    if normalized.empty:
+        raise ValueError("No hay muestras ECG válidas tras procesar el CSV")
+
+    normalized["timestamp"] = normalized["timestamp"].ffill().fillna(0)
+    return normalized
+
+
+@app.callback(
+    [Output("uploaded-ecg-data", "data"),
+     Output("ecg-upload-feedback", "children")],
+    [Input("ecg-upload", "contents")],
+    [State("ecg-upload", "filename")],
+    prevent_initial_call=True
+)
+def handle_ecg_csv_upload(contents, filename):
+    global df_uploaded_ecg_global, uploaded_ecg_filename
+
+    if not contents:
+        raise PreventUpdate
+
+    if not filename or not filename.lower().endswith(".csv"):
+        return dash.no_update, "⚠️ Solo se permiten archivos CSV."
+
+    try:
+        _, content_string = contents.split(",", 1)
+        decoded = base64.b64decode(content_string)
+        csv_text = decoded.decode("utf-8", errors="ignore")
+        df_uploaded = pd.read_csv(io.StringIO(csv_text))
+        df_normalized = normalize_uploaded_ecg_dataframe(df_uploaded)
+
+        # Guardamos el DataFrame en memoria del servidor para evitar saturar dcc.Store.
+        df_uploaded_ecg_global = df_normalized
+        uploaded_ecg_filename = filename
+
+        payload = {
+            "filename": filename,
+            "samples": int(len(df_normalized)),
+            "source": "uploaded"
+        }
+        return payload, f"✅ Archivo cargado: {filename} ({len(df_normalized)} muestras ECG)"
+    except Exception as e:
+        return dash.no_update, f"❌ Error al leer el CSV: {e}"
+
+
+@app.callback(
+    [Output("uploaded-ecg-data", "data", allow_duplicate=True),
+     Output("ecg-upload-feedback", "children", allow_duplicate=True)],
+    [Input("reset-ecg-source-btn", "n_clicks")],
+    prevent_initial_call=True
+)
+def reset_ecg_source_to_default(n_clicks):
+    global df_uploaded_ecg_global, uploaded_ecg_filename
+
+    if not n_clicks:
+        raise PreventUpdate
+
+    df_uploaded_ecg_global = pd.DataFrame(columns=["timestamp", "ecg_value"])
+    uploaded_ecg_filename = None
+    return None, "✅ Fuente restablecida: usando ECG real del sistema"
+
+
+@app.callback(
+    Output("reset-ecg-source-btn", "style"),
+    [Input("uploaded-ecg-data", "data"),
+     Input("url", "pathname")]
+)
+def toggle_reset_ecg_button(uploaded_ecg_data, pathname):
+    has_uploaded_data = bool(uploaded_ecg_data) and not df_uploaded_ecg_global.empty
+    if pathname == "/" and has_uploaded_data:
+        return {"display": "inline-flex"}
+    return {"display": "none"}
+
+
+ECG_COLUMN_HINTS = ("ecg_value", "ecg", "signal", "voltage", "wave")
+ECG_COLUMN_EXCLUDES = ("timestamp", "time", "sample", "index", "frame", "id", "count", "bpm")
+
+
+def _coerce_uploaded_timestamp_series(df_uploaded, normalized_cols):
+    for candidate_name in ("timestamp", "time"):
+        if candidate_name not in normalized_cols:
+            continue
+
+        raw_series = df_uploaded[normalized_cols[candidate_name]]
+        numeric_series = pd.to_numeric(raw_series, errors="coerce")
+        if numeric_series.notna().sum() >= max(2, int(len(raw_series) * 0.5)):
+            return numeric_series
+
+        timedelta_series = pd.to_timedelta(raw_series, errors="coerce")
+        if timedelta_series.notna().sum() > 0:
+            return timedelta_series.dt.total_seconds()
+
+        datetime_series = pd.to_datetime(raw_series, errors="coerce")
+        if datetime_series.notna().sum() > 0:
+            first_valid = datetime_series.dropna().iloc[0]
+            return (datetime_series - first_valid).dt.total_seconds()
+
+    return pd.Series(np.arange(len(df_uploaded)), dtype=float)
+
+
+def _select_uploaded_ecg_column(df_uploaded, normalized_cols):
+    for hint in ECG_COLUMN_HINTS:
+        if hint in normalized_cols:
+            return normalized_cols[hint]
+
+    scored_candidates = []
+    for col in df_uploaded.columns:
+        col_name = str(col).strip().lower()
+        if any(excluded in col_name for excluded in ECG_COLUMN_EXCLUDES):
+            continue
+
+        series_num = pd.to_numeric(df_uploaded[col], errors="coerce")
+        valid_series = series_num.dropna()
+        if valid_series.empty:
+            continue
+
+        diffs = valid_series.diff().dropna()
+        if len(diffs) > 0:
+            monotonic_ratio = max((diffs >= 0).mean(), (diffs <= 0).mean())
+            oscillation_score = 1.0 - float(monotonic_ratio)
+        else:
+            oscillation_score = 0.0
+
+        variability_score = float(np.nanstd(valid_series))
+        name_bonus = 2.5 if any(hint in col_name for hint in ("ecg", "signal", "volt", "wave")) else 0.0
+        time_penalty = 2.0 if any(excluded in col_name for excluded in ("time", "stamp", "sample", "index", "frame", "id")) else 0.0
+        score = name_bonus + (oscillation_score * 5.0) + min(variability_score, 10.0) * 0.2 - time_penalty
+        scored_candidates.append((score, col))
+
+    if not scored_candidates:
+        raise ValueError("No se encontró una columna ECG numérica")
+
+    scored_candidates.sort(key=lambda item: item[0], reverse=True)
+    return scored_candidates[0][1]
+
+
+def estimate_bpm_from_ecg_dataframe(df_ecg):
+    if df_ecg is None or df_ecg.empty:
+        return None
+    if "ecg_value" not in df_ecg.columns or "timestamp" not in df_ecg.columns:
+        return None
+
+    ecg_series = pd.to_numeric(df_ecg["ecg_value"], errors="coerce")
+    valid_mask = ecg_series.notna()
+    if valid_mask.sum() < 10:
+        return None
+
+    ecg_values = ecg_series[valid_mask].to_numpy(dtype=float)
+    centered_ecg = ecg_values - np.mean(ecg_values)
+    if np.allclose(centered_ecg, 0.0):
+        return None
+
+    timestamp_raw = df_ecg.loc[valid_mask, "timestamp"]
+    timestamp_series = pd.to_numeric(timestamp_raw, errors="coerce")
+    if timestamp_series.notna().sum() < 2:
+        timedelta_series = pd.to_timedelta(timestamp_raw, errors="coerce")
+        if timedelta_series.notna().sum() > 0:
+            timestamp_series = timedelta_series.dt.total_seconds()
+        else:
+            datetime_series = pd.to_datetime(timestamp_raw, errors="coerce")
+            if datetime_series.notna().sum() > 0:
+                first_valid = datetime_series.dropna().iloc[0]
+                timestamp_series = (datetime_series - first_valid).dt.total_seconds()
+
+    if timestamp_series.notna().sum() < 2:
+        return None
+
+    time_diffs = np.diff(timestamp_series.to_numpy(dtype=float))
+    time_diffs = time_diffs[time_diffs > 0]
+    if len(time_diffs) == 0:
+        return None
+
+    sample_period = float(np.median(time_diffs))
+    if not np.isfinite(sample_period) or sample_period <= 0 or sample_period >= 0.1:
+        return None
+
+    amplitude = float(np.nanmax(centered_ecg) - np.nanmin(centered_ecg))
+    prominence = max(float(np.nanstd(centered_ecg)) * 0.6, amplitude * 0.1, 0.05)
+    min_distance = max(int(round(0.30 / sample_period)), 1)
+    peaks, _ = find_peaks(centered_ecg, distance=min_distance, prominence=prominence)
+    if len(peaks) < 2:
+        return None
+
+    rr_intervals = np.diff(peaks) * sample_period
+    rr_intervals = rr_intervals[rr_intervals > 0]
+    if len(rr_intervals) == 0:
+        return None
+
+    bpm = 60.0 / float(np.mean(rr_intervals))
+    if not np.isfinite(bpm):
+        return None
+
+    return float(np.clip(bpm, 30.0, 220.0))
+
+
 @app.callback(
     [Output("ecg-graph", "figure"),
      Output("bpm-output", "children"),
      Output("ecg-data-source-status", "children")],
-    [Input('sensor-interval', 'n_intervals')],
+    [Input('sensor-interval', 'n_intervals'),
+     Input('uploaded-ecg-data', 'data')],
     [State('url', 'pathname')]
 )
-def update_main_dashboard_auto(n, pathname):
+def update_main_dashboard_auto(n, uploaded_ecg_data, pathname):
     # Solo actualizar si el usuario está en el Dashboard y hay ECG cargado en memoria
-    if pathname != '/' or df_ecg_global.empty:
-        return dash.no_update, dash.no_update, dash.no_update
+    has_uploaded_data = bool(uploaded_ecg_data) and not df_uploaded_ecg_global.empty
+    if pathname != '/' or (df_ecg_global.empty and not has_uploaded_data):
+        raise PreventUpdate
     
     try:
         # 1. Leer una ventana de 50 puntos desde memoria (con loop infinito)
-        df = get_ecg_window_from_memory(n, window_size=50)
+        if has_uploaded_data:
+            source_df = df_uploaded_ecg_global
+            window_size = min(1000, len(source_df))
+            df = get_ecg_window(n, source_df=source_df, window_size=window_size)
+            display_name = uploaded_ecg_filename or (uploaded_ecg_data or {}).get("filename", "archivo.csv")
+            source_msg = f"📤 ECG cargado desde CSV: {display_name} ({len(source_df)} muestras)"
+        else:
+            df = get_ecg_window_from_memory(n, window_size=min(1000, len(df_ecg_global)))
+            source_msg = f"📡 ECG real cargado: {len(df_ecg_global)} muestras ({ECG_REAL_FILE})"
+
         if df.empty:
-            return dash.no_update, dash.no_update, dash.no_update
+            raise PreventUpdate
 
         y_data = df['ecg'].tolist()
         
@@ -4194,20 +4481,36 @@ def update_main_dashboard_auto(n, pathname):
         ))
 
         # 4. RIGIDEZ ABSOLUTA DEL LAYOUT (Formato ECG Profesional)
+        if has_uploaded_data:
+            y_min = float(np.nanmin(y_data))
+            y_max = float(np.nanmax(y_data))
+            if not np.isfinite(y_min) or not np.isfinite(y_max):
+                y_min, y_max = -1.0, 2.0
+            elif np.isclose(y_min, y_max):
+                padding = max(abs(y_min) * 0.1, 0.5)
+                y_min -= padding
+                y_max += padding
+            else:
+                padding = max((y_max - y_min) * 0.15, 0.5)
+                y_min -= padding
+                y_max += padding
+        else:
+            y_min, y_max = -1.0, 2.0
+
         fig.update_layout(
             template="plotly_white",
             margin=dict(l=50, r=20, t=40, b=40),
             height=350,
             xaxis=dict(
-                range=[0, 49], 
+                range=[0, max(len(y_data) - 1, 1)], 
                 fixedrange=True, # Evita zoom accidental
                 showgrid=True,
                 gridcolor="#f0f0f0"
             ),
             yaxis=dict(
-                range=[-1.0, 2.0], # Rango FIJO: La onda no moverá el cuadro
+                range=[y_min, y_max],
                 fixedrange=True,
-                dtick=0.5,
+                dtick=max((y_max - y_min) / 6.0, 0.1),
                 tickformat=".1f", # Mantiene el ancho del eje constante
                 gridcolor="#f0f0f0",
                 zeroline=True,
@@ -4220,14 +4523,16 @@ def update_main_dashboard_auto(n, pathname):
             }
         )
 
-        # 5. Cálculo de BPM (Lógica simplificada para el dashboard)
-        bpm = 75 + (max(y_data) * 5)
-        source_msg = f"📡 ECG real cargado: {len(df_ecg_global)} muestras ({ECG_REAL_FILE})"
-        return fig, f"❤️ Frecuencia Cardíaca: {bpm:.1f} BPM", source_msg
+        # 5. Cálculo de BPM
+        bpm_value = estimate_bpm_from_ecg_dataframe(df)
+        if bpm_value is None and not has_uploaded_data:
+            bpm_value = 75 + (float(np.nanmax(y_data)) * 5)
+        bpm_text = f"❤️ Frecuencia Cardíaca: {bpm_value:.1f} BPM" if bpm_value is not None else "❤️ Frecuencia Cardíaca: N/D"
+        return fig, bpm_text, source_msg
 
     except Exception as e:
         print(f"Error en callback de ECG: {e}")
-        return dash.no_update, dash.no_update, dash.no_update
+        raise PreventUpdate
     
     # Callback para actualizar el estado de salud y alertas en el visor del médico
 @app.callback(
@@ -4241,7 +4546,7 @@ def update_main_dashboard_auto(n, pathname):
 )
 def monitor_patient_health(n, selected_patient):
     if not selected_patient or df_ecg_global.empty:
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        raise PreventUpdate
 
     try:
         # Leer 100 registros desde memoria para análisis de tendencias
@@ -4277,7 +4582,7 @@ def monitor_patient_health(n, selected_patient):
 
     except Exception as e:
         print(f"Error en monitorización: {e}")
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        raise PreventUpdate
 
 
 
