@@ -66,6 +66,12 @@ except Exception as e:
 df_uploaded_ecg_global = pd.DataFrame(columns=["timestamp", "ecg_value"])
 uploaded_ecg_filename = None
 
+# Buffers en memoria para señales subidas en el apartado de ejercicios.
+df_uploaded_exercise_ecg_global = pd.DataFrame(columns=["timestamp", "ecg_value"])
+uploaded_exercise_ecg_filename = None
+df_uploaded_exercise_imu_global = pd.DataFrame(columns=["timestamp", "imu_value"])
+uploaded_exercise_imu_filename = None
+
 
 def _prepare_imu_dataframe(filepath):
     """Carga IMU real y devuelve un DataFrame homogéneo para streaming."""
@@ -2505,35 +2511,83 @@ def create_initial_ecg_figure(filepath="data/ecg_example.csv"):
 
 # --- MODALES (Se mantienen) ---
 
+S_UPLOAD_MINI = {
+    'width': '100%', 'height': '35px', 'lineHeight': '35px',
+    'borderWidth': '1px', 'borderStyle': 'dashed', 'borderRadius': '8px',
+    'textAlign': 'center', 'backgroundColor': '#f8f9fa', 'color': '#666', 'fontSize': '0.8rem'
+}
+
 def get_exercise_execution_modal():
     return dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("💪 Ejecución con Biofeedback")),
+            dbc.ModalHeader(
+                dbc.ModalTitle("💪 Ejecución con Biofeedback", style={'color': '#333', 'fontWeight': 'bold'}),
+                close_button=True,
+                style={'borderBottom': 'none', 'padding': '20px'}
+            ),
             dbc.ModalBody([
-                html.Div(id="exercise-execution-content"),
-                html.Hr(),
-                # Cambiamos width de 6 a 12 para que estén una debajo de otra
+                html.Div(id="exercise-execution-content", style={'padding': '0 10px'}),
+                html.Div([
+                    html.Hr(style={'borderColor': '#eee', 'margin': '30px 0'}),
+                    html.Div([
+                        html.I(className="bi bi-cpu me-2"),
+                        "CONEXIÓN DE SENSORES"
+                    ], style={'color': '#888', 'fontWeight': 'bold', 'fontSize': '0.8rem', 'marginBottom': '15px', 'letterSpacing': '1px'}),
+                    dbc.Row([
+                        dbc.Col([
+                            dcc.Upload(id="exercise-ecg-upload", children="ECG CSV", style=S_UPLOAD_MINI),
+                            html.Div(id="exercise-ecg-upload-feedback", className="mt-2", style={'fontSize': '0.75rem'})
+                        ], width=6),
+                        dbc.Col([
+                            dcc.Upload(id="exercise-imu-upload", children="IMU CSV", style=S_UPLOAD_MINI),
+                            html.Div(id="exercise-imu-upload-feedback", className="mt-2", style={'fontSize': '0.75rem'})
+                        ], width=6),
+                    ], className="g-3"),
+                    html.Div([
+                        dbc.Button([
+                            html.I(className="bi bi-arrow-counterclockwise me-2"),
+                            "RESTAURAR SENSORES ORIGINALES"
+                        ], id="exercise-reset-sensor-source-btn", color="outline-danger", size="sm",
+                           style={"display": "none", "marginTop": "15px", "width": "100%", "fontWeight": "bold"})
+                    ]),
+                    html.Div(id="exercise-sensor-source-status", className="text-center mt-2",
+                             style={'color': '#aaa', 'fontSize': '0.8rem', 'fontStyle': 'italic'})
+                ], style={'backgroundColor': '#fcfcfc', 'padding': '15px', 'borderRadius': '12px'}),
+                html.Div([
+                    html.Label("📊 MODO DE VISUALIZACIÓN", style={'fontSize': '0.75rem', 'color': '#6b7280', 'fontWeight': 'bold'}),
+                    dcc.Dropdown(
+                        id='exercise-graph-mode',
+                        options=[
+                            {'label': '❤️ ECG SOLAMENTE', 'value': 'ecg'},
+                            {'label': '📐 IMU SOLAMENTE', 'value': 'imu'},
+                            {'label': '🧩 VISTA DUAL', 'value': 'both'},
+                        ],
+                        value='both',
+                        clearable=False,
+                        style={'backgroundColor': 'white', 'color': 'black'}
+                    ),
+                ], className="mb-4"),
                 dbc.Row([
-                dbc.Col([
-                    html.H5("❤️ ECG (Frecuencia Cardíaca)", className="text-center"),
-                    dcc.Graph(id='live-ecg-graph', config={'displayModeBar': False}, style={'height': '300px'}),
-                    html.Div(id='ecg-status-msg', className="text-center fw-bold")
-                ], width=12, className="mb-4"),
-                dbc.Col([
-                    html.H5("📐 IMU (Ángulo de Rodilla)", className="text-center"),
-                    dcc.Graph(id='live-imu-graph', config={'displayModeBar': False}, style={'height': '300px'}),
-                    html.Div(id='imu-status-msg', className="text-center fw-bold")
-                ], width=12),
-            ]),
-            ]),
+                    dbc.Col([
+                        dcc.Graph(id='live-ecg-graph', config={'displayModeBar': False}),
+                        html.Div(id='ecg-status-msg', className="badge bg-light text-dark mt-2 w-100", style={'padding': '8px'})
+                    ], id='live-ecg-container', width=12, className="mb-4"),
+                    dbc.Col([
+                        dcc.Graph(id='live-imu-graph', config={'displayModeBar': False}),
+                        html.Div(id='imu-status-msg', className="badge bg-light text-dark mt-2 w-100", style={'padding': '8px'})
+                    ], id='live-imu-container', width=12),
+                ]),
+            ], style={'backgroundColor': '#fff', 'color': '#333', 'borderRadius': '15px'}),
             dbc.ModalFooter([
-                dbc.Button("✅ Terminar", id="finish-exercise-btn", n_clicks=0, color="success"),
-                dbc.Button("❌ Cancelar", id="cancel-exercise-btn", n_clicks=0, color="danger")
-            ]),
+                dbc.Button("✅ FINALIZAR SESIÓN", id="finish-exercise-btn", color="primary", className="px-4 fw-bold", style={'borderRadius': '10px'}),
+                dbc.Button("CANCELAR", id="cancel-exercise-btn", color="link", className="text-muted")
+            ], style={'borderTop': 'none', 'padding': '20px'}),
         ],
         id="exercise-execution-modal",
         is_open=False,
-        size="lg" # "lg" es mejor para apilado vertical que "xl"
+        size="lg",
+        backdrop="static",
+        style={'fontFamily': "'Segoe UI', Roboto, sans-serif"}
     )
 
 def get_exercise_survey_modal():
@@ -3208,15 +3262,6 @@ def get_patient_dashboard(username, full_name, current_search=""):
                             'cursor': 'pointer',
                             'color': COLORS['text']
                         }
-                    ),
-                    dbc.Button(
-                        "↩️ Volver a ECG real",
-                        id="reset-ecg-source-btn",
-                        n_clicks=0,
-                        color="secondary",
-                        size="sm",
-                        className="mb-2",
-                        style={"display": "none"}
                     ),
                     html.Div(id="ecg-upload-feedback", className="mb-2", style={'color': COLORS['muted'], 'fontWeight': '600', 'fontSize': '0.9em'}),
                     dcc.Graph(id="ecg-graph", config={'displayModeBar': False}),
@@ -4134,6 +4179,7 @@ app.layout = html.Div([
     dcc.Store(id='available-exercises', data=[]),
     dcc.Store(id='current-exercise-id', data=None),
     dcc.Store(id='exercise-start-time', data=None),
+    dcc.Store(id='exercise-uploaded-sensors-data', data={'ecg': None, 'imu': None}),
     dcc.Store(id='current-user-data', data={}),
     dcc.Store(id='doctor-selected-patient-username', data=None),
     dcc.Store(id='profile-user-role', data=None), # ID reclamado en logs
@@ -4144,6 +4190,17 @@ app.layout = html.Div([
     dcc.Interval(id='exercise-timer-interval', interval=1000, disabled=True),
     dcc.Interval(id='sensor-interval', interval=500, n_intervals=0),
     dcc.Interval(id='patient-appointments-refresh-interval', interval=30000, disabled=True),
+
+    # --- Acciones globales del ECG ---
+    dbc.Button(
+        "↩️ Volver a ECG real",
+        id="reset-ecg-source-btn",
+        n_clicks=0,
+        color="secondary",
+        size="sm",
+        className="mb-2",
+        style={"display": "none", "position": "fixed", "top": "96px", "right": "24px", "zIndex": 1100}
+    ),
 
     # --- Modales Globales ---
     # Los modales deben estar en el layout raíz para ser accesibles siempre
@@ -4248,6 +4305,74 @@ def normalize_uploaded_ecg_dataframe(df_uploaded):
     return normalized
 
 
+def normalize_uploaded_imu_dataframe(df_uploaded):
+    """Normaliza columnas de CSV subido a formato timestamp/imu_value."""
+    if df_uploaded is None or df_uploaded.empty:
+        raise ValueError("El archivo CSV está vacío")
+
+    normalized_cols = {str(col).strip().lower(): col for col in df_uploaded.columns}
+    timestamp_series = _coerce_uploaded_timestamp_series(df_uploaded, normalized_cols)
+
+    preferred_hints = ("imu_value", "imu", "angle", "acc", "gyro", "value", "measurement", "signal")
+    excluded_names = {"timestamp", "time", "sample", "index", "frame", "id", "count", "bpm", "ecg", "heart"}
+    imu_col = None
+
+    for hint in preferred_hints:
+        if hint in normalized_cols:
+            imu_col = normalized_cols[hint]
+            break
+
+    if imu_col is None:
+        for col_name in df_uploaded.columns:
+            normalized_name = str(col_name).strip().lower()
+            if normalized_name in excluded_names:
+                continue
+            series_num = pd.to_numeric(df_uploaded[col_name], errors="coerce")
+            if series_num.notna().sum() > 0:
+                imu_col = col_name
+                break
+
+    if imu_col is None:
+        raise ValueError("No se encontró ninguna columna numérica de IMU utilizable")
+
+    imu_series = pd.to_numeric(df_uploaded[imu_col], errors="coerce")
+    normalized = pd.DataFrame({
+        "timestamp": timestamp_series,
+        "imu_value": imu_series,
+    }).dropna(subset=["imu_value"]).reset_index(drop=True)
+
+    if normalized.empty:
+        raise ValueError("No hay muestras IMU válidas tras procesar el CSV")
+
+    normalized["timestamp"] = normalized["timestamp"].ffill().fillna(0)
+    return normalized
+
+
+def get_circular_sensor_window(n_intervals, source_df, window_size, value_column, output_value_name):
+    if source_df is None or source_df.empty:
+        return pd.DataFrame(columns=["timestamp", output_value_name])
+
+    total_rows = len(source_df)
+    start_idx = (n_intervals * window_size) % total_rows
+    end_idx = start_idx + window_size
+
+    if end_idx <= total_rows:
+        window = source_df.iloc[start_idx:end_idx].copy()
+    else:
+        first_part = source_df.iloc[start_idx:].copy()
+        second_part = source_df.iloc[: end_idx % total_rows].copy()
+        window = pd.concat([first_part, second_part], ignore_index=True)
+
+    if value_column in window.columns:
+        window = window.rename(columns={value_column: output_value_name})
+
+    window[output_value_name] = pd.to_numeric(window[output_value_name], errors="coerce").fillna(0.0)
+    if "timestamp" not in window.columns:
+        window["timestamp"] = np.arange(len(window))
+
+    return window.reset_index(drop=True)
+
+
 @app.callback(
     [Output("uploaded-ecg-data", "data"),
      Output("ecg-upload-feedback", "children")],
@@ -4310,6 +4435,140 @@ def reset_ecg_source_to_default(n_clicks):
 def toggle_reset_ecg_button(uploaded_ecg_data, pathname):
     has_uploaded_data = bool(uploaded_ecg_data) and not df_uploaded_ecg_global.empty
     if pathname == "/" and has_uploaded_data:
+        return {
+            "display": "inline-flex",
+            "position": "fixed",
+            "top": "96px",
+            "right": "24px",
+            "zIndex": 1100,
+        }
+    return {
+        "display": "none",
+        "position": "fixed",
+        "top": "96px",
+        "right": "24px",
+        "zIndex": 1100,
+    }
+
+
+@app.callback(
+    [Output("exercise-uploaded-sensors-data", "data"),
+     Output("exercise-ecg-upload-feedback", "children")],
+    [Input("exercise-ecg-upload", "contents")],
+    [State("exercise-ecg-upload", "filename")],
+    prevent_initial_call=True
+)
+def handle_exercise_ecg_csv_upload(contents, filename):
+    global df_uploaded_exercise_ecg_global, uploaded_exercise_ecg_filename
+
+    if not contents:
+        raise PreventUpdate
+
+    if not filename or not filename.lower().endswith(".csv"):
+        return dash.no_update, "⚠️ Solo se permiten archivos CSV."
+
+    try:
+        _, content_string = contents.split(",", 1)
+        decoded = base64.b64decode(content_string)
+        csv_text = decoded.decode("utf-8", errors="ignore")
+        df_uploaded = pd.read_csv(io.StringIO(csv_text))
+        df_normalized = normalize_uploaded_ecg_dataframe(df_uploaded)
+
+        df_uploaded_exercise_ecg_global = df_normalized
+        uploaded_exercise_ecg_filename = filename
+
+        payload = {
+            "ecg": {
+                "filename": filename,
+                "samples": int(len(df_normalized)),
+                "source": "uploaded"
+            },
+            "imu": None,
+        }
+        return payload, f"✅ ECG cargado: {filename} ({len(df_normalized)} muestras)"
+    except Exception as e:
+        return dash.no_update, f"❌ Error al leer el CSV de ECG: {e}"
+
+
+@app.callback(
+    [Output("exercise-uploaded-sensors-data", "data", allow_duplicate=True),
+     Output("exercise-imu-upload-feedback", "children")],
+    [Input("exercise-imu-upload", "contents")],
+    [State("exercise-imu-upload", "filename")],
+    prevent_initial_call=True
+)
+def handle_exercise_imu_csv_upload(contents, filename):
+    global df_uploaded_exercise_imu_global, uploaded_exercise_imu_filename
+
+    if not contents:
+        raise PreventUpdate
+
+    if not filename or not filename.lower().endswith(".csv"):
+        return dash.no_update, "⚠️ Solo se permiten archivos CSV."
+
+    try:
+        _, content_string = contents.split(",", 1)
+        decoded = base64.b64decode(content_string)
+        csv_text = decoded.decode("utf-8", errors="ignore")
+        df_uploaded = pd.read_csv(io.StringIO(csv_text))
+        df_normalized = normalize_uploaded_imu_dataframe(df_uploaded)
+
+        df_uploaded_exercise_imu_global = df_normalized
+        uploaded_exercise_imu_filename = filename
+
+        payload = {
+            "ecg": {
+                "filename": uploaded_exercise_ecg_filename,
+                "samples": int(len(df_uploaded_exercise_ecg_global)) if not df_uploaded_exercise_ecg_global.empty else None,
+                "source": "uploaded" if not df_uploaded_exercise_ecg_global.empty else None,
+            } if not df_uploaded_exercise_ecg_global.empty else None,
+            "imu": {
+                "filename": filename,
+                "samples": int(len(df_normalized)),
+                "source": "uploaded"
+            },
+        }
+        return payload, f"✅ IMU cargado: {filename} ({len(df_normalized)} muestras)"
+    except Exception as e:
+        return dash.no_update, f"❌ Error al leer el CSV de IMU: {e}"
+
+
+@app.callback(
+    [Output("exercise-uploaded-sensors-data", "data", allow_duplicate=True),
+     Output("exercise-ecg-upload-feedback", "children", allow_duplicate=True),
+     Output("exercise-imu-upload-feedback", "children", allow_duplicate=True),
+     Output("exercise-sensor-source-status", "children", allow_duplicate=True)],
+    [Input("exercise-reset-sensor-source-btn", "n_clicks")],
+    prevent_initial_call=True
+)
+def reset_exercise_sensor_sources(n_clicks):
+    global df_uploaded_exercise_ecg_global, uploaded_exercise_ecg_filename
+    global df_uploaded_exercise_imu_global, uploaded_exercise_imu_filename
+
+    if not n_clicks:
+        raise PreventUpdate
+
+    df_uploaded_exercise_ecg_global = pd.DataFrame(columns=["timestamp", "ecg_value"])
+    uploaded_exercise_ecg_filename = None
+    df_uploaded_exercise_imu_global = pd.DataFrame(columns=["timestamp", "imu_value"])
+    uploaded_exercise_imu_filename = None
+
+    return (
+        {"ecg": None, "imu": None},
+        "✅ ECG restablecido al origen",
+        "✅ IMU restablecido al origen",
+        "✅ Volviendo a las señales originales del sistema",
+    )
+
+
+@app.callback(
+    Output("exercise-reset-sensor-source-btn", "style"),
+    [Input("exercise-uploaded-sensors-data", "data")]
+)
+def toggle_exercise_reset_button(upload_state):
+    has_ecg = bool(upload_state and upload_state.get("ecg")) or not df_uploaded_exercise_ecg_global.empty
+    has_imu = bool(upload_state and upload_state.get("imu")) or not df_uploaded_exercise_imu_global.empty
+    if has_ecg or has_imu:
         return {"display": "inline-flex"}
     return {"display": "none"}
 
@@ -5003,7 +5262,8 @@ def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, input
      Output('exercise-execution-content', 'children'),
      Output('current-exercise-id', 'data'),
      Output('exercise-start-time', 'data'),
-     Output('exercise-timer-interval', 'disabled')], 
+     Output('exercise-timer-interval', 'disabled'),
+     Output('exercise-graph-mode', 'value')], 
     [Input({'type': 'start-exercise-btn', 'index': dash.ALL}, 'n_clicks'),
      Input({'type': 'exercise-image', 'index': dash.ALL}, 'n_clicks')],
     [State('available-exercises', 'data')],
@@ -5012,83 +5272,58 @@ def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, input
 def start_exercise(start_clicks, image_clicks, exercises):
     ctx = callback_context
     if not ctx.triggered or not ctx.triggered[0]['value']:
-        return False, html.Div(), None, None, True 
+        return False, html.Div(), None, None, True, 'both'
     
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
     try:
         exercise_id = json.loads(trigger_id)['index']
     except:
-        return False, html.Div(), None, None, True 
+        return False, html.Div(), None, None, True, 'both'
 
     exercise_pool = exercises if isinstance(exercises, list) and exercises else get_known_exercises_catalog()
     
     exercise = ExerciseService.resolve_exercise(exercise_pool, exercise_id)
     if not exercise:
-        return False, html.Div(), None, None, True 
+        return False, html.Div(), None, None, True, 'both'
     
-    execution_content = html.Div([
-        html.Div([
-            html.Img(
-                src=exercise['images'][0],
-                style={
-                    'width': '100%',
-                    'maxHeight': '200px',
-                    'objectFit': 'cover',
-                    'borderRadius': '8px',
-                    'marginBottom': '20px'
-                }
-            ),
-            html.H4(exercise['title'], style={'color': COLORS['primary'], 'marginBottom': '10px'}),
-            html.P(exercise['description'], style={'color': COLORS['muted'], 'marginBottom': '20px'})
-        ]),
-        
-        dbc.Row([
-            dbc.Col([
-                html.Div([
-                    html.H6("📊 Series y Repeticiones", style={'color': COLORS['primary']}),
-                    html.P(f"🔢 Series: {exercise['sets']}"),
-                    html.P(f"🔄 Repeticiones: {exercise['reps']}"),
-                    html.P(f"⏱️ Descanso: {exercise['rest_sec']} segundos")
-                ], style={'padding': '15px', 'background': '#f8f9fa', 'borderRadius': '8px'})
-            ], width=6),
-            dbc.Col([
-                html.Div([
-                    html.H6("💪 Peso y Dificultad", style={'color': COLORS['primary']}),
-                    html.P(f"🏋️ Peso: {exercise['weight']}"),
-                    html.P(f"📈 Dificultad: {exercise['difficulty']}"),
-                    html.P(f"🎯 Músculos: {', '.join(exercise['muscles'])}")
-                ], style={'padding': '15px', 'background': '#f8f9fa', 'borderRadius': '8px'})
-            ], width=6)
-        ], style={'marginBottom': '20px'}),
-        
-        html.Div([
-            html.H5("📝 Instrucciones Detalladas", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
-            html.Ol([
-                html.Li(instruction, style={'marginBottom': '10px', 'lineHeight': '1.5', 'padding': '5px'}) 
-                for instruction in exercise.get('instructions', [])
-            ], style={'paddingLeft': '20px'}),
-            
-            html.H6("✨ Beneficios:", style={'color': COLORS['secondary'], 'marginTop': '15px'}),
-            html.P(exercise.get('benefits', ''), style={'color': COLORS['muted'], 'fontStyle': 'italic'})
-        ]),
-        
-        html.Div([
-            html.H6("⏰ Tiempo de ejercicio:", style={'color': COLORS['primary'], 'marginBottom': '10px'}),
-            html.Div('00:00', id='exercise-timer', style={
-                'fontSize': '24px',
-                'fontWeight': 'bold',
-                'textAlign': 'center',
-                'color': COLORS['secondary'],
-                'padding': '10px',
-                'border': f'2px solid {COLORS["secondary"]}',
-                'borderRadius': '8px'
-            })
-        ], style={'marginTop': '20px', 'textAlign': 'center'})
-    ])
-    
-    return True, execution_content, exercise_id, datetime.now().isoformat(), False
+    header_style = {'color': '#3b82f6', 'fontWeight': 'bold', 'fontSize': '1.8rem', 'marginBottom': '5px'}
 
+    execution_content = html.Div([
+        html.H2(exercise['title'], style=header_style),
+        html.Img(src=exercise['images'][0], style={
+            'width': '100%', 'height': '200px', 'objectFit': 'cover', 'borderRadius': '12px', 'marginBottom': '15px'
+        }),
+        html.H3(exercise['title'], style={'color': '#3b82f6', 'fontWeight': '700', 'marginBottom': '5px'}),
+        html.P(exercise['description'], style={'color': '#888', 'fontSize': '0.95rem', 'marginBottom': '25px'}),
+
+        dbc.Row([
+            dbc.Col(html.Div([
+                html.H6([html.Span("📊 "), "Series y Repeticiones"], style={'color': '#3b82f6', 'fontWeight': 'bold'}),
+                html.P([html.Span("🔢 "), f"Series: {exercise['sets']}"], className="mb-1"),
+                html.P([html.Span("🔄 "), f"Repeticiones: {exercise['reps']}"], className="mb-1"),
+                html.P([html.Span("⏱️ "), f"Descanso: {exercise['rest_sec']} segundos"], className="mb-0"),
+            ], style={'backgroundColor': '#f8f9fa', 'padding': '20px', 'borderRadius': '12px', 'height': '100%'}), width=6),
+            dbc.Col(html.Div([
+                html.H6([html.Span("💪 "), "Peso y Dificultad"], style={'color': '#3b82f6', 'fontWeight': 'bold'}),
+                html.P([html.Span("🏋️ "), f"Peso: {exercise['weight']}"], className="mb-1"),
+                html.P([html.Span("📈 "), f"Dificultad: {exercise['difficulty']}"], className="mb-1"),
+                html.P([html.Span("🎯 "), f"Músculos: {', '.join(exercise['muscles'])}"], className="mb-0", style={'fontSize': '0.85rem'}),
+            ], style={'backgroundColor': '#f8f9fa', 'padding': '20px', 'borderRadius': '12px', 'height': '100%'}), width=6),
+        ], className="mb-4"),
+
+        html.H5([html.Span("📝 "), "Instrucciones Detalladas"], style={'color': '#3b82f6', 'fontWeight': 'bold', 'marginBottom': '15px'}),
+        html.Ol([
+            html.Li(inst, style={'marginBottom': '8px', 'color': '#444'}) for inst in exercise.get('instructions', [])
+        ], style={'paddingLeft': '20px', 'fontSize': '0.95rem'}),
+
+        html.Div([
+            html.Small("TIEMPO TRANSCURRIDO", style={'color': '#aaa', 'letterSpacing': '1px'}),
+            html.Div('00:00', id='exercise-timer', style={'fontSize': '2rem', 'fontWeight': '300', 'color': '#333'})
+        ], style={'textAlign': 'center', 'marginTop': '20px'})
+    ])
+
+    return True, execution_content, exercise_id, datetime.now().isoformat(), False, 'both'
 # Callback: Terminar ejercicio y mostrar cuestionario (Recarga gráfica)
 @app.callback(
     [Output('exercise-execution-modal', 'is_open', allow_duplicate=True),
@@ -6694,78 +6929,137 @@ def export_patient_data_to_csv(n_clicks, patient_username):
      Output('ecg-status-msg', 'children'), 
      Output('imu-status-msg', 'children')],
     Input('sensor-interval', 'n_intervals'),
-    State('exercise-execution-modal', 'is_open')
+    [State('exercise-uploaded-sensors-data', 'data'),
+     State('exercise-execution-modal', 'is_open')],
+    prevent_initial_call=True
 )
-def update_sensor_charts(n, is_open):
-    """Actualiza las gráficas con ejes y cuadrículas totalmente fijas para evitar parpadeos"""
-    if not is_open or df_ecg_global.empty:
-        empty_fig = go.Figure().update_layout(height=250, template="plotly_white")
+def update_sensor_charts(n, upload_state, is_open):
+    """Actualiza las gráficas en modo ECG/IMU/ambas con estilo visual del dashboard principal."""
+
+    if not is_open:
+        empty_fig = go.Figure().update_layout(
+            template="plotly_white",
+            margin=dict(l=50, r=20, t=40, b=40),
+            height=300,
+            showlegend=False,
+        )
         return empty_fig, empty_fig, "⏸️ Esperando datos...", "⏸️ Esperando datos..."
     
     try:
-        # 1. Cargar 50 puntos desde memoria avanzando con n_intervals y módulo
-        df = get_ecg_window_from_memory(n, window_size=50)
-        if df.empty or len(df) < 2:
+        upload_state = upload_state or {}
+
+        has_uploaded_ecg = bool(upload_state.get("ecg")) and not df_uploaded_exercise_ecg_global.empty
+        has_uploaded_imu = bool(upload_state.get("imu")) and not df_uploaded_exercise_imu_global.empty
+
+        ecg_source_df = df_uploaded_exercise_ecg_global if has_uploaded_ecg else df_ecg_global
+        imu_source_df = df_uploaded_exercise_imu_global if has_uploaded_imu else df_imu_global
+
+        ecg_window_size = min(1000, len(ecg_source_df))
+        imu_window_size = min(1000, len(imu_source_df))
+
+        ecg_df = get_circular_sensor_window(n, ecg_source_df, ecg_window_size, "ecg_value", "ecg")
+        imu_df = get_circular_sensor_window(n, imu_source_df, imu_window_size, "imu_value", "imu")
+
+        if ecg_df.empty and imu_df.empty:
             return dash.no_update, dash.no_update, "📊 Recolectando...", "📊 Recolectando..."
+
+        y_ecg = ecg_df['ecg'].tolist() if not ecg_df.empty else []
+        y_imu = imu_df['imu'].tolist() if not imu_df.empty else []
+        x_ecg_vals = list(range(len(y_ecg))) if y_ecg else []
+        x_imu_vals = list(range(len(y_imu))) if y_imu else []
+
+        ecg_xmax = max(ecg_window_size - 1, 1)
+        imu_xmax = max(imu_window_size - 1, 1)
         
-        x_vals = list(range(50))
-        y_ecg = df['ecg'].tolist()
-        y_imu = df['imu'].tolist()
-        
-        # Relleno preventivo para mantener el ancho de la línea constante al inicio
-        while len(y_ecg) < 50: y_ecg.insert(0, None)
-        while len(y_imu) < 50: y_imu.insert(0, None)
-        
-        # 2. Gráfica ECG Rígida
-        has_arrhythmia = (df['status_ecg'] == 'RED_FLAG_ARRHYTHMIA').any()
-        fig_ecg = go.Figure(go.Scatter(
-            x=x_vals, y=y_ecg, mode='lines', 
-            line=dict(color="#ef4444" if has_arrhythmia else "#10b981", width=2.5),
-            hoverinfo='none'
-        ))
-        
-        fig_ecg.update_layout(
-            height=250,
-            margin=dict(l=60, r=20, t=40, b=40), # Margen izquierdo fijo para evitar saltos horizontales
-            template="plotly_white",
-            title="❤️ Monitorización Cardíaca en Vivo",
-            xaxis=dict(range=[0, 49], fixedrange=True, showgrid=True, gridcolor="#f0f0f0"),
-            yaxis=dict(
-                range=[-1.0, 2.0],  # Rango vertical estricto
-                fixedrange=True,
-                tickformat=".1f",   # Mantiene el ancho de los números constante (ej. 1.0 vs 0.9)
-                dtick=0.5,          # Cuadrícula inamovible
-                gridcolor="#f0f0f0"
-            ),
-            showlegend=False,
-            uirevision='constant'   # Mantiene el estado de la UI entre actualizaciones
-        )
+        # 2. Gráfica ECG con estilo consistente al dashboard principal
+        if not ecg_df.empty and 'status_ecg' in ecg_df.columns:
+            has_arrhythmia = (ecg_df['status_ecg'] == 'RED_FLAG_ARRHYTHMIA').any()
+        else:
+            has_arrhythmia = bool(y_ecg) and (np.nanmax(np.abs(np.asarray(y_ecg, dtype=float))) > 1.5)
+        ecg_color = "#ef4444" if has_arrhythmia else "#2ebf7f"
+        if ecg_df.empty:
+            fig_ecg = go.Figure().update_layout(height=300, template="plotly_white", showlegend=False)
+        else:
+            fig_ecg = go.Figure(go.Scatter(
+                x=x_ecg_vals, y=y_ecg, mode='lines',
+                line=dict(color=ecg_color, width=2.5),
+                hoverinfo='none'
+            ))
+            fig_ecg.update_layout(
+                height=300,
+                margin=dict(l=50, r=20, t=40, b=40),
+                template="plotly_white",
+                title={
+                    'text': "⚠️ Alerta: Arritmia Detectada" if has_arrhythmia else "✅ Ritmo Cardíaco Normal",
+                    'font': {'color': ecg_color}
+                },
+                xaxis=dict(
+                    range=[0, ecg_xmax],
+                    fixedrange=True,
+                    showgrid=True,
+                    gridcolor="#f0f0f0"
+                ),
+                yaxis=dict(
+                    autorange=True,
+                    fixedrange=True,
+                    gridcolor="#f0f0f0",
+                    zeroline=True,
+                    zerolinecolor="#e5e7eb"
+                ),
+                showlegend=False,
+                uirevision='constant'
+            )
 
         # 3. Gráfica IMU con datos reales
-        has_imu_warning = (df['status_imu'] == 'RED_FLAG_FATIGUE').any()
-        fig_imu = go.Figure(go.Scatter(
-            x=x_vals,
-            y=y_imu,
-            mode='lines',
-            line=dict(color="#f59e0b" if has_imu_warning else "#3b82f6", width=2.5),
-            hoverinfo='none'
-        ))
-        fig_imu.update_layout(
-            height=250,
-            margin=dict(l=60, r=20, t=40, b=40),
-            template="plotly_white",
-            title="📐 IMU (Ángulo/Movimiento en Vivo)",
-            xaxis=dict(range=[0, 49], fixedrange=True, showgrid=True, gridcolor="#f0f0f0"),
-            yaxis=dict(range=[-1.2, 1.2], fixedrange=True, gridcolor="#f0f0f0"),
-            showlegend=False,
-            uirevision='constant'
-        )
+        if not imu_df.empty and 'status_imu' in imu_df.columns:
+            has_imu_warning = (imu_df['status_imu'] == 'RED_FLAG_FATIGUE').any()
+        else:
+            has_imu_warning = bool(y_imu) and (np.nanmax(np.abs(np.asarray(y_imu, dtype=float))) > 0.9)
+        imu_color = "#f59e0b" if has_imu_warning else "#3b82f6"
+        if imu_df.empty:
+            fig_imu = go.Figure().update_layout(height=300, template="plotly_white", showlegend=False)
+        else:
+            fig_imu = go.Figure(go.Scatter(
+                x=x_imu_vals,
+                y=y_imu,
+                mode='lines',
+                line=dict(color=imu_color, width=2.5),
+                hoverinfo='none'
+            ))
+            fig_imu.update_layout(
+                height=300,
+                margin=dict(l=50, r=20, t=40, b=40),
+                template="plotly_white",
+                title={
+                    'text': "⚠️ Alerta: Fatiga/Movimiento Anómalo" if has_imu_warning else "✅ Movimiento IMU Dentro de Rango",
+                    'font': {'color': imu_color}
+                },
+                xaxis=dict(
+                    range=[0, imu_xmax],
+                    fixedrange=True,
+                    showgrid=True,
+                    gridcolor="#f0f0f0"
+                ),
+                yaxis=dict(
+                    autorange=True,
+                    fixedrange=True,
+                    gridcolor="#f0f0f0",
+                    zeroline=True,
+                    zerolinecolor="#e5e7eb"
+                ),
+                showlegend=False,
+                uirevision='constant'
+            )
         
-        ecg_msg = "⚠️ ARRITMIA DETECTADA" if has_arrhythmia else "✅ Ritmo Normal"
+        ecg_msg = (
+            f"📤 ECG cargado: {uploaded_exercise_ecg_filename} ({len(ecg_df)} muestras)"
+            if has_uploaded_ecg and uploaded_exercise_ecg_filename
+            else f"📡 ECG real cargado: {len(ecg_source_df)} muestras ({ECG_REAL_FILE})"
+        )
         imu_msg = (
-            f"⚠️ Movimiento/Fatiga anómala ({imu_source_col})"
-            if has_imu_warning
-            else f"✅ IMU real activa ({imu_source_col})"
+            f"📤 IMU cargado: {uploaded_exercise_imu_filename} ({len(imu_df)} muestras)"
+            if has_uploaded_imu and uploaded_exercise_imu_filename
+            else f"📡 IMU real activa ({imu_source_col})"
         )
         
         return fig_ecg, fig_imu, ecg_msg, imu_msg
@@ -6773,6 +7067,24 @@ def update_sensor_charts(n, is_open):
     except Exception as e:
         print(f"Error en sensores: {e}")
         return dash.no_update, dash.no_update, "❌ Error", "❌ Error"
+
+
+@app.callback(
+    [Output('live-ecg-container', 'style'),
+     Output('live-imu-container', 'style')],
+    Input('exercise-graph-mode', 'value')
+)
+def toggle_exercise_sensor_graphs(graph_mode):
+    graph_mode = graph_mode or 'both'
+    ecg_style = {'display': 'block'}
+    imu_style = {'display': 'block'}
+
+    if graph_mode == 'ecg':
+        imu_style = {'display': 'none'}
+    elif graph_mode == 'imu':
+        ecg_style = {'display': 'none'}
+
+    return ecg_style, imu_style
 
 # --- CALLBACKS PARA GESTIÓN DE LESIONES (UNIFICADO) ---
 
@@ -7078,3 +7390,4 @@ if __name__ == '__main__':
         use_reloader=False, # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
         dev_tools_silence_routes_logging=True
     )
+

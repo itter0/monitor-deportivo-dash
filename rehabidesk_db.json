@@ -2776,7 +2776,20 @@
                 "timestamp": "2026-04-22T16:50:40.838157",
                 "sets": 4,
                 "reps": 8
+            },
+            {
+                "exercise_id": "burpees",
+                "start_time": "2026-04-25T16:35:45.348657",
+                "end_time": "2026-04-25T16:36:19.536855",
+                "duration_seconds": 34,
+                "duration_formatted": "00:34",
+                "exercise_name": "Burpees (Sentadillas de Potencia)",
+                "completed": true,
+                "timestamp": "2026-04-25T16:36:19.536855",
+                "sets": 4,
+                "reps": 8
             }
         ]
-    }
+    },
+    "exercise_alerts": {}
 }
