@@ -714,6 +714,12 @@
             "doctor_user": "medico1",
             "physio_user": null,
             "full_name": "paciente"
+        },
+        "luchador": {
+            "diagnosis": "Rotura ligamento cruzado",
+            "doctor_user": "medico1",
+            "physio_user": null,
+            "full_name": "luchador"
         }
     },
     "questionnaire_history": {

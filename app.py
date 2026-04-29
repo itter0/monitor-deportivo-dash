@@ -2875,47 +2875,40 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search="", userna
         if not path or path.startswith('http'):
             return path
         path_no_search = urlparse(path).path
-        # Si tenemos username y role, construye la URL con parámetros explícitos
         if username and role:
             session_params = f"?{urlencode({'user': username, 'role': role})}"
             return f"{path_no_search}{session_params}"
-        # Si no, usa current_search como fallback
         return f"{path_no_search}{current_search}"
     
     user_menu_items = [
         dbc.DropdownMenuItem("👤 Ver Mis Datos", id="nav-my-data-btn", n_clicks=0, href=get_full_href("/my-data")),
+        dbc.DropdownMenuItem(divider=True),
     ]
     
-    role_name_lower = role_name.lower()
-    is_doctor_role = ('medico' in role_name_lower) or (role_symbol == "👨‍⚕️")
-    is_patient_role = ('paciente' in role_name_lower) or (role_symbol == "🧑‍🦽")
+    role_check = role.lower() if role else role_name.lower()
+    is_doctor = 'medico' in role_check
+    is_patient = 'paciente' in role_check
 
-    if is_doctor_role:
-        is_doctor_dashboard = role_name.lower() == 'panel médico'
-
-        if not is_doctor_dashboard:
-            user_menu_items.extend([
-                dbc.DropdownMenuItem(divider=True),
-                dbc.DropdownMenuItem("Datos del Paciente", id="nav-patient-viewer-btn", n_clicks=0, href=get_full_href("/patient-data-viewer")),
-                # Usamos un ID único para el botón del menú desplegable para evitar conflictos.
-                dbc.DropdownMenuItem("Agendar Cita", id="schedule-appointment-btn-modal-trigger", n_clicks=0),
-                dbc.DropdownMenuItem("Ver Citas", id="nav-view-appointments-btn", n_clicks=0, href=get_full_href("/view-appointments")),
-            ])
-    
-    if is_patient_role:
+    if is_doctor:
         user_menu_items.extend([
-            dbc.DropdownMenuItem("Ver Cuestionarios", id="nav-my-questionnaires-btn", n_clicks=0, href=get_full_href("/my-questionnaires")),
-            dbc.DropdownMenuItem("Ver Citas", id="nav-view-patient-appointments-btn", n_clicks=0, href=get_full_href("/view-patient-appointments")),
-            dbc.DropdownMenuItem(
-                "💪 EJERCICIOS",
-                id="nav-exercises-btn",
-                n_clicks=0,
-            ),
-            dbc.DropdownMenuItem("Planificación Táctica", id="nav-tactical-planning-btn", n_clicks=0, href=get_full_href("/tactical-planning")),
-            dbc.DropdownMenuItem("🍽️ Planes de Comida", id="nav-meal-plans-btn", n_clicks=0, href=get_full_href("/meal-plans"))
+            dbc.DropdownMenuItem("🔬 Datos del Paciente", id="nav-patient-viewer-btn", href=get_full_href("/patient-data-viewer")),
+            dbc.DropdownMenuItem("📅 Agendar Cita", id="schedule-appointment-btn-modal-trigger"),
+            dbc.DropdownMenuItem("📋 Ver Mis Citas", id="nav-view-appointments-btn", href=get_full_href("/view-appointments")),
+        ])
+    
+    elif is_patient:
+        user_menu_items.extend([
+            dbc.DropdownMenuItem("📋 Mis Cuestionarios", id="nav-my-questionnaires-btn", href=get_full_href("/my-questionnaires")),
+            dbc.DropdownMenuItem("📅 Mis Citas", id="nav-view-patient-appointments-btn", href=get_full_href("/view-patient-appointments")),
+            dbc.DropdownMenuItem("💪 Mis Ejercicios", id="nav-exercises-btn", href=get_full_href("/exercises")),
+            dbc.DropdownMenuItem("🧠 Plan Táctico", id="nav-tactical-planning-btn", href=get_full_href("/tactical-planning")),
+            dbc.DropdownMenuItem("🍽️ Planes de Comida", id="nav-meal-plans-btn", href=get_full_href("/meal-plans"))
         ])
 
-    user_menu_items.append(dbc.DropdownMenuItem("Cerrar Sesión", id="logout-button", style={'color': 'red'}))
+    user_menu_items.extend([
+        dbc.DropdownMenuItem(divider=True),
+        dbc.DropdownMenuItem("🚪 Cerrar Sesión", id="logout-button", style={'color': 'red'})
+    ])
     
     user_menu = dbc.DropdownMenu(
         user_menu_items,
@@ -3594,7 +3587,7 @@ def get_doctor_dashboard(username, full_name, current_search=""):
         dbc.Row([
             dbc.Col(dbc.Button("🔬 Visor de Pacientes", href=f"/patient-data-viewer{current_search}", color="primary", className="w-100")),
             dbc.Col(dbc.Button("📅 Ver Citas", href=f"/view-appointments{current_search}", color="info", className="w-100")),
-            dbc.Col(dbc.Button("➕ Agendar Cita", id="schedule-appointment-btn", color="success", className="w-100")),
+            dbc.Col(dbc.Button("➕ Agendar Cita", id="schedule-appointment-btn", n_clicks=0, color="success", className="w-100")),
         ], className="g-2"),
     ], style=STYLES['card'])
 
@@ -4879,39 +4872,75 @@ def monitor_patient_health(n, selected_patient):
         raise PreventUpdate
 
     try:
-        # Leer 100 registros desde memoria para análisis de tendencias
-        df = get_ecg_window_from_memory(n, window_size=100)
-        
+        # 1. Obtener ventana de datos (usamos 1000 para que se vea fluida como la del paciente)
+        df = get_ecg_window_from_memory(n, window_size=1000)
+
         alerts = []
-        # 1. Detectar Arritmia (Datos del ECG)
-        if (df['status_ecg'] == 'RED_FLAG_ARRHYTHMIA').any():
+        # Detectar Arritmia para el color
+        is_warning = (df['status_ecg'] == 'RED_FLAG_ARRHYTHMIA').any()
+        if is_warning:
             alerts.append(dbc.Alert(
                 [html.I(className="bi bi-exclamation-triangle-fill me-2"),
-                 f"⚠️ ALERTA CRÍTICA: Arritmia detectada en el paciente {selected_patient}"],
+                 f"⚠️ ALERTA CRÍTICA: Arritmia detectada en {selected_patient}"],
                 color="danger", className="d-flex align-items-center animate__animated animate__pulse animate__infinite"
             ))
 
-        # 2. Detectar Fatiga o Movimiento Anómalo (Datos del IMU)
+        # Detectar Fatiga (IMU)
         if (df['status_imu'] == 'RED_FLAG_FATIGUE').any():
             alerts.append(dbc.Alert(
                 [html.I(className="bi bi-info-circle-fill me-2"),
-                 "Aviso: El paciente muestra signos de fatiga muscular o pérdida de rango de movimiento."],
+                 "Aviso: El paciente muestra signos de fatiga muscular."],
                 color="warning"
             ))
 
-        # 3. Actualizar Gráfico con colores de alerta
-        line_color = "red" if (df['status_ecg'] == 'RED_FLAG_ARRHYTHMIA').any() else "green"
-        fig = go.Figure(go.Scatter(x=df['timestamp'], y=df['ecg'], line=dict(color=line_color)))
-        fig.update_layout(template="plotly_white", margin=dict(l=20, r=20, t=40, b=20), height=300)
+        # 2. Configuración Estética (Igual al Dashboard del Paciente)
+        line_color = "#ef4444" if is_warning else "#2ebf7f"
+
+        fig = go.Figure(go.Scatter(
+            x=list(range(len(df))),
+            y=df['ecg'],
+            mode="lines",
+            line=dict(color=line_color, width=2.5),
+            hoverinfo='none'
+        ))
+
+        # 3. Aplicar el Layout "Octagon Pro" (Fondo negro, sin ruido visual)
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor='black',
+            plot_bgcolor='black',
+            margin=dict(l=50, r=20, t=40, b=40),
+            height=350,
+            xaxis=dict(
+                range=[0, len(df)-1],
+                showgrid=True,
+                gridcolor="#1a1a1a",
+                fixedrange=True
+            ),
+            yaxis=dict(
+                range=[-1.0, 2.0],
+                showgrid=True,
+                gridcolor="#1a1a1a",
+                zerolinecolor="#333333",
+                fixedrange=True,
+                tickformat=".1f"
+            ),
+            showlegend=False,
+            title={
+                'text': "⚠️ ARRITMIA DETECTADA" if is_warning else "RITMO CARDÍACO NORMAL",
+                'font': {'color': line_color, 'size': 14, 'family': 'Arial Black'},
+                'x': 0.05
+            }
+        )
 
         bpm = 75 + (float(df['ecg'].max()) * 5)
         bpm_msg = f"❤️ Frecuencia Cardíaca: {bpm:.1f} BPM"
-        source_msg = f"📡 ECG real cargado: {len(df_ecg_global)} muestras ({ECG_REAL_FILE})"
+        source_msg = f"📡 Fuente: Datos Reales ({len(df_ecg_global)} muestras)"
 
         return alerts, fig, bpm_msg, source_msg
 
     except Exception as e:
-        print(f"Error en monitorización: {e}")
+        print(f"Error en monitorización médica: {e}")
         raise PreventUpdate
 
 
@@ -5576,6 +5605,7 @@ def download_exercise_incidents_csv(n_clicks, username):
     return dcc.send_data_frame(df_alerts.to_csv, filename, index=False)
 
 # Callback: Agendar cita (abrir modal) (CORREGIDO: Usa el ID global)
+# Callback corregido para abrir el modal de citas
 @app.callback(
     Output('schedule-appointment-modal', 'is_open'),
     [Input('schedule-appointment-btn', 'n_clicks'), 
@@ -5585,21 +5615,20 @@ def download_exercise_incidents_csv(n_clicks, username):
     [State('schedule-appointment-modal', 'is_open')],
     prevent_initial_call=True
 )
-def toggle_appointment_modal(n_open_dash, n_open_nav_trigger, n_cancel, n_confirm, is_open):
+def toggle_appointment_modal(n_dash, n_nav, n_cancel, n_confirm, is_open):
     ctx = callback_context
     if not ctx.triggered:
         return is_open
     
+    # Obtener el ID del componente que disparó el callback
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
+
+    # Botones que abren el modal
     if trigger_id in ['schedule-appointment-btn', 'schedule-appointment-btn-modal-trigger']:
-        # Se disparó por un botón de abrir, verificar que no sea un clic None
-        if ctx.triggered[0]['value'] and ctx.triggered[0]['value'] > 0:
-             return True
+        return True
     
-    if trigger_id == 'cancel-appointment-btn' and n_cancel and n_cancel > 0:
-        return False
-    if trigger_id == 'confirm-appointment-btn' and n_confirm and n_confirm > 0:
+    # Botones que cierran el modal
+    if trigger_id in ['cancel-appointment-btn', 'confirm-appointment-btn']:
         return False
     
     return is_open
