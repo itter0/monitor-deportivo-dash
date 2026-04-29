@@ -2869,12 +2869,17 @@ def get_register_layout():
     ], className='octagon-auth-shell', style=STYLES['auth_main_container'])
 
 # --- NAV BAR ---
-def get_user_navbar(role_symbol, full_name, role_name, current_search=""): 
+def get_user_navbar(role_symbol, full_name, role_name, current_search="", username="", role=""): 
     
     def get_full_href(path):
         if not path or path.startswith('http'):
             return path
         path_no_search = urlparse(path).path
+        # Si tenemos username y role, construye la URL con parámetros explícitos
+        if username and role:
+            session_params = f"?{urlencode({'user': username, 'role': role})}"
+            return f"{path_no_search}{session_params}"
+        # Si no, usa current_search como fallback
         return f"{path_no_search}{current_search}"
     
     user_menu_items = [
@@ -2901,7 +2906,11 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search=""):
         user_menu_items.extend([
             dbc.DropdownMenuItem("Ver Cuestionarios", id="nav-my-questionnaires-btn", n_clicks=0, href=get_full_href("/my-questionnaires")),
             dbc.DropdownMenuItem("Ver Citas", id="nav-view-patient-appointments-btn", n_clicks=0, href=get_full_href("/view-patient-appointments")),
-            dbc.DropdownMenuItem("💪 Ejercicios", id="nav-exercises-btn", n_clicks=0, href=get_full_href("/exercises")),
+            dbc.DropdownMenuItem(
+                "💪 EJERCICIOS",
+                id="nav-exercises-btn",
+                n_clicks=0,
+            ),
             dbc.DropdownMenuItem("Planificación Táctica", id="nav-tactical-planning-btn", n_clicks=0, href=get_full_href("/tactical-planning")),
             dbc.DropdownMenuItem("🍽️ Planes de Comida", id="nav-meal-plans-btn", n_clicks=0, href=get_full_href("/meal-plans"))
         ])
@@ -2950,6 +2959,27 @@ def render_exercise_alerts(alerts):
             })
         )
     return cards
+
+
+def build_exercise_incidents_rows(alerts):
+    rows = []
+    for alert in alerts or []:
+        raw_ts = alert.get('timestamp', '')
+        try:
+            ts_fmt = datetime.fromisoformat(raw_ts).strftime('%A %d de %B de %Y %H:%M')
+        except Exception:
+            ts_fmt = raw_ts
+
+        rows.append({
+            'Fecha': ts_fmt,
+            'Ejercicio': alert.get('exercise_name', 'Ejercicio'),
+            'Fatiga detectada': int(alert.get('fatigue_count', 0) or 0),
+            'Arritmias detectadas': int(alert.get('arrhythmia_count', 0) or 0),
+            'Fuente': alert.get('sensor_source', 'sensor'),
+            'Severidad': alert.get('severity', 'warning'),
+            'Detalle': alert.get('message', ''),
+        })
+    return rows
 
 
 def get_exercises_layout(username, full_name, current_search=""):
@@ -3028,10 +3058,50 @@ def get_exercises_layout(username, full_name, current_search=""):
         ]) if patient_data.get('exercises') else html.P("SIN REGISTROS", style={'color': '#555'})
     ], style=STYLES['card'])
 
-    return html.Div([
-        get_user_navbar("🧑‍🦽", full_name, "Ejercicios", current_search),
+    incidents_rows = build_exercise_incidents_rows(exercise_alerts)
+    incidents_detail = html.Div([
         html.Div([
-            dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-exercises", href=f"/{current_search}", color="primary",
+            html.Span("🧾 ", style={'fontSize': '1.2em'}),
+            "Historial de Fallos Detectados"
+        ], style=STYLES['card_header_tactical']),
+        dbc.Button(
+            "📥 Descargar historial (CSV)",
+            id="download-exercise-incidents-btn",
+            color="secondary",
+            size="sm",
+            className="mb-3"
+        ),
+        dcc.Download(id="download-exercise-incidents-csv"),
+        html.Div([
+            html.Div([
+                html.P([
+                    html.Strong(row['Fecha']),
+                    html.Br(),
+                    html.Span(f"Ejercicio: {row['Ejercicio']}", style={'color': '#ffffff'}),
+                    html.Br(),
+                    html.Span(f"Fatiga detectada: {row['Fatiga detectada']}", style={'color': '#f59e0b'}),
+                    html.Br(),
+                    html.Span(f"Arritmias detectadas: {row['Arritmias detectadas']}", style={'color': '#ef4444'}),
+                    html.Br(),
+                    html.Span(f"Fuente: {row['Fuente']} | Severidad: {row['Severidad']}", style={'fontSize': '0.82em', 'color': COLORS['muted']}),
+                ], style={
+                    'padding': '10px',
+                    'background': '#111',
+                    'borderRadius': '5px',
+                    'marginBottom': '10px',
+                    'border': '1px solid #222'
+                })
+            ]) for row in incidents_rows
+        ]) if incidents_rows else html.P(
+            "Sin incidencias detectadas aún en sesiones de ejercicios.",
+            style={'color': COLORS['muted']}
+        )
+    ], style=STYLES['card'])
+
+    return html.Div([
+        get_user_navbar("🧑‍🦽", full_name, "Ejercicios", current_search, username, 'paciente'),
+        html.Div([
+            dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-exercises", href=f"/{current_search}", color="primary", size="sm",
                        style={'marginBottom': '20px'}),
             html.Div([
                 html.Div([
@@ -3049,6 +3119,7 @@ def get_exercises_layout(username, full_name, current_search=""):
                     dcc.Graph(id="exercise-history-graph", figure=exercise_fig),
                 ], style=STYLES['card']),
                 exercise_history_list,
+                incidents_detail,
             ], style={'flex': 1, 'minWidth': '320px'}),
             html.Div([
                 exercise_grid,
@@ -3180,7 +3251,7 @@ def get_patient_dashboard(username, full_name, current_search=""):
 
 
     return html.Div([
-        get_user_navbar("🧑‍🦽", full_name.upper(), "PANEL PACIENTE", current_search), 
+        get_user_navbar("🧑‍🦽", full_name.upper(), "PANEL PACIENTE", current_search, username, 'paciente'), 
 
         html.Div([
             # COLUMNA IZQUIERDA
@@ -3463,7 +3534,7 @@ def get_tactical_planning_layout(username, full_name, current_search=""):
     ], style=STYLES['card'])
 
     return html.Div([
-        get_user_navbar("🧑‍🦽", full_name, "Planificación Táctica", current_search),
+        get_user_navbar("🧑‍🦽", full_name, "Planificación Táctica", current_search, username, 'paciente'),
         html.Div([
             dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-5", href=f"/{current_search}", color="primary",
                        style={'marginBottom': '20px'}),
@@ -3528,7 +3599,7 @@ def get_doctor_dashboard(username, full_name, current_search=""):
     ], style=STYLES['card'])
 
     return html.Div([
-        get_user_navbar("👨‍⚕️", full_name, "Panel Médico", current_search), 
+        get_user_navbar("👨‍⚕️", full_name, "Panel Médico", current_search, username, 'medico'), 
         
         html.Div([
             dbc.Row([
@@ -3582,7 +3653,7 @@ def get_doctor_dashboard(username, full_name, current_search=""):
     ], style=STYLES['card'])
 
     return html.Div([
-        get_user_navbar("👨‍⚕️", full_name, "Panel Médico", current_search), 
+        get_user_navbar("👨‍⚕️", full_name, "Panel Médico", current_search, username, 'medico'), 
         
         html.Div([
             dbc.Row([
@@ -3620,7 +3691,7 @@ def get_user_data_layout(username, full_name, role, current_search=""):
         }
     
     return html.Div([
-        get_user_navbar("👤", full_name, f"MIS DATOS - {role.upper()}", current_search), 
+        get_user_navbar("👤", full_name, f"MIS DATOS - {role.upper()}", current_search, username, role), 
         
         html.Div([
             dbc.Row([
@@ -3821,7 +3892,7 @@ def get_questionnaire_history_layout(username, full_name, current_search=""):
         questionnaires = []
     
     return html.Div([
-        get_user_navbar("🧑‍🦽", full_name, "Mis Cuestionarios", current_search), 
+        get_user_navbar("🧑‍🦽", full_name, "Mis Cuestionarios", current_search, username, 'paciente'), 
         
         html.Div([
             dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-2", href=f"/{current_search}", color="primary", 
@@ -3935,7 +4006,7 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
         )
     
     return html.Div([
-        get_user_navbar("🧑‍🦽", full_name, "Mis Citas", current_search),
+        get_user_navbar("🧑‍🦽", full_name, "Mis Citas", current_search, username, 'paciente'),
         
         html.Div([
             dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-patient-appt", href=f"/{current_search}", color="primary", style={'marginBottom': '20px'}),
@@ -3975,7 +4046,7 @@ def get_patient_data_viewer_layout(username, full_name, current_search=""):
     initial_ecg_fig, initial_bpm_text = create_initial_ecg_figure()
     
     return html.Div([
-        get_user_navbar("👨‍⚕️", full_name, "Visor de Pacientes", current_search), 
+        get_user_navbar("👨‍⚕️", full_name, "Visor de Pacientes", current_search, username, 'medico'), 
         
         html.Div([
             dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-3", href=f"/{current_search}", color="primary", 
@@ -5336,10 +5407,11 @@ def start_exercise(start_clicks, image_clicks, exercises):
      State('exercise-start-time', 'data'),
      State('available-exercises', 'data'),
      State('current-patient-username', 'data'),
-     State('reload-trigger', 'data')],
+     State('reload-trigger', 'data'),
+     State('exercise-uploaded-sensors-data', 'data')],
     prevent_initial_call=True
 )
-def finish_exercise_and_show_survey(n_clicks, exercise_id, start_time, exercises, username, reload_trigger):
+def finish_exercise_and_show_survey(n_clicks, exercise_id, start_time, exercises, username, reload_trigger, upload_state):
     if not n_clicks or n_clicks == 0:
         return dash.no_update, False, html.Div(), dash.no_update, dash.no_update
     
@@ -5391,6 +5463,48 @@ def finish_exercise_and_show_survey(n_clicks, exercise_id, start_time, exercises
         
         try:
             db.record_completed_exercise(username, exercise_id, exercise_data)
+
+            upload_state = upload_state or {}
+            has_uploaded_ecg = bool(upload_state.get('ecg')) and not df_uploaded_exercise_ecg_global.empty
+            has_uploaded_imu = bool(upload_state.get('imu')) and not df_uploaded_exercise_imu_global.empty
+
+            ecg_source_df = df_uploaded_exercise_ecg_global if has_uploaded_ecg else df_ecg_global
+            imu_source_df = df_uploaded_exercise_imu_global if has_uploaded_imu else df_imu_global
+
+            ecg_col = 'ecg_value' if 'ecg_value' in ecg_source_df.columns else None
+            imu_col = 'imu_value' if 'imu_value' in imu_source_df.columns else None
+
+            arrhythmia_count = 0
+            fatigue_count = 0
+
+            if ecg_col:
+                ecg_series = pd.to_numeric(ecg_source_df[ecg_col], errors='coerce').fillna(0.0)
+                arrhythmia_count = int((ecg_series.abs() > 1.5).sum())
+
+            if imu_col:
+                imu_series = pd.to_numeric(imu_source_df[imu_col], errors='coerce').fillna(0.0)
+                fatigue_count = int((imu_series.abs() > 0.9).sum())
+
+            if arrhythmia_count > 0 or fatigue_count > 0:
+                sensor_source = []
+                sensor_source.append(f"ECG:{uploaded_exercise_ecg_filename}" if has_uploaded_ecg and uploaded_exercise_ecg_filename else "ECG:real")
+                sensor_source.append(f"IMU:{uploaded_exercise_imu_filename}" if has_uploaded_imu and uploaded_exercise_imu_filename else "IMU:real")
+
+                alert_data = {
+                    'timestamp': end_time.isoformat(),
+                    'exercise_id': exercise_id,
+                    'exercise_name': exercise_data['exercise_name'],
+                    'fatigue_count': fatigue_count,
+                    'arrhythmia_count': arrhythmia_count,
+                    'sensor_source': ' | '.join(sensor_source),
+                    'severity': 'critical' if arrhythmia_count > 0 else 'warning',
+                    'message': (
+                        f"Durante la sesión se detectaron {fatigue_count} eventos de fatiga "
+                        f"y {arrhythmia_count} posibles eventos de arritmia."
+                    ),
+                }
+                db.save_exercise_alert(username, alert_data)
+
             new_trigger = reload_trigger + 1 if reload_trigger is not None else 1
         except Exception as e:
             print(f"Error saving exercise: {e}")
@@ -5438,6 +5552,28 @@ def update_exercise_timer(n_intervals, exercise_id, start_time):
         seconds = int(duration.total_seconds() % 60)
         return f"{minutes:02d}:{seconds:02d}"
     return "00:00"
+
+
+@app.callback(
+    Output("download-exercise-incidents-csv", "data"),
+    Input("download-exercise-incidents-btn", "n_clicks"),
+    State("current-patient-username", "data"),
+    prevent_initial_call=True
+)
+def download_exercise_incidents_csv(n_clicks, username):
+    if not n_clicks or not username:
+        return dash.no_update
+
+    user_data = db.get_complete_user_data(username) or {}
+    alerts = user_data.get('exercise_alerts', [])
+    rows = build_exercise_incidents_rows(alerts)
+
+    if not rows:
+        return dash.no_update
+
+    df_alerts = pd.DataFrame(rows)
+    filename = f"historial_fallos_ejercicios_{username}_{datetime.now().strftime('%Y%m%d')}.csv"
+    return dcc.send_data_frame(df_alerts.to_csv, filename, index=False)
 
 # Callback: Agendar cita (abrir modal) (CORREGIDO: Usa el ID global)
 @app.callback(
@@ -6128,7 +6264,7 @@ def get_meal_plans_layout(username, full_name, current_search=""):
     meal_plans_html = render_meal_plans_cards(meal_plans_data)
     
     return html.Div([
-        get_user_navbar("🍽️", full_name.upper(), "PLANES DE COMIDA", current_search),
+        get_user_navbar("🍽️", full_name.upper(), "PLANES DE COMIDA", current_search, username, 'paciente'),
         dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-meal-plans", href=f"/{current_search}", color="primary", style={'margin': '15px 24px 0'}),
         
         html.Div([
@@ -6277,6 +6413,10 @@ def display_page(pathname, search, current_session):
         
         if pathname == '/meal-plans' and role == 'paciente':
             return get_meal_plans_layout(username, full_name, session_search), updated_session, dash.no_update
+       
+        # Aqui es lo del ejercicio 
+        if pathname == '/exercises' and role == 'paciente':
+            return get_exercises_layout(username, full_name, session_search), updated_session, dash.no_update
         
         # NUEVO: VISTA DE CITAS DEL PACIENTE
         if pathname == '/view-patient-appointments' and role == 'paciente':
@@ -6363,6 +6503,21 @@ def handle_internal_navigation(pathname, user_data, current_search):
         return new_search
             
     return dash.no_update
+
+
+@app.callback(
+    [Output('url', 'pathname', allow_duplicate=True),
+     Output('url', 'search', allow_duplicate=True)],
+    Input('nav-exercises-btn', 'n_clicks'),
+    State('user-session-state', 'data'),
+    prevent_initial_call=True
+)
+def open_exercises_from_nav(n_clicks, user_data):
+    if not n_clicks or not user_data or not user_data.get('username'):
+        return dash.no_update, dash.no_update
+
+    session_params = urlencode({'user': user_data['username'], 'role': user_data['role']})
+    return '/exercises', f"?{session_params}"
 
 # Función auxiliar para obtener ejercicios según estado de salud y lesión
 def get_recommended_exercises(health_status, injury_types=None):
