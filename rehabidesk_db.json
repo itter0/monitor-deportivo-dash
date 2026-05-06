@@ -198,8 +198,8 @@
                 "emergency_phone": "600123456",
                 "blood_type": "A-",
                 "injury_types": [
-                    "codo",
-                    "hombro"
+                    "rodilla",
+                    "codo"
                 ],
                 "health_status": "lesionado",
                 "current_weight": 75.0,
@@ -1875,6 +1875,15 @@
                 },
                 "timestamp": "2026-05-06T16:55:20.309161",
                 "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Codo"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "sin_dificultad",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2026-05-06T17:25:29.382254",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
             }
         ],
         "marcos": [

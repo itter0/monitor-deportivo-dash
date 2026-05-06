@@ -146,6 +146,82 @@ class QuestionnaireService:
             'questionnaire_title': questionnaire_title,
         }
 
+    @staticmethod
+    def extract_scale_questions_data(questionnaires_data, questionnaires_def):
+        """
+        Extrae datos de preguntas de escala (slider/radio) de los cuestionarios del usuario.
+        Retorna lista de dicts con estructura:
+        {
+            'questionnaire_id': str,
+            'questionnaire_title': str,
+            'question_id': str,
+            'question_text': str,
+            'data_points': [{'timestamp': datetime, 'value': float}]
+        }
+        Si no hay datos, retorna lista vacía.
+        """
+        if not questionnaires_data:
+            return []
+
+        scale_data = []
+
+        for q in questionnaires_data:
+            try:
+                q_id = q.get('questionnaire_id')
+                if not q_id or q_id not in questionnaires_def:
+                    continue
+
+                q_def = questionnaires_def[q_id]
+                ts = datetime.fromisoformat(q.get('timestamp', ''))
+                responses = q.get('responses', {})
+
+                # Iterar por cada pregunta en la definición
+                for question_def in q_def.get('questions', []):
+                    q_type = question_def.get('type')
+                    # Solo procesar preguntas de escala (slider o radio)
+                    if q_type not in ['slider', 'radio']:
+                        continue
+
+                    q_def_id = question_def.get('id')
+                    if q_def_id not in responses:
+                        continue
+
+                    value = responses[q_def_id]
+                    # Convertir a float si es posible
+                    try:
+                        numeric_value = float(value)
+                    except (ValueError, TypeError):
+                        # Para radio, usar índice de opción como valor
+                        numeric_value = None
+                        continue
+
+                    # Buscar o crear entrada para esta pregunta
+                    entry = next(
+                        (e for e in scale_data
+                         if e['questionnaire_id'] == q_id and e['question_id'] == q_def_id),
+                        None
+                    )
+
+                    if not entry:
+                        entry = {
+                            'questionnaire_id': q_id,
+                            'questionnaire_title': q_def.get('title', q_id),
+                            'question_id': q_def_id,
+                            'question_text': question_def.get('question', ''),
+                            'data_points': []
+                        }
+                        scale_data.append(entry)
+
+                    entry['data_points'].append({
+                        'timestamp': ts,
+                        'value': numeric_value
+                    })
+
+            except (ValueError, TypeError, KeyError):
+                continue
+
+        return scale_data
+
 # Layout de cuestionario
 questionnaire_layout = html.Div([
     html.Label("Nivel de fatiga (1-10):", style={'color': '#ffffff'}),

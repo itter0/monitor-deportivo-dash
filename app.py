@@ -1629,36 +1629,35 @@ def extract_round_techniques(title, details):
     return TacticalPlanningService.extract_round_techniques(title, details)
 
 # --- FUNCIONES AUXILIARES PARA GRÁFICAS ---
-def create_questionnaire_plot(questionnaires):
-    """Genera dos gráficas independientes para Dolor en Reposo y al Caminar"""
-    # Si no hay datos, devolvemos dos gráficas vacías con un mensaje
-    if not questionnaires:
-        empty = go.Figure().add_annotation(
-            text="Sin datos registrados", xref="paper", yref="paper", 
-            x=0.5, y=0.5, showarrow=False
-        ).update_layout(height=320, template="plotly_white")
-        return empty, empty
-
-    data_q1, data_q2 = [], []
+def create_questionnaire_plot(questionnaires, questionnaires_def, allowed_qids=None):
+    """
+    Genera gráficas dinámicas para cada pregunta de escala en los cuestionarios completados.
+    Retorna:
+    - None si no hay datos de cuestionarios
+    - Lista de tuples (figure, question_data) si hay datos
     
-    for q in questionnaires:
-        try:
-            ts = datetime.fromisoformat(q['timestamp'])
-            # Filtramos solo el cuestionario de dolor de rodilla
-            if q.get('questionnaire_id') == 'dolor_rodilla':
-                # Pregunta 1: Reposo
-                if 'q1' in q['responses']: 
-                    data_q1.append({'timestamp': ts, 'Valor': float(q['responses']['q1'])})
-                # Pregunta 2: Caminar
-                if 'q2' in q['responses']: 
-                    data_q2.append({'timestamp': ts, 'Valor': float(q['responses']['q2'])})
-        except (ValueError, TypeError): 
-            continue
+    La lista está vacía si no hay preguntas de escala, o contiene una tupla por cada pregunta.
+    """
+    if not questionnaires or not questionnaires_def:
+        return None
 
-    # Función interna para dar formato consistente a ambas gráficas
-    def format_fig(data, title, line_color):
-        if not data:
-            # Versión oscura para el estado vacío
+    # Usar el servicio para extraer datos de escala
+    scale_data_list = QuestionnaireService.extract_scale_questions_data(questionnaires, questionnaires_def)
+
+    # Si se proporcionó una lista/sets de cuestionarios permitidos, filtrar los datos
+    if allowed_qids is not None:
+        try:
+            allowed_set = set(allowed_qids)
+            scale_data_list = [s for s in scale_data_list if s.get('questionnaire_id') in allowed_set]
+        except Exception:
+            pass
+
+    if not scale_data_list:
+        return None
+
+    # Función interna para dar formato consistente a las gráficas
+    def format_fig(data_points, title, line_color='#3b82f6'):
+        if not data_points:
             fig_empty = go.Figure().add_annotation(
                 text="Sin respuestas", 
                 font=dict(color="#555555", size=14),
@@ -1673,6 +1672,8 @@ def create_questionnaire_plot(questionnaires):
             )
             return fig_empty
         
+        # Convertir puntos de datos a DataFrame
+        data = [{'timestamp': dp['timestamp'], 'Valor': dp['value']} for dp in data_points]
         df = pd.DataFrame(data).sort_values('timestamp')
         fig = px.line(df, x='timestamp', y='Valor', markers=True, title=title)
         
@@ -1683,21 +1684,20 @@ def create_questionnaire_plot(questionnaires):
                 size=10, 
                 color=line_color, 
                 symbol='circle',
-                line=dict(width=1, color='white') # Pequeño brillo en el punto
+                line=dict(width=1, color='white')
             ),
             mode='lines+markers'
         )
         
         fig.update_layout(
-            # Configuración de Ejes Estilo Médico/Táctico
             yaxis=dict(
                 range=[-0.2, 10.2], 
                 dtick=1, 
-                gridcolor="#1a1a1a",   # Cuadrícula muy sutil
+                gridcolor="#1a1a1a",
                 zerolinecolor="#333333",
-                color="#666666",       # Números en gris tenue
+                color="#666666",
                 title_text="Valor",
-                fixedrange=True        # Evita que el usuario mueva la gráfica
+                fixedrange=True
             ),
             xaxis=dict(
                 gridcolor="#1a1a1a", 
@@ -1708,16 +1708,14 @@ def create_questionnaire_plot(questionnaires):
             ),
             
             height=320,
-            margin=dict(l=40, r=10, t=50, b=40), # Márgenes ajustados
+            margin=dict(l=40, r=10, t=50, b=40),
             
-            # Estilo de Fondo (Oscuro total)
             template="plotly_dark", 
-            paper_bgcolor='black',      # Fondo negro sólido como la imagen
+            paper_bgcolor='black',
             plot_bgcolor='black',
             
-            # Título minimalista
             title={
-                'text': title.upper(),  # Mayúsculas para look Octagon
+                'text': title.upper(),
                 'x': 0.05,
                 'xanchor': 'left',
                 'font': {'size': 14, 'color': '#888888', 'family': 'Arial Black'}
@@ -1725,11 +1723,20 @@ def create_questionnaire_plot(questionnaires):
         )
         return fig
 
-    # Retornamos la TUPLA de dos figuras
-    fig_reposo = format_fig(data_q1, '🔴 Dolor en Reposo', '#ef4444')
-    fig_caminar = format_fig(data_q2, '🟠 Dolor al Caminar', '#f59e0b')
+    # Generar figura por cada pregunta de escala
+    figures_list = []
+    for scale_data in scale_data_list:
+        q_title = scale_data['questionnaire_title']
+        q_text = scale_data['question_text']
+        data_points = sorted(scale_data['data_points'], key=lambda x: x['timestamp'])
+        
+        # Combinar título del cuestionario con la pregunta
+        full_title = f"{q_title} - {q_text[:60]}..."
+        
+        fig = format_fig(data_points, full_title)
+        figures_list.append(fig)
 
-    return fig_reposo, fig_caminar
+    return figures_list if figures_list else None
 
 
 
@@ -3068,23 +3075,23 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search="", userna
 
     if is_doctor:
         user_menu_items.extend([
-            dbc.DropdownMenuItem("🔬 Datos del Paciente", id="nav-patient-viewer-btn", href=get_full_href("/patient-data-viewer")),
-            dbc.DropdownMenuItem("📅 Agendar Cita", id="schedule-appointment-btn-modal-trigger"),
-            dbc.DropdownMenuItem("📋 Ver Mis Citas", id="nav-view-appointments-btn", href=get_full_href("/view-appointments")),
+            dbc.DropdownMenuItem("Datos del Paciente", id="nav-patient-viewer-btn", href=get_full_href("/patient-data-viewer")),
+            dbc.DropdownMenuItem("Agendar Cita", id="schedule-appointment-btn-modal-trigger"),
+            dbc.DropdownMenuItem("Ver Mis Citas", id="nav-view-appointments-btn", href=get_full_href("/view-appointments")),
         ])
     
     elif is_patient:
         user_menu_items.extend([
-            dbc.DropdownMenuItem("📋 Mis Cuestionarios", id="nav-my-questionnaires-btn", href=get_full_href("/my-questionnaires")),
-            dbc.DropdownMenuItem("📅 Mis Citas", id="nav-view-patient-appointments-btn", href=get_full_href("/view-patient-appointments")),
-            dbc.DropdownMenuItem("💪 Mis Ejercicios", id="nav-exercises-btn", href=get_full_href("/exercises")),
-            dbc.DropdownMenuItem("🧠 Plan Táctico", id="nav-tactical-planning-btn", href=get_full_href("/tactical-planning")),
-            dbc.DropdownMenuItem("🍽️ Planes de Comida", id="nav-meal-plans-btn", href=get_full_href("/meal-plans"))
+            dbc.DropdownMenuItem("Mis Cuestionarios", id="nav-my-questionnaires-btn", href=get_full_href("/my-questionnaires")),
+            dbc.DropdownMenuItem("Mis Citas", id="nav-view-patient-appointments-btn", href=get_full_href("/view-patient-appointments")),
+            dbc.DropdownMenuItem("Mis Ejercicios", id="nav-exercises-btn", href=get_full_href("/exercises")),
+            dbc.DropdownMenuItem("Plan Táctico", id="nav-tactical-planning-btn", href=get_full_href("/tactical-planning")),
+            dbc.DropdownMenuItem("Planes de Comida", id="nav-meal-plans-btn", href=get_full_href("/meal-plans"))
         ])
 
     user_menu_items.extend([
         dbc.DropdownMenuItem(divider=True),
-        dbc.DropdownMenuItem("🚪 Cerrar Sesión", id="logout-button", style={'color': 'red'})
+        dbc.DropdownMenuItem("Cerrar Sesión", id="logout-button", style={'color': 'red'})
     ])
     
     user_menu = dbc.DropdownMenu(
@@ -3323,7 +3330,23 @@ def get_patient_dashboard(username, full_name, current_search=""):
     fights_data = user_raw_data.get('fights', [])
     nutrition_data = user_raw_data.get('nutrition', {})
     
-    fig_q1, fig_q2 = create_questionnaire_plot(questionnaires_data)
+    # Determinar qué cuestionarios están permitidos según el estado/lesiones del paciente
+    allowed_qids = None
+    try:
+        if health_status == 'lesionado' and injury_types:
+            if not isinstance(injury_types, list):
+                injury_types = [injury_types]
+            allowed = []
+            for inj in injury_types:
+                allowed.extend(QUESTIONNAIRES_BY_INJURY.get(inj, []))
+            allowed_qids = set(allowed)
+        elif health_status == 'listo':
+            allowed_qids = {'funcionalidad'}
+    except Exception:
+        allowed_qids = None
+
+    # Generar gráficas dinámicas de cuestionarios (filtradas por lesiones actuales)
+    questionnaire_figures = create_questionnaire_plot(questionnaires_data, QUESTIONNAIRES, allowed_qids)
 
     # Tarjeta de citas con estilo táctico
     appointments_card = html.Div([
@@ -3431,8 +3454,8 @@ def get_patient_dashboard(username, full_name, current_search=""):
 
             # COLUMNA DERECHA
             html.Div([
-                # Evolución del Dolor (Dinámico según cuestionario)
-                html.Div([
+                # Evolución de Respuestas (Solo si hay datos de cuestionarios)
+                *([html.Div([
                     html.Div([
                         html.Span("📈 ", style={'fontSize': '1.2em'}),
                         "Evolución de Respuestas"
@@ -3440,11 +3463,11 @@ def get_patient_dashboard(username, full_name, current_search=""):
                     
                     html.Div(id='questionnaire-dynamic-graphs', children=[
                         dbc.Row([
-                            dbc.Col(dcc.Graph(id="questionnaire-q1-graph", figure=fig_q1, config={'displayModeBar': False}), width=12, lg=6),
-                            dbc.Col(dcc.Graph(id="questionnaire-q2-graph", figure=fig_q2, config={'displayModeBar': False}), width=12, lg=6),
+                            *[dbc.Col(dcc.Graph(id=f"questionnaire-graph-{i}", figure=fig, config={'displayModeBar': False}), width=12, lg=6)
+                              for i, fig in enumerate(questionnaire_figures)]
                         ])
                     ]),
-                ], style=STYLES['card']),
+                ], style=STYLES['card'])] if questionnaire_figures else []),
 
                 # Monitoreo ECG
                 html.Div([
@@ -7008,8 +7031,25 @@ def display_selected_patient_data(patient_username):
         user_data = db.get_complete_user_data(patient_username)
         
         # --- GENERACIÓN DE GRÁFICOS ---
-        # --- GENERACIÓN DE GRÁFICOS ---
-        fig_q1, fig_q2 = create_questionnaire_plot(user_data.get('questionnaires', []))
+        # Determinar cuestionarios permitidos según el perfil del paciente mostrado
+        profile = user_data.get('profile', {}) or {}
+        h_status = profile.get('health_status', 'listo')
+        inj_types = profile.get('injury_types', [])
+        allowed_qids_doc = None
+        try:
+            if h_status == 'lesionado' and inj_types:
+                if not isinstance(inj_types, list):
+                    inj_types = [inj_types]
+                allowed = []
+                for inj in inj_types:
+                    allowed.extend(QUESTIONNAIRES_BY_INJURY.get(inj, []))
+                allowed_qids_doc = set(allowed)
+            elif h_status == 'listo':
+                allowed_qids_doc = {'funcionalidad'}
+        except Exception:
+            allowed_qids_doc = None
+
+        questionnaire_figures_doctor = create_questionnaire_plot(user_data.get('questionnaires', []), QUESTIONNAIRES, allowed_qids_doc)
         exercise_fig = create_exercise_plot(user_data.get('exercises', []))
         
         # --- CARDS DE INFORMACIÓN PERSONAL Y MÉDICA ---
@@ -7049,10 +7089,10 @@ def display_selected_patient_data(patient_username):
         graph_q_card = html.Div([
             html.H4("📈 Progreso de Cuestionarios", style={'color': COLORS['primary'], 'marginBottom': '20px'}),
             dbc.Row([
-                dbc.Col(dcc.Graph(figure=fig_q1, config={'displayModeBar': False}), width=12, lg=6),
-                dbc.Col(dcc.Graph(figure=fig_q2, config={'displayModeBar': False}), width=12, lg=6),
-            ])
-        ], style=STYLES['card'])
+                *[dbc.Col(dcc.Graph(figure=fig, config={'displayModeBar': False}), width=12, lg=6)
+                  for fig in (questionnaire_figures_doctor or [])]
+            ]) if questionnaire_figures_doctor else html.P("Sin datos de cuestionarios", style={'color': COLORS['muted']})
+        ], style=STYLES['card']) if questionnaire_figures_doctor else None
 
         graph_e_card = html.Div([
             html.H4("📊 Gráfica de Ejercicios", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
