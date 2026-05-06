@@ -197,9 +197,12 @@
                 "emergency_contact": "1",
                 "emergency_phone": "600123456",
                 "blood_type": "A-",
-                "injury_types": [],
-                "health_status": "listo",
-                "current_weight": 75,
+                "injury_types": [
+                    "codo",
+                    "hombro"
+                ],
+                "health_status": "lesionado",
+                "current_weight": 75.0,
                 "weight_class": "middleweight"
             },
             "tactical_plans": [
@@ -448,6 +451,200 @@
                     ],
                     "weight_direction": "auto",
                     "phase_custom_notes": ""
+                },
+                {
+                    "fight_id": "fight-1778086893.992901",
+                    "linked_fight": null,
+                    "opponent": {
+                        "name": "Topuria",
+                        "style": "Grappling",
+                        "strengths": [],
+                        "weaknesses": [],
+                        "notes": "",
+                        "stance": "",
+                        "reach": "",
+                        "cardio": ""
+                    },
+                    "my_specialty": "Balanced",
+                    "my_phase": "Base breve",
+                    "game_plan_rounds": [
+                        {
+                            "round_number": 1,
+                            "focus": "Establish Adaptability and versatility",
+                            "techniques": [
+                                "clinch",
+                                "control de distancia"
+                            ],
+                            "contingency": "T\u00e9cnicas: Counter-striking, Counter-grappling. Plan B: If struggling with distance, adjust footwork and use clinch disruption."
+                        },
+                        {
+                            "round_number": 2,
+                            "focus": "Maintain pressure and exploit weaknesses",
+                            "techniques": [
+                                "T\u00e9cnicas: Expose one-dimensional weakness",
+                                "Plan B: If opponent adjusts"
+                            ],
+                            "contingency": "T\u00e9cnicas: Expose one-dimensional weakness. Plan B: If opponent adjusts, shift from primary to secondary techniques."
+                        },
+                        {
+                            "round_number": 3,
+                            "focus": "Close rounds with dominant control",
+                            "techniques": [
+                                "derribo"
+                            ],
+                            "contingency": "T\u00e9cnicas: Expose one-dimensional weakness, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                        }
+                    ],
+                    "contingencies": [
+                        "T\u00e9cnicas: Counter-striking, Counter-grappling. Plan B: If struggling with distance, adjust footwork and use clinch disruption.",
+                        "T\u00e9cnicas: Expose one-dimensional weakness. Plan B: If opponent adjusts, shift from primary to secondary techniques.",
+                        "T\u00e9cnicas: Expose one-dimensional weakness, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                    ],
+                    "drill_focus": [],
+                    "injury_restrictions": {},
+                    "created_at": "2026-05-06T17:01:33.992911",
+                    "status": "active",
+                    "execution_logs": [],
+                    "version": "2.0",
+                    "adaptive_adjustments": [],
+                    "version_history": [],
+                    "target_date": "2026-05-13",
+                    "target_days_left": 7,
+                    "start_date": "2026-05-06",
+                    "prep_window": "week",
+                    "camp_phases": [
+                        {
+                            "phase": "Base breve",
+                            "start": "2026-05-06",
+                            "end": "2026-05-08",
+                            "focus": "T\u00e9cnica limpia y volumen controlado + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n.",
+                            "fight_target_weight": null,
+                            "weigh_in_date": null
+                        },
+                        {
+                            "phase": "Intensificaci\u00f3n",
+                            "start": "2026-05-09",
+                            "end": "2026-05-11",
+                            "focus": "Sparring espec\u00edfico y simulaci\u00f3n t\u00e1ctica + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n.",
+                            "fight_target_weight": null,
+                            "weigh_in_date": null
+                        },
+                        {
+                            "phase": "Descarga + pelea",
+                            "start": "2026-05-12",
+                            "end": "2026-05-13",
+                            "focus": "Bajar volumen, mantener velocidad y precisi\u00f3n + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n.",
+                            "fight_target_weight": null,
+                            "weigh_in_date": null
+                        }
+                    ],
+                    "weight_direction": "auto",
+                    "phase_custom_notes": "",
+                    "fight_weight": null,
+                    "weigh_in_date": null
+                },
+                {
+                    "fight_id": "fight-1778086894.325232",
+                    "linked_fight": null,
+                    "opponent": {
+                        "name": "Topuria",
+                        "style": "Grappling",
+                        "strengths": [],
+                        "weaknesses": [],
+                        "notes": "",
+                        "stance": "",
+                        "reach": "",
+                        "cardio": ""
+                    },
+                    "my_specialty": "Balanced",
+                    "my_phase": "Base breve",
+                    "game_plan_rounds": [
+                        {
+                            "round_number": 1,
+                            "focus": "Establish Adaptability and versatility",
+                            "techniques": [
+                                "clinch",
+                                "control de distancia"
+                            ],
+                            "contingency": "T\u00e9cnicas: Counter-striking, Counter-grappling. Plan B: If struggling with distance, adjust footwork and use clinch disruption."
+                        },
+                        {
+                            "round_number": 2,
+                            "focus": "Maintain pressure and exploit weaknesses",
+                            "techniques": [
+                                "T\u00e9cnicas: Expose one-dimensional weakness",
+                                "Plan B: If opponent adjusts"
+                            ],
+                            "contingency": "T\u00e9cnicas: Expose one-dimensional weakness. Plan B: If opponent adjusts, shift from primary to secondary techniques."
+                        },
+                        {
+                            "round_number": 3,
+                            "focus": "Close rounds with dominant control",
+                            "techniques": [
+                                "derribo"
+                            ],
+                            "contingency": "T\u00e9cnicas: Expose one-dimensional weakness, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                        }
+                    ],
+                    "contingencies": [
+                        "T\u00e9cnicas: Counter-striking, Counter-grappling. Plan B: If struggling with distance, adjust footwork and use clinch disruption.",
+                        "T\u00e9cnicas: Expose one-dimensional weakness. Plan B: If opponent adjusts, shift from primary to secondary techniques.",
+                        "T\u00e9cnicas: Expose one-dimensional weakness, Wrestling takedown. Plan B: If tired, switch to submissions or dominant ground position."
+                    ],
+                    "drill_focus": [],
+                    "injury_restrictions": {},
+                    "created_at": "2026-05-06T17:01:34.325246",
+                    "status": "active",
+                    "execution_logs": [],
+                    "version": "2.0",
+                    "adaptive_adjustments": [],
+                    "version_history": [],
+                    "target_date": "2026-05-13",
+                    "target_days_left": 7,
+                    "start_date": "2026-05-06",
+                    "prep_window": "week",
+                    "camp_phases": [
+                        {
+                            "phase": "Base breve",
+                            "start": "2026-05-06",
+                            "end": "2026-05-08",
+                            "focus": "T\u00e9cnica limpia y volumen controlado + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n.",
+                            "fight_target_weight": null,
+                            "weigh_in_date": null
+                        },
+                        {
+                            "phase": "Intensificaci\u00f3n",
+                            "start": "2026-05-09",
+                            "end": "2026-05-11",
+                            "focus": "Sparring espec\u00edfico y simulaci\u00f3n t\u00e1ctica + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n.",
+                            "fight_target_weight": null,
+                            "weigh_in_date": null
+                        },
+                        {
+                            "phase": "Descarga + pelea",
+                            "start": "2026-05-12",
+                            "end": "2026-05-13",
+                            "focus": "Bajar volumen, mantener velocidad y precisi\u00f3n + bloques de fuerza para ganancia funcional",
+                            "weight_goal": "gain",
+                            "nutrition_note": "Nutrici\u00f3n: super\u00e1vit limpio, \u00e9nfasis en prote\u00edna y recuperaci\u00f3n.",
+                            "fight_target_weight": null,
+                            "weigh_in_date": null
+                        }
+                    ],
+                    "weight_direction": "auto",
+                    "phase_custom_notes": "",
+                    "fight_weight": null,
+                    "weigh_in_date": null
                 }
             ],
             "fights": [
@@ -455,6 +652,13 @@
                     "date": "2026-05-28",
                     "opponent": "Topuria",
                     "location": "New York"
+                },
+                {
+                    "date": "2026-05-22",
+                    "opponent": "Topuria",
+                    "location": "1",
+                    "target_weight": 78.0,
+                    "weigh_in_date": "2026-05-21"
                 }
             ],
             "nutrition": {
@@ -472,6 +676,28 @@
                     "description": "",
                     "notes": "",
                     "created_date": "2026-04-08T10:01:05.798241"
+                },
+                {
+                    "name": "1",
+                    "weight_change": "cut",
+                    "target_weight": 73.0,
+                    "duration": 30,
+                    "status": "inactive",
+                    "generation_logic": "template",
+                    "generated_macros": {
+                        "daily_kcal": 2000,
+                        "protein_g_per_kg": 2.1,
+                        "carbs_g_per_kg": 3,
+                        "fats_g_per_kg": 0.8,
+                        "meals_per_day": 5
+                    },
+                    "dietary_constraints": "",
+                    "food_preferences": "",
+                    "meals_per_day": 5,
+                    "current_weight": 75.0,
+                    "description": "Desayuno: avena + fruta + claras de huevo\nMedia manana: yogurt griego + frutos secos\nAlmuerzo: arroz + pechuga + ensalada\nMerienda: sandwich integral + pavo\nCena: pescado + vegetales + papa cocida\n\nMacros objetivo: 2000 kcal | P 2.1 g/kg | C 3.0 g/kg | G 0.8 g/kg\nRestricciones a considerar: Ninguna",
+                    "notes": "Logica: template | Restricciones: Ninguna | Preferencias: No especificadas",
+                    "created_date": "2026-05-06T17:02:28.476682"
                 }
             ]
         },
@@ -720,6 +946,12 @@
             "doctor_user": "medico1",
             "physio_user": null,
             "full_name": "luchador"
+        },
+        "luchador123": {
+            "diagnosis": "1",
+            "doctor_user": "medico1",
+            "physio_user": null,
+            "full_name": "lulu"
         }
     },
     "questionnaire_history": {
@@ -1613,6 +1845,58 @@
                 },
                 "timestamp": "2026-04-15T16:53:18.220500",
                 "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 3,
+                    "q2": 5,
+                    "q3": "moderado"
+                },
+                "timestamp": "2026-04-29T17:51:12.188231",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "dolor_codo",
+                "responses": {
+                    "q1": 3,
+                    "q2": 5,
+                    "q3": "mucho"
+                },
+                "timestamp": "2026-04-29T17:52:00.906475",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Codo"
+            },
+            {
+                "questionnaire_id": "dolor_codo",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "nada"
+                },
+                "timestamp": "2026-05-06T16:55:20.309161",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Codo"
+            }
+        ],
+        "marcos": [
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2026-05-03T17:04:36.295240",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "leve"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor Rodilla",
+                "questionnaire_id": "dolor_rodilla",
+                "timestamp": "2026-04-26T17:04:36.295240",
+                "responses": {
+                    "q1": 7,
+                    "q2": 5,
+                    "q3": "moderado"
+                }
             }
         ]
     },
@@ -2794,8 +3078,73 @@
                 "timestamp": "2026-04-25T16:36:19.536855",
                 "sets": 4,
                 "reps": 8
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "start_time": "2026-05-06T16:53:39.561035",
+                "end_time": "2026-05-06T16:54:06.880159",
+                "duration_seconds": 27,
+                "duration_formatted": "00:27",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "completed": true,
+                "timestamp": "2026-05-06T16:54:06.880159",
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "abd_hombro",
+                "start_time": "2026-05-06T16:58:08.256264",
+                "end_time": "2026-05-06T16:59:33.559684",
+                "duration_seconds": 85,
+                "duration_formatted": "01:25",
+                "exercise_name": "Abducci\u00f3n de Hombro",
+                "completed": true,
+                "timestamp": "2026-05-06T16:59:33.559684",
+                "sets": 3,
+                "reps": 10
+            }
+        ],
+        "marcos": [
+            {
+                "exercise_id": "flex_rodilla",
+                "exercise_name": "Flexi\u00f3n de Rodilla",
+                "timestamp": "2026-05-04T17:04:36.295240",
+                "duration_seconds": 180,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "timestamp": "2026-04-27T17:04:36.295240",
+                "duration_seconds": 120,
+                "sets": 3,
+                "reps": 10
             }
         ]
     },
-    "exercise_alerts": {}
+    "exercise_alerts": {
+        "luchador": [
+            {
+                "timestamp": "2026-05-06T16:54:06.880159",
+                "exercise_id": "ext_rodilla",
+                "exercise_name": "Extensi\u00f3n de Rodilla",
+                "fatigue_count": 226,
+                "arrhythmia_count": 650000,
+                "sensor_source": "ECG:100.csv | IMU:real",
+                "severity": "critical",
+                "message": "Durante la sesi\u00f3n se detectaron 226 eventos de fatiga y 650000 posibles eventos de arritmia."
+            },
+            {
+                "timestamp": "2026-05-06T16:59:33.559684",
+                "exercise_id": "abd_hombro",
+                "exercise_name": "Abducci\u00f3n de Hombro",
+                "fatigue_count": 226,
+                "arrhythmia_count": 650000,
+                "sensor_source": "ECG:100.csv | IMU:real",
+                "severity": "critical",
+                "message": "Durante la sesi\u00f3n se detectaron 226 eventos de fatiga y 650000 posibles eventos de arritmia."
+            }
+        ]
+    }
 }

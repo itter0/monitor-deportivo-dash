@@ -656,6 +656,173 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 
+# Inyectar CSS global para mejorar visibilidad en temas oscuros (Dropdown, Sliders...)
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <style>
+            /* Arregla el texto del Dropdown cuando el fondo es oscuro */
+            .Select-control, .Select-menu-outer, .is-open > .Select-control {
+                background-color: #111827 !important;
+                color: white !important;
+                border: 1px solid #3b82f6 !important;
+            }
+            .Select-value-label, .has-value.Select--single > .Select-control .Select-value .Select-value-label {
+                color: white !important;
+            }
+            .VirtualizedSelectFocusedOption {
+                background-color: #3b82f6 !important;
+                color: white !important;
+            }
+            .Select-placeholder {
+                color: #888 !important;
+            }
+            /* Color de los Sliders */
+            .rc-slider-rail { background-color: #333 !important; }
+            .rc-slider-track { background-color: #3b82f6 !important; }
+            .rc-slider-dot-active { border-color: #3b82f6 !important; }
+            .rc-slider-handle {
+                border: solid 2px #3b82f6 !important;
+                background-color: #111827 !important;
+            }
+            /* Slider Táctico Azul - estilo Octagon Pro */
+            .custom-tactical-slider {
+                padding: 10px 25px 40px 25px !important;
+            }
+
+            .custom-tactical-slider .rc-slider-rail {
+                background-color: #374151 !important;
+                height: 10px !important;
+                border-radius: 5px;
+            }
+
+            .custom-tactical-slider .rc-slider-track {
+                background-color: #3b82f6 !important;
+                height: 10px !important;
+                border-radius: 5px;
+                box-shadow: 0 0 10px rgba(59, 130, 246, 0.5) !important;
+            }
+
+            .custom-tactical-slider .rc-slider-handle {
+                width: 24px !important;
+                height: 24px !important;
+                margin-top: -8px !important;
+                background-color: #111827 !important;
+                border: solid 3px #3b82f6 !important;
+                opacity: 1 !important;
+                box-shadow: 0 0 15px rgba(59, 130, 246, 0.8) !important;
+            }
+
+            .custom-tactical-slider .rc-slider-handle:active {
+                box-shadow: 0 0 25px rgba(59, 130, 246, 1) !important;
+                cursor: grabbing;
+            }
+
+            .custom-tactical-slider .rc-slider-mark-text {
+                color: #9ca3af !important;
+                font-family: 'Oswald', sans-serif !important;
+                font-weight: 600 !important;
+                font-size: 14px !important;
+                margin-top: 8px !important;
+                transition: color 0.3s !important;
+            }
+
+            .custom-tactical-slider .rc-slider-mark-text-active {
+                color: #ffffff !important;
+                text-shadow: 0 0 8px #3b82f6 !important;
+            }
+
+            /* Forzar estilo del tooltip interno para alto contraste */
+            .rc-slider-tooltip-inner {
+                background-color: #111827 !important;
+                color: #3b82f6 !important;
+                border: 1px solid #3b82f6 !important;
+                font-family: 'Oswald', sans-serif !important;
+                font-weight: bold !important;
+                box-shadow: 0 0 10px rgba(59, 130, 246, 0.5) !important;
+            }
+
+            /* Efecto Hover en RadioItems */
+            .custom-radio-group label:hover {
+                background-color: #3b82f6 !important;
+                color: white !important;
+            }
+            /* Estilos para el Modal Táctico y Oscuro */
+            .tactical-modal .modal-content {
+                background-color: #111827 !important;
+                color: #f3f4f6 !important;
+                border: 1px solid #3b82f6 !important;
+                border-radius: 12px;
+                box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(59, 130, 246, 0.3) !important;
+            }
+            .tactical-modal .modal-header {
+                border-bottom: 1px solid #333333 !important;
+                background-color: #0a0a0a !important;
+                border-top-left-radius: 11px;
+                border-top-right-radius: 11px;
+                padding: 20px 24px !important;
+            }
+            .tactical-modal .modal-footer {
+                border-top: 1px solid #333333 !important;
+                background-color: #0a0a0a !important;
+                border-bottom-left-radius: 11px;
+                border-bottom-right-radius: 11px;
+                padding: 16px 24px !important;
+            }
+            /* Ocultar el botón de cierre por defecto si aparece feo */
+            .tactical-modal .btn-close {
+                filter: invert(1) grayscale(100%) brightness(200%);
+            }
+            /* Estilos Oscuros para DatePicker */
+            .tactical-date-picker-wrapper .SingleDatePicker,
+            .tactical-date-picker-wrapper .SingleDatePickerInput,
+            .tactical-date-picker-wrapper .DateInput {
+                width: 100% !important;
+                background-color: transparent !important;
+            }
+            .tactical-date-picker-wrapper .DateInput_input {
+                background-color: #111111 !important;
+                color: #ffffff !important;
+                border: 1px solid #333333 !important;
+                border-radius: 5px !important;
+                padding: 10px !important;
+                width: 100% !important;
+                font-family: 'Oswald', sans-serif !important;
+                font-size: 16px !important;
+                height: 44px !important;
+                box-sizing: border-box;
+            }
+            .tactical-date-picker-wrapper .DateInput_input__focused {
+                border-color: #3b82f6 !important;
+                box-shadow: 0 0 8px rgba(59, 130, 246, 0.5) !important;
+            }
+            /* Efecto Hover para Tarjetas de Ejercicios */
+            .exercise-card {
+                transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+            }
+            .exercise-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3) !important;
+                border-color: #3b82f6 !important;
+            }
+        </style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
 # Exponer el servidor Flask para despliegue con Gunicorn (Render)
 server = app.server
 
@@ -1275,26 +1442,36 @@ def get_recommended_questionnaires(health_status, injury_types=None):
 def render_fights_list(fights):
     """Renderiza la lista de combates para el dashboard del paciente."""
     if not fights:
-        return html.P("No hay combates registrados aún.", style={'color': COLORS['muted'], 'fontSize': '0.9em'})
+        return html.P("No hay combates registrados aún.", style={'color': COLORS['muted'], 'fontSize': '0.9em', 'textAlign': 'center', 'padding': '20px'})
 
     sorted_fights = sorted(fights, key=lambda f: f.get('date', ''), reverse=True)
-    return html.Ul([
-        html.Li(
-            [
-                html.Strong(f"📅 {fight.get('date', 'N/A')} | "),
-                html.Span(f"vs {fight.get('opponent', 'N/A')}"),
-                html.Br(),
-                html.Span(f"📍 {fight.get('location', 'N/A')}", style={'color': COLORS['muted'], 'fontSize': '0.9em'}),
-                html.Br(),
-                html.Span(
-                    f"⚖️ Peso objetivo: {fight.get('target_weight') if fight.get('target_weight') not in [None, ''] else 'N/A'} kg | 🗓️ Pesaje: {fight.get('weigh_in_date') if fight.get('weigh_in_date') else 'N/A'}",
-                    style={'color': COLORS['muted'], 'fontSize': '0.85em'}
-                )
-            ],
-            style={'marginBottom': '10px'}
+    
+    cards = []
+    for fight in sorted_fights:
+        cards.append(
+            html.Div([
+                html.Div([
+                    html.Strong(f"📅 {fight.get('date', 'N/A')} ", style={'color': COLORS['primary'], 'fontSize': '1.1em', 'letterSpacing': '1px'}),
+                    html.Span(f" vs {fight.get('opponent', 'N/A')}", style={'color': '#ffffff', 'fontWeight': 'bold', 'fontSize': '1.1em'})
+                ], style={'marginBottom': '6px'}),
+                
+                html.P(f"📍 {fight.get('location', 'N/A')}", style={'color': '#aaaaaa', 'fontSize': '0.9em', 'marginBottom': '10px'}),
+                
+                html.Div([
+                    html.Span(f"⚖️ Objetivo: {fight.get('target_weight') if fight.get('target_weight') not in [None, ''] else 'N/A'} kg", style={'marginRight': '15px'}),
+                    html.Span(f"🗓️ Pesaje: {fight.get('weigh_in_date') if fight.get('weigh_in_date') else 'N/A'}")
+                ], style={'color': COLORS['muted'], 'fontSize': '0.85em', 'backgroundColor': '#0a0a0a', 'padding': '6px 12px', 'borderRadius': '4px', 'display': 'inline-block', 'border': f"1px solid {COLORS['border_neon']}"})
+            ], style={
+                'backgroundColor': '#1a1a1a', 
+                'border': f"1px solid {COLORS['border_soft']}",
+                'borderLeft': f"4px solid {COLORS['primary']}",
+                'borderRadius': '6px',
+                'padding': '16px',
+                'marginBottom': '12px',
+                'boxShadow': '0 4px 6px rgba(0,0,0,0.2)'
+            })
         )
-        for fight in sorted_fights
-    ], style={'paddingLeft': '20px', 'marginBottom': 0})
+    return html.Div(cards)
 
 
 def render_tactical_plans_section(username):
@@ -2418,7 +2595,7 @@ def create_exercise_plot(exercises):
         plot_bgcolor='#0a0a0a',   # Gris casi negro para el área del gráfico
         paper_bgcolor='#0a0a0a',  # Gris casi negro para el fondo del papel
         font_color='#888888',
-        margin=dict(t=60, b=50, l=50, r=20),
+        margin=dict(t=60, b=80, l=50, r=20),
         
         xaxis=dict(
             title_text="FECHA DE EJECUCIÓN",
@@ -2446,8 +2623,8 @@ def create_exercise_plot(exercises):
         showlegend=True,
         legend=dict(
             orientation="h",
-            yanchor="bottom",
-            y=-0.3, # Movida abajo para dejar espacio al diseño
+            yanchor="top",
+            y=-0.25,
             xanchor="center",
             x=0.5,
             title_text=""
@@ -3012,11 +3189,13 @@ def get_exercises_layout(username, full_name, current_search=""):
                     n_clicks=0,
                     style=STYLES['button_primary']
                 )
-            ], style={
+            ],
+            className='exercise-card',
+            style={
                 'background': '#111111',
                 'padding': '15px',
                 'border': '1px solid #222',
-                'borderRadius': '4px',
+                'borderRadius': '8px',
                 'textAlign': 'center'
             }) for ex in exercises
         ], style={
@@ -3093,27 +3272,31 @@ def get_exercises_layout(username, full_name, current_search=""):
 
     return html.Div([
         get_user_navbar("🧑‍🦽", full_name, "Ejercicios", current_search, username, 'paciente'),
+        
+        # 1. Sacamos el botón del flex container principal
         html.Div([
-            dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-exercises", href=f"/{current_search}", color="primary", size="sm",
-                       style={'marginBottom': '20px'}),
+            dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-exercises", href=f"/{current_search}", color="primary", size="sm")
+        ], style={'padding': '20px 24px 0 24px'}), 
+
+        # 2. Contenedor Flex para las columnas
+        html.Div([
+            # COLUMNA IZQUIERDA
             html.Div([
                 html.Div([
-                    html.Div([
-                        html.Span("🚨 ", style={'fontSize': '1.2em'}),
-                        "Alertas Guardadas por Señales"
-                    ], style=STYLES['card_header_tactical']),
-                    html.Div(id='exercise-alerts-list', children=render_exercise_alerts(exercise_alerts))
-                ], style=STYLES['card']),
+                    html.Span("🚨 ", style={'fontSize': '1.2em'}),
+                    "Alertas Guardadas por Señales"
+                ], style=STYLES['card_header_tactical']),
+                html.Div(id='exercise-alerts-list', children=render_exercise_alerts(exercise_alerts)),
                 html.Div([
-                    html.Div([
-                        html.Span("📊 ", style={'fontSize': '1.2em'}),
-                        "Progreso de Ejecución"
-                    ], style=STYLES['card_header_tactical']),
-                    dcc.Graph(id="exercise-history-graph", figure=exercise_fig),
-                ], style=STYLES['card']),
+                    html.Span("📊 ", style={'fontSize': '1.2em'}),
+                    "Progreso de Ejecución"
+                ], style=STYLES['card_header_tactical']),
+                dcc.Graph(id="exercise-history-graph", figure=exercise_fig),
                 exercise_history_list,
                 incidents_detail,
-            ], style={'flex': 1, 'minWidth': '320px'}),
+            ], style={'flex': 1, 'minWidth': '320px', 'display': 'flex', 'flexDirection': 'column', 'gap': '20px'}), # Añadido flex-direction y gap
+
+            # COLUMNA DERECHA
             html.Div([
                 exercise_grid,
             ], style={'flex': 1, 'minWidth': '320px'})
@@ -3127,41 +3310,20 @@ def get_patient_dashboard(username, full_name, current_search=""):
     
     try:
         patient_data = db.get_complete_user_data(username) or {}
-        # Obtener ejercicios dinámicamente según lesión(es)
         health_status = patient_data.get('profile', {}).get('health_status', 'listo')
         injury_types = patient_data.get('profile', {}).get('injury_types', [])
-        exercises = get_recommended_exercises(health_status, injury_types)
-        if not exercises:
-            exercises = HEALTHY_FIGHTER_EXERCISES if health_status == 'listo' else KNEE_EXERCISES
     except Exception:
         patient_data = {}
-        exercises = HEALTHY_FIGHTER_EXERCISES
         health_status = 'listo'
         injury_types = []
     
     questionnaires_data = patient_data.get('questionnaires', [])
-    exercises_data = patient_data.get('exercises', [])
     user_raw_data = _USER_DB.get(username, {})
     profile_data = patient_data.get('profile', {})
     fights_data = user_raw_data.get('fights', [])
     nutrition_data = user_raw_data.get('nutrition', {})
     
     fig_q1, fig_q2 = create_questionnaire_plot(questionnaires_data)
-    exercise_fig = create_exercise_plot(exercises_data)
-    
-    # Determinar el título del ejercicio según el estado de salud
-    if health_status == 'lesionado' and injury_types:
-        injury_names = []
-        for injury in injury_types:
-            if injury == 'rodilla':
-                injury_names.append('Rodilla')
-            elif injury == 'codo':
-                injury_names.append('Codo')
-            elif injury == 'hombro':
-                injury_names.append('Hombro')
-        exercise_title = f"Ejercicios de {' y '.join(injury_names)}"
-    else:
-        exercise_title = 'Ejercicios para Luchador Sano'
 
     # Tarjeta de citas con estilo táctico
     appointments_card = html.Div([
@@ -3172,73 +3334,64 @@ def get_patient_dashboard(username, full_name, current_search=""):
         html.Div(id='patient-appointments-list', style={'textAlign': 'center', 'padding': '10px'}) 
     ], style=STYLES['card'])
 
-    # Grid de ejercicios con tarjetas internas oscurecidas
-    exercise_grid = html.Div(
-        [
-            html.Div([
-                html.Span("💪 ", style={'fontSize': '1.2em'}),
-                exercise_title
-            ], style=STYLES['card_header_tactical']),
-            
-            html.Div(
-                [
-                    html.Div([
-                        html.Img(
-                            src=ex['images'][0],
-                            style={
-                                'width': '100%', 'height': '150px', 'objectFit': 'cover',
-                                'borderRadius': '4px', 'marginBottom': '10px', 'filter': 'brightness(0.8)'
-                            },
-                            id={'type': 'exercise-image', 'index': ex['id']}
-                        ),
-                        html.H6(ex['title'].upper(), style={'color': 'white', 'fontWeight': 'bold'}),
-                        html.P(f"DIFICULTAD: {ex['difficulty'].upper()}", style={'color': COLORS['muted'], 'fontSize': '0.7em'}),
-                        html.Button(
-                            'INICIAR',
-                            id={'type': 'start-exercise-btn', 'index': ex['id']},
-                            n_clicks=0,
-                            style=STYLES['button_primary'] # Usar el botón neón rojo
-                        )
-                    ], style={
-                        'background': '#111111', # Fondo interno oscuro para cada ejercicio
-                        'padding': '15px', 'border': '1px solid #222', 'borderRadius': '4px',
-                        'textAlign': 'center'
-                    }) for ex in exercises
-                ],
-                style={
-                    'display': 'grid',
-                    'gridTemplateColumns': 'repeat(auto-fill, minmax(220px, 1fr))',
-                    'gap': '15px'
-                }
-            )
-        ],
-        id='exercise-grid',
-        style=STYLES['card']
-    )
-
     fights_section = html.Div([
         html.Div([
             html.Span("🥊 ", style={'fontSize': '1.2em'}),
-            "Próximos Combates"
+            "PRÓXIMOS COMBATES"
         ], style=STYLES['card_header_tactical']),
+        
         html.Div([
-            html.Label("🏁 Fecha del combate", style={'color': '#ffffff'}),
-            dcc.DatePickerSingle(id='fight-date', date=datetime.now().date(), style={'marginBottom': '10px'}),
-            html.Label("⚖️ Peso objetivo del combate (kg)", style={'color': '#ffffff'}),
-            dcc.Input(id='fight-target-weight', type='number', step='0.1', placeholder='Ej: 70.3', style={'width': '100%', 'marginBottom': '10px'}),
-            html.Label("🗓️ Día de pesaje", style={'color': '#ffffff'}),
-            dcc.DatePickerSingle(id='fight-weighin-date', date=(datetime.now().date() - timedelta(days=1)), style={'marginBottom': '10px'}),
-            html.Label("🥋 Oponente", style={'color': '#ffffff'}),
-            dcc.Input(id='fight-opponent', type='text', placeholder='Nombre del oponente', style={'width': '100%', 'marginBottom': '10px'}),
-            html.Label("📍 Lugar", style={'color': '#ffffff'}),
-            dcc.Input(id='fight-location', type='text', placeholder='Lugar del evento', style={'width': '100%', 'marginBottom': '10px'}),
-            html.Label("⚖️ Peso Actual (kg)", style={'color': '#ffffff'}),
-            dcc.Input(id='fight-current-weight', type='number', step='0.1', placeholder='Tu peso actual', value=profile_data.get('current_weight'), style={'width': '100%', 'marginBottom': '10px'}),
-            dbc.Button("✅ Agregar Combate", id='add-fight-btn', color='success', className='w-100'),
-            html.Div(id='fight-feedback', style={'marginTop': '15px'}),
-            html.Hr(),
-            html.Div(id='fight-list', children=render_fights_list(fights_data), style={'fontSize': '0.95em'})
-        ])
+            # Fila 1: Oponente y Lugar
+            dbc.Row([
+                dbc.Col([
+                    html.Label("🥋 Oponente", style={'color': '#ffffff', 'fontWeight': '600', 'fontSize': '0.85em', 'textTransform': 'uppercase'}),
+                    dcc.Input(id='fight-opponent', type='text', placeholder='Nombre del oponente', style=STYLES['input']),
+                ], width=12, lg=6, className='mb-3'),
+                dbc.Col([
+                    html.Label("📍 Lugar", style={'color': '#ffffff', 'fontWeight': '600', 'fontSize': '0.85em', 'textTransform': 'uppercase'}),
+                    dcc.Input(id='fight-location', type='text', placeholder='Lugar del evento', style=STYLES['input']),
+                ], width=12, lg=6, className='mb-3'),
+            ]),
+            
+            # Fila 2: Fechas
+            dbc.Row([
+                dbc.Col([
+                    html.Label("🏁 Fecha del combate", style={'color': '#ffffff', 'fontWeight': '600', 'fontSize': '0.85em', 'textTransform': 'uppercase'}),
+                    html.Div(
+                        dcc.DatePickerSingle(id='fight-date', date=datetime.now().date(), display_format='YYYY-MM-DD'), 
+                        className='tactical-date-picker-wrapper'
+                    )
+                ], width=12, lg=6, className='mb-3'),
+                dbc.Col([
+                    html.Label("🗓️ Día de pesaje", style={'color': '#ffffff', 'fontWeight': '600', 'fontSize': '0.85em', 'textTransform': 'uppercase'}),
+                    html.Div(
+                        dcc.DatePickerSingle(id='fight-weighin-date', date=(datetime.now().date() - timedelta(days=1)), display_format='YYYY-MM-DD'), 
+                        className='tactical-date-picker-wrapper'
+                    )
+                ], width=12, lg=6, className='mb-3'),
+            ]),
+
+            # Fila 3: Pesos
+            dbc.Row([
+                dbc.Col([
+                    html.Label("⚖️ Peso objetivo (kg)", style={'color': '#ffffff', 'fontWeight': '600', 'fontSize': '0.85em', 'textTransform': 'uppercase'}),
+                    dcc.Input(id='fight-target-weight', type='number', step='0.1', placeholder='Ej: 70.3', style=STYLES['input']),
+                ], width=12, lg=6, className='mb-3'),
+                dbc.Col([
+                    html.Label("⚖️ Peso Actual (kg)", style={'color': '#ffffff', 'fontWeight': '600', 'fontSize': '0.85em', 'textTransform': 'uppercase'}),
+                    dcc.Input(id='fight-current-weight', type='number', step='0.1', placeholder='Tu peso actual', value=profile_data.get('current_weight'), style=STYLES['input']),
+                ], width=12, lg=6, className='mb-3'),
+            ]),
+
+            dbc.Button("➕ AÑADIR COMBATE AL HISTORIAL", id='add-fight-btn', color='danger', className='w-100 fw-bold mt-2', style={'padding': '12px', 'letterSpacing': '1px'}),
+            html.Div(id='fight-feedback', style={'marginTop': '15px', 'textAlign': 'center'}),
+            
+            html.Hr(style={'borderColor': '#333', 'margin': '25px 0'}),
+            
+            html.H6("HISTORIAL DE COMBATES", style={'color': '#888', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '15px', 'fontWeight': 'bold'}),
+            html.Div(id='fight-list', children=render_fights_list(fights_data))
+            
+        ], style={'backgroundColor': '#111111', 'padding': '24px', 'borderRadius': '8px', 'border': f"1px solid {COLORS['border_soft']}"})
     ], style=STYLES['card'])
 
 
@@ -3266,7 +3419,8 @@ def get_patient_dashboard(username, full_name, current_search=""):
                             if q_id in QUESTIONNAIRES
                         ],
                         placeholder='Seleccione...',
-                        style={'marginBottom': '15px', 'backgroundColor': '#111111', 'color': '#ffffff', 'border': f'1px solid {COLORS["border_soft"]}'}
+                        style={'marginBottom': '15px', 'backgroundColor': '#111111', 'color': '#ffffff', 'border': f'1px solid {COLORS["border_soft"]}'},
+                        className='octagon-questionnaire-select'
                     ),
                     html.Div(id='selected-questionnaire-content'),
                     html.Div(id='questionnaire-submission-feedback')
@@ -3292,15 +3446,6 @@ def get_patient_dashboard(username, full_name, current_search=""):
                     ]),
                 ], style=STYLES['card']),
 
-                # Gráfica de Barras (Progreso)
-                html.Div([
-                    html.Div([
-                        html.Span("📊 ", style={'fontSize': '1.2em'}),
-                        "Progreso de Ejecución"
-                    ], style=STYLES['card_header_tactical']),
-                    dcc.Graph(id="exercise-history-graph", figure=exercise_fig),
-                ], style=STYLES['card']),
-                
                 # Monitoreo ECG
                 html.Div([
                     html.Div([
@@ -3333,7 +3478,6 @@ def get_patient_dashboard(username, full_name, current_search=""):
                     html.Div(id="ecg-data-source-status", className="mt-1", style={'color': COLORS['muted'], 'fontWeight': '600', 'fontSize': '0.95em'}),
                 ], style=STYLES['card']),
 
-                exercise_grid,
                 fights_section,
             ], style={'flex': 2, 'minWidth': '400px'})
         ], style={'display': 'flex', 'gap': '20px', 'padding': '10px 24px', 'flexWrap': 'wrap'})
@@ -3345,42 +3489,52 @@ def get_tactical_planning_layout(username, full_name, current_search=""):
 
     wizard_modal = dbc.Modal([
         dbc.ModalHeader([
-            dbc.ModalTitle("🧠 Crear Plan Táctico")
+            html.Div([
+                html.Span("🧠 ", style={'fontSize': '1.5em'}),
+                html.Span("CREAR PLAN TÁCTICO", style={'fontWeight': '900', 'letterSpacing': '2px', 'color': COLORS['primary']})
+            ], style={'display': 'flex', 'alignItems': 'center'})
         ], close_button=False),
         dbc.ModalBody([
             dcc.Store(id='tactical-step-current-store', data=0),
             dcc.Store(id='tactical-selected-fight-store', data=None),
 
             html.Div([
-                html.Label("Fase del plan", style={'color': '#ffffff', 'fontWeight': '600', 'marginBottom': '8px'}),
+                html.Label("Fase del plan", style={'color': COLORS['muted'], 'fontWeight': '600', 'marginBottom': '10px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'fontSize': '0.85em'}),
                 dbc.ButtonGroup([
-                    dbc.Button("0. Combate", id='tactical-step-btn-0', color='danger', size='sm'),
-                    dbc.Button("1. Fechas", id='tactical-step-btn-1', color='secondary', size='sm'),
-                    dbc.Button("2. Rival", id='tactical-step-btn-2', color='secondary', size='sm'),
-                    dbc.Button("3. Fases", id='tactical-step-btn-3', color='secondary', size='sm'),
-                    dbc.Button("4. Rounds", id='tactical-step-btn-4', color='secondary', size='sm'),
-                    dbc.Button("5. Revisión", id='tactical-step-btn-5', color='secondary', size='sm'),
-                ], className='w-100')
-            ], style={'marginBottom': '14px'}),
+                    dbc.Button("0. COMBATE", id='tactical-step-btn-0', color='primary', size='sm', className='fw-bold'),
+                    dbc.Button("1. FECHAS", id='tactical-step-btn-1', color='dark', size='sm'),
+                    dbc.Button("2. RIVAL", id='tactical-step-btn-2', color='dark', size='sm'),
+                    dbc.Button("3. FASES", id='tactical-step-btn-3', color='dark', size='sm'),
+                    dbc.Button("4. ROUNDS", id='tactical-step-btn-4', color='dark', size='sm'),
+                    dbc.Button("5. REVISIÓN", id='tactical-step-btn-5', color='dark', size='sm'),
+                ], className='w-100', style={'boxShadow': '0 4px 6px rgba(0,0,0,0.3)'})
+            ], style={'marginBottom': '20px', 'backgroundColor': '#1f2937', 'padding': '15px', 'borderRadius': '8px', 'border': f"1px solid {COLORS['border_soft']}"}),
 
             html.Div([
-                html.H5("Paso 0. Tipo de plan", style={'color': COLORS['primary']}),
-                html.P("¿Planificar para un combate creado o crear un plan nuevo?", style={'color': '#d9d9d9'}),
+                html.H5("PASO 0: TIPO DE PLAN", style={'color': '#ffffff', 'fontWeight': 'bold', 'letterSpacing': '1px'}),
+                html.P("¿Planificar para un combate programado o crear un plan completamente independiente?", style={'color': COLORS['muted'], 'marginBottom': '20px'}),
                 dbc.Row([
                     dbc.Col([
-                        html.Label("Seleccionar combate", style={'color': '#ffffff'}),
+                        html.Label("Seleccionar combate en agenda", style={'color': '#87cefa', 'fontWeight': '600'}),
                         dcc.Dropdown(
                             id='tactical-fight-selector',
                             placeholder='Selecciona un combate...',
-                            style={'color': '#111111'}
+                            style={'color': '#111111', 'fontWeight': 'bold'}
                         )
                     ], width=12)
                 ], className='g-3'),
-                html.P("O", style={'color': '#ffffff', 'textAlign': 'center', 'marginTop': '15px', 'marginBottom': '15px', 'fontStyle': 'italic'}),
-                dbc.Button("➕ Crear plan independiente", id='tactical-new-plan-btn', color='info', className='w-100'),
-                html.Div(id='tactical-fight-selection-feedback', style={'marginTop': '10px'})
-            ], id='tactical-step-0-content', style={'padding': '8px'}),
+                
+                html.Div([
+                    html.Hr(style={'borderColor': '#444', 'width': '45%', 'display': 'inline-block', 'verticalAlign': 'middle'}),
+                    html.Span(" O ", style={'color': '#888', 'padding': '0 10px', 'fontWeight': 'bold'}),
+                    html.Hr(style={'borderColor': '#444', 'width': '45%', 'display': 'inline-block', 'verticalAlign': 'middle'}),
+                ], style={'textAlign': 'center', 'margin': '20px 0'}),
+                
+                dbc.Button("➕ Crear plan independiente", id='tactical-new-plan-btn', color='info', className='w-100 fw-bold', style={'padding': '12px', 'letterSpacing': '1px'}),
+                html.Div(id='tactical-fight-selection-feedback', style={'marginTop': '15px', 'textAlign': 'center'})
+            ], id='tactical-step-0-content', style={'padding': '24px', 'backgroundColor': '#111111', 'borderRadius': '8px', 'border': f"1px solid {COLORS['border_soft']}"}),
 
+            # Mantén los demás pasos (1 al 5) igual, asegurándote de que tienen un fondo consistente si lo deseas
             html.Div([
                 html.H5("Paso 1. Fechas", style={'color': COLORS['primary']}),
                 dbc.Row([
@@ -3499,9 +3653,9 @@ def get_tactical_planning_layout(username, full_name, current_search=""):
             ], id='tactical-step-5-content', style={'padding': '8px', 'display': 'none'}),
         ]),
         dbc.ModalFooter([
-            dbc.Button("💾 Guardar plan", id='tactical-plan-save-btn', color='success', className='me-2'),
-            dbc.Button("📄 Descargar PDF", id='tactical-download-pdf-btn', color='primary', className='me-2'),
-            dbc.Button("Cerrar", id='tactical-plan-close-btn', color='secondary')
+            dbc.Button("💾 Guardar plan", id='tactical-plan-save-btn', color='success', className='me-2 fw-bold px-4'),
+            dbc.Button("📄 Descargar PDF", id='tactical-download-pdf-btn', color='primary', className='me-auto fw-bold px-4'),
+            dbc.Button("Cerrar", id='tactical-plan-close-btn', color='dark', outline=True, className='px-4')
         ])
     ], id='tactical-plan-modal', is_open=False, size='xl', scrollable=True, backdrop='static', keyboard=False, className='tactical-modal')
 
@@ -5100,17 +5254,38 @@ def refresh_patient_appointments_list(n_intervals, username):
 
     try:
         appointments = db.get_patient_appointments(username)
-        current_time = datetime.now()
-        upcoming_appointments = [
-            app for app in appointments 
-            if datetime.fromisoformat(app['datetime']) > current_time and app.get('status', 'scheduled') in ['scheduled', 'confirmed']
-        ]
-        upcoming_appointments.sort(key=lambda x: x['datetime'])
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        def parse_appointment_datetime(dt_value):
+            dt_text = str(dt_value).strip()
+            try:
+                return datetime.fromisoformat(dt_text)
+            except ValueError:
+                for fmt in ('%d/%m/%Y %H:%M', '%d/%m/%Y', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
+                    try:
+                        return datetime.strptime(dt_text, fmt)
+                    except ValueError:
+                        continue
+            raise ValueError(f'Formato de fecha no reconocido: {dt_text}')
+
+        upcoming_appointments = []
+        for app in appointments:
+            try:
+                appointment_datetime = parse_appointment_datetime(app['datetime'])
+            except Exception as exc:
+                print(f"Error al parsear cita {app.get('id')}: {exc}")
+                continue
+
+            if appointment_datetime >= today_start and app.get('status', 'scheduled') not in ['cancelled', 'attended']:
+                app['_parsed_datetime'] = appointment_datetime
+                upcoming_appointments.append(app)
+
+        upcoming_appointments.sort(key=lambda x: x['_parsed_datetime'])
         
         content = html.Ul([
             html.Li([
                 html.Strong(f"{app['professional_name']} - ", style={'color': '#ffffff'}),
-                html.Span(f"{datetime.fromisoformat(app['datetime']).strftime('%d/%m/%Y %H:%M')}", style={'color': '#ffffff'}),
+                html.Span(f"{app['_parsed_datetime'].strftime('%d/%m/%Y %H:%M')}", style={'color': '#ffffff'}),
                 html.Br(),
                 html.Span(f"🏥 {app['hospital']} - {app['office']} ({app.get('status', 'Scheduled').capitalize()})", style={'fontSize': '0.9em', 'color': COLORS['muted']}),
                 html.Br(),
@@ -5290,8 +5465,9 @@ def display_questionnaire(selected_questionnaire, username):
     return html.Div([
         html.H5(questionnaire['title'], style={'color': COLORS['primary'], 'marginBottom': '10px'}),
         html.P(questionnaire['description'], style={'color': '#ffffff', 'marginBottom': '20px', 'fontWeight': '500'}),
-        *questions_content
-    ])
+        html.Div(questions_content, className='questionnaire-fields'),
+        html.Div(style={'height': '8px'}),
+    ], className='octagon-questionnaire-panel')
 
 # Callback: Enviar cuestionario especializado (Recarga gráfica)
 @app.callback(

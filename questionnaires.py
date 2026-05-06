@@ -39,23 +39,52 @@ class QuestionnaireService:
     def build_questionnaire_component(questionnaire, component_prefix='questionnaire-input'):
         questions_content = []
         for i, question in enumerate(questionnaire['questions']):
-            question_html = html.Div([
-                html.H6(f"{i+1}. {question['question']}", style={'marginBottom': '10px', 'fontWeight': 'bold', 'color': '#ffffff'}),
-            ])
-
             component_id = {'type': component_prefix, 'questionnaire': questionnaire['id'], 'index': question['id']}
+
+            # Contenedor con contraste mejorado (tarjeta táctica)
+            question_html = html.Div([
+                html.Div([
+                    html.Span(f"{i+1}", style={
+                        'backgroundColor': '#3b82f6',
+                        'color': 'white',
+                        'padding': '2px 12px',
+                        'borderRadius': '4px',
+                        'marginRight': '15px',
+                        'fontWeight': 'bold'
+                    }),
+                    html.Label(question['question'].upper(), style={
+                        'color': '#f3f4f6',
+                        'fontWeight': '600',
+                        'letterSpacing': '0.5px',
+                        'fontSize': '0.95rem',
+                        'flex': '1'
+                    }),
+                ], style={'display': 'flex', 'alignItems': 'flex-start', 'marginBottom': '25px'}),
+            ], style={
+                'backgroundColor': '#0f172a',
+                'padding': '25px',
+                'borderRadius': '8px',
+                'border': '1px solid #1e293b',
+                'borderLeft': '5px solid #3b82f6',
+                'marginBottom': '20px',
+                'boxShadow': '0 10px 20px rgba(0,0,0,0.3)'
+            })
 
             if question['type'] == 'slider':
                 question_html.children.append(
-                    dcc.Slider(
-                        id=component_id,
-                        min=question['min'],
-                        max=question['max'],
-                        step=question.get('step', 1),
-                        value=question.get('min', 0),
-                        marks=question.get('marks', {j: str(j) for j in range(question['min'], question['max'] + 1, max(1, (question['max'] - question['min']) // 5))}),
-                        tooltip={"placement": "bottom", "always_visible": True}
-                    )
+                    html.Div([
+                        dcc.Slider(
+                            id=component_id,
+                            min=question['min'],
+                            max=question['max'],
+                            step=question.get('step', 1),
+                            value=question.get('min', 0),
+                            marks={j: {'label': str(j), 'style': {'color': '#64748b', 'fontFamily': 'Oswald'}} for j in range(question['min'], question['max'] + 1)},
+                            className='custom-tactical-slider',
+                            updatemode='drag',
+                            tooltip={"placement": "bottom", "always_visible": True}
+                        )
+                    ], style={'padding': '0 10px'})
                 )
             elif question['type'] == 'radio':
                 question_html.children.append(
@@ -63,13 +92,24 @@ class QuestionnaireService:
                         id=component_id,
                         options=question['options'],
                         value=question['options'][0]['value'] if question['options'] else None,
-                        style={'marginBottom': '15px'},
-                        labelStyle={'display': 'block', 'marginBottom': '10px', 'color': '#ffffff', 'fontWeight': '500'}
+                        style={'marginTop': '10px'},
+                        labelStyle={
+                            'display': 'block', 
+                            'marginBottom': '12px', 
+                            'color': '#ffffff', 
+                            'fontSize': '14px',
+                            'cursor': 'pointer',
+                            'padding': '8px 12px',
+                            'backgroundColor': '#252525',
+                            'borderRadius': '6px',
+                            'transition': 'all 0.2s'
+                        },
+                        inputStyle={"marginRight": "12px", "transform": "scale(1.2)"},
+                        className="custom-radio-group"
                     )
                 )
 
             questions_content.append(question_html)
-            questions_content.append(html.Hr())
 
         return questions_content
 
@@ -108,17 +148,33 @@ class QuestionnaireService:
 
 # Layout de cuestionario
 questionnaire_layout = html.Div([
-    html.Label("Nivel de fatiga (1-10):"),
-    dcc.Slider(1, 10, 1, value=5, id="fatiga"),
+    html.Label("Nivel de fatiga (1-10):", style={'color': '#ffffff'}),
+    dcc.Slider(min=1, max=10, step=1, value=5, id="fatiga", marks={i: {'label': str(i), 'style': {'color': '#888'}} for i in range(1, 11)}, className='custom-tactical-slider'),
 
-    html.Label("Horas de sueño:"),
-    dcc.Input(id="suenio", type="number", min=0, max=12, step=1, value=8),
+    html.Label("Horas de sueño:", style={'color': '#ffffff'}),
+    dcc.Input(id="suenio", type="number", min=0, max=12, step=1, value=8, style={'backgroundColor': '#0b1220', 'color': '#ffffff', 'border': '1px solid #333', 'padding': '6px 8px', 'borderRadius': '6px'}),
 
-    html.Label("Esfuerzo percibido (RPE, 1-10):"),
-    dcc.Slider(1, 10, 1, value=5, id="rpe"),
+    html.Label("Esfuerzo percibido (RPE, 1-10):", style={'color': '#ffffff'}),
+    dcc.Slider(min=1, max=10, step=1, value=5, id="rpe", marks={i: {'label': str(i), 'style': {'color': '#888'}} for i in range(1, 11)}, className='custom-tactical-slider'),
 
     html.Br(),
-    html.Button("Enviar", id="submit-questionnaire", n_clicks=0)
+    html.Button(
+        '📤 FINALIZAR Y GUARDAR REGISTRO',
+        id="submit-questionnaire",
+        n_clicks=0,
+        style={
+            'backgroundColor': 'rgba(59, 130, 246, 0.1)',
+            'borderColor': '#3b82f6',
+            'color': '#3b82f6',
+            'marginTop': '30px',
+            'fontSize': '1rem',
+            'padding': '15px',
+            'borderRadius': '8px',
+            'fontWeight': '700',
+            'border': '1px solid #3b82f6',
+            'cursor': 'pointer'
+        }
+    )
 ])
 
 def save_questionnaire(fatiga, suenio, rpe):
