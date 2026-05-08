@@ -2753,10 +2753,12 @@ def get_exercise_execution_modal():
                 ], className="mb-4"),
                 dbc.Row([
                     dbc.Col([
+                        html.Div(id='live-ecg-alert', style={'width': '100%', 'marginBottom': '15px'}),
                         dcc.Graph(id='live-ecg-graph', config={'displayModeBar': False}),
                         html.Div(id='ecg-status-msg', className="badge bg-light text-dark mt-2 w-100", style={'padding': '8px'})
                     ], id='live-ecg-container', width=12, className="mb-4"),
                     dbc.Col([
+                        html.Div(id='live-imu-alert', style={'width': '100%', 'marginBottom': '15px'}),
                         dcc.Graph(id='live-imu-graph', config={'displayModeBar': False}),
                         html.Div(id='imu-status-msg', className="badge bg-light text-dark mt-2 w-100", style={'padding': '8px'})
                     ], id='live-imu-container', width=12),
@@ -3496,6 +3498,7 @@ def get_patient_dashboard(username, full_name, current_search=""):
                         }
                     ),
                     html.Div(id="ecg-upload-feedback", className="mb-2", style={'color': COLORS['muted'], 'fontWeight': '600', 'fontSize': '0.9em'}),
+                    html.Div(id="ecg-alert-container", style={'width': '100%', 'marginBottom': '15px'}),
                     dcc.Graph(id="ecg-graph", config={'displayModeBar': False}),
                     html.Div(id="bpm-output", className="mt-2", style={'color': COLORS['primary'], 'fontWeight': '900', 'fontSize': '1.2em'}),
                     html.Div(id="ecg-data-source-status", className="mt-1", style={'color': COLORS['muted'], 'fontWeight': '600', 'fontSize': '0.95em'}),
@@ -4614,6 +4617,76 @@ def get_circular_sensor_window(n_intervals, source_df, window_size, value_column
     return window.reset_index(drop=True)
 
 
+def get_static_ecg_view_dataframe(source_df):
+    """Prepara la señal ECG completa para vista estática con navegación en eje X."""
+    if source_df is None or source_df.empty:
+        return pd.DataFrame(columns=["timestamp", "ecg", "status_ecg"])
+
+    df = source_df.copy()
+
+    if "ecg_value" in df.columns:
+        df = df.rename(columns={"ecg_value": "ecg"})
+    if "ecg" not in df.columns:
+        return pd.DataFrame(columns=["timestamp", "ecg", "status_ecg"])
+
+    df["ecg"] = pd.to_numeric(df["ecg"], errors="coerce").fillna(0.0)
+
+    if "timestamp" not in df.columns:
+        df["timestamp"] = np.arange(len(df), dtype=float)
+
+    numeric_ts = pd.to_numeric(df["timestamp"], errors="coerce")
+    if numeric_ts.notna().sum() >= max(2, int(len(df) * 0.6)):
+        df["timestamp"] = numeric_ts.ffill().bfill().fillna(0.0)
+    else:
+        df["timestamp"] = np.arange(len(df), dtype=float)
+
+    df["status_ecg"] = np.where(df["ecg"].abs() > 1.5, "RED_FLAG_ARRHYTHMIA", "NORMAL")
+    return df.reset_index(drop=True)
+
+
+def get_static_imu_view_dataframe(source_df):
+    """Prepara la señal IMU completa para vista estática con navegación en eje X."""
+    if source_df is None or source_df.empty:
+        return pd.DataFrame(columns=["timestamp", "imu", "status_imu"])
+
+    df = source_df.copy()
+
+    if "imu_value" in df.columns:
+        df = df.rename(columns={"imu_value": "imu"})
+    if "imu" not in df.columns:
+        return pd.DataFrame(columns=["timestamp", "imu", "status_imu"])
+
+    df["imu"] = pd.to_numeric(df["imu"], errors="coerce").fillna(0.0)
+
+    if "timestamp" not in df.columns:
+        df["timestamp"] = np.arange(len(df), dtype=float)
+
+    numeric_ts = pd.to_numeric(df["timestamp"], errors="coerce")
+    if numeric_ts.notna().sum() >= max(2, int(len(df) * 0.6)):
+        df["timestamp"] = numeric_ts.ffill().bfill().fillna(0.0)
+    else:
+        df["timestamp"] = np.arange(len(df), dtype=float)
+
+    df["status_imu"] = np.where(df["imu"].abs() > 0.9, "RED_FLAG_FATIGUE", "NORMAL")
+    return df.reset_index(drop=True)
+
+
+def get_slider_initial_x_range(x_values, visible_fraction=0.22):
+    """Devuelve una ventana inicial más corta para que el rangeslider se use como desplazamiento."""
+    if not x_values:
+        return [0.0, 1.0]
+
+    x_min = float(np.nanmin(x_values))
+    x_max = float(np.nanmax(x_values))
+
+    if not np.isfinite(x_min) or not np.isfinite(x_max) or np.isclose(x_min, x_max):
+        return [0.0, max(float(len(x_values) - 1), 1.0)]
+
+    span = x_max - x_min
+    window_span = max(span * float(visible_fraction), span * 0.02)
+    return [x_min, min(x_min + window_span, x_max)]
+
+
 @app.callback(
     [Output("uploaded-ecg-data", "data"),
      Output("ecg-upload-feedback", "children")],
@@ -4938,41 +5011,56 @@ def estimate_bpm_from_ecg_dataframe(df_ecg):
 @app.callback(
     [Output("ecg-graph", "figure"),
      Output("bpm-output", "children"),
-     Output("ecg-data-source-status", "children")],
+     Output("ecg-data-source-status", "children"),
+     Output("ecg-alert-container", "children")],
     [Input('sensor-interval', 'n_intervals'),
      Input('uploaded-ecg-data', 'data')],
     [State('url', 'pathname')]
 )
 def update_main_dashboard_auto(n, uploaded_ecg_data, pathname):
     # Solo actualizar si el usuario está en el Dashboard y hay ECG cargado en memoria
-    has_uploaded_data = bool(uploaded_ecg_data) and not df_uploaded_ecg_global.empty
-    if pathname != '/' or (df_ecg_global.empty and not has_uploaded_data):
+    has_uploaded_data = bool(uploaded_ecg_data)
+    if pathname != '/' or (df_ecg_global.empty and df_uploaded_ecg_global.empty):
         raise PreventUpdate
     
     try:
-        # 1. Leer una ventana de 50 puntos desde memoria (con loop infinito)
-        if has_uploaded_data:
-            source_df = df_uploaded_ecg_global
-            window_size = min(1000, len(source_df))
-            df = get_ecg_window(n, source_df=source_df, window_size=window_size)
+        # 1. Usar señal completa en modo estático (sin loop por ventanas)
+        if has_uploaded_data and not df_uploaded_ecg_global.empty:
+            source_df = df_uploaded_ecg_global.copy()
+            df = get_static_ecg_view_dataframe(source_df)
             display_name = uploaded_ecg_filename or (uploaded_ecg_data or {}).get("filename", "archivo.csv")
             source_msg = f"📤 ECG cargado desde CSV: {display_name} ({len(source_df)} muestras)"
         else:
-            df = get_ecg_window_from_memory(n, window_size=min(1000, len(df_ecg_global)))
-            source_msg = f"📡 ECG real cargado: {len(df_ecg_global)} muestras ({ECG_REAL_FILE})"
+            source_df = df_ecg_global.copy()
+            df = get_static_ecg_view_dataframe(source_df)
+            if has_uploaded_data and df_uploaded_ecg_global.empty:
+                source_msg = "⚠️ El ECG subido no está disponible en memoria; mostrando señal original"
+            else:
+                source_msg = f"📡 ECG real cargado: {len(df_ecg_global)} muestras ({ECG_REAL_FILE})"
 
         if df.empty:
             raise PreventUpdate
 
         y_data = df['ecg'].tolist()
+        x_data = df['timestamp'].tolist()
         
         # 2. Detectar estado de alerta (rojo si hay arritmia)
         is_warning = (df['status_ecg'] == 'RED_FLAG_ARRHYTHMIA').any()
         line_color = "#ef4444" if is_warning else "#2ebf7f" # Rojo vs Verde esmeralda
         
+        # Preparar alerta visual si hay arritmia
+        alert_element = html.Div()
+        if is_warning:
+            alert_element = dbc.Alert([
+                html.H5([html.I(className="bi bi-exclamation-triangle-fill me-2"), "⚠️ ALERTA: ARRITMIA DETECTADA"], style={'color': '#ffffff', 'fontWeight': 'bold'}),
+                html.Hr(style={'borderColor': '#ffffff', 'opacity': 0.3}),
+                html.P("Se han detectado patrones anómalos en el ECG. Se recomienda encarecidamente descansar y consultar con tu médico.", style={'color': '#ffffff', 'marginBottom': '10px'}),
+                html.P("Evita realizar esfuerzo físico hasta que recibas orientación médica.", style={'color': '#fecaca', 'fontSize': '0.9em'})
+            ], color="danger", className="mb-3", style={'borderRadius': '8px', 'padding': '20px', 'backgroundColor': '#7f1d1d', 'borderLeft': '5px solid #ef4444'})
+        
         # 3. Crear la gráfica Scatter
         fig = go.Figure(go.Scatter(
-            x=list(range(len(y_data))), 
+            x=x_data,
             y=y_data, 
             mode="lines", 
             line=dict(color=line_color, width=2.5),
@@ -5001,11 +5089,13 @@ def update_main_dashboard_auto(n, uploaded_ecg_data, pathname):
             template="plotly_white",
             margin=dict(l=50, r=20, t=40, b=40),
             height=350,
+            dragmode='pan',
             xaxis=dict(
-                range=[0, max(len(y_data) - 1, 1)], 
-                fixedrange=True, # Evita zoom accidental
+                range=get_slider_initial_x_range(x_data),
+                fixedrange=False,
                 showgrid=True,
-                gridcolor="#f0f0f0"
+                gridcolor="#f0f0f0",
+                rangeslider=dict(visible=True, thickness=0.12, bgcolor="#f8fafc")
             ),
             yaxis=dict(
                 range=[y_min, y_max],
@@ -5020,15 +5110,16 @@ def update_main_dashboard_auto(n, uploaded_ecg_data, pathname):
             title={
                 'text': "⚠️ Alerta: Arritmia Detectada" if is_warning else "✅ Ritmo Cardíaco Normal",
                 'font': {'color': line_color}
-            }
+            },
+            uirevision='dashboard-ecg-static'
         )
 
         # 5. Cálculo de BPM
-        bpm_value = estimate_bpm_from_ecg_dataframe(df)
+        bpm_value = estimate_bpm_from_ecg_dataframe(source_df)
         if bpm_value is None and not has_uploaded_data:
             bpm_value = 75 + (float(np.nanmax(y_data)) * 5)
         bpm_text = f"❤️ Frecuencia Cardíaca: {bpm_value:.1f} BPM" if bpm_value is not None else "❤️ Frecuencia Cardíaca: N/D"
-        return fig, bpm_text, source_msg
+        return fig, bpm_text, source_msg, alert_element
 
     except Exception as e:
         print(f"Error en callback de ECG: {e}")
@@ -5049,8 +5140,8 @@ def monitor_patient_health(n, selected_patient):
         raise PreventUpdate
 
     try:
-        # 1. Obtener ventana de datos (usamos 1000 para que se vea fluida como la del paciente)
-        df = get_ecg_window_from_memory(n, window_size=1000)
+        # 1. Usar señal completa de ECG para vista estática
+        df = get_static_ecg_view_dataframe(df_ecg_global)
 
         alerts = []
         # Detectar Arritmia para el color
@@ -5062,11 +5153,23 @@ def monitor_patient_health(n, selected_patient):
                 color="danger", className="d-flex align-items-center animate__animated animate__pulse animate__infinite"
             ))
 
-        # Detectar Fatiga (IMU)
-        if (df['status_imu'] == 'RED_FLAG_FATIGUE').any():
+        # Detectar Fatiga (IMU) desde la señal completa
+        has_imu_fatigue = False
+        if not df_imu_global.empty and 'imu_value' in df_imu_global.columns:
+            imu_series = pd.to_numeric(df_imu_global['imu_value'], errors='coerce').fillna(0.0)
+            has_imu_fatigue = bool((imu_series.abs() > 0.9).any())
+
+        if is_warning:
             alerts.append(dbc.Alert(
-                [html.I(className="bi bi-info-circle-fill me-2"),
-                 "Aviso: El paciente muestra signos de fatiga muscular."],
+                [html.I(className="bi bi-exclamation-triangle-fill me-2"),
+                 "⚠️ ALERTA CRÍTICA: Arritmia detectada"],
+                color="danger", className="d-flex align-items-center animate__animated animate__pulse animate__infinite"
+            ))
+        
+        if has_imu_fatigue:
+            alerts.append(dbc.Alert(
+                [html.I(className="bi bi-exclamation-circle-fill me-2"),
+                 "⚠️ ALERTA: El paciente muestra signos de fatiga muscular. Se recomienda descanso."],
                 color="warning"
             ))
 
@@ -5074,7 +5177,7 @@ def monitor_patient_health(n, selected_patient):
         line_color = "#ef4444" if is_warning else "#2ebf7f"
 
         fig = go.Figure(go.Scatter(
-            x=list(range(len(df))),
+            x=df['timestamp'].tolist(),
             y=df['ecg'],
             mode="lines",
             line=dict(color=line_color, width=2.5),
@@ -5088,11 +5191,13 @@ def monitor_patient_health(n, selected_patient):
             plot_bgcolor='black',
             margin=dict(l=50, r=20, t=40, b=40),
             height=350,
+            dragmode='pan',
             xaxis=dict(
-                range=[0, len(df)-1],
+                range=get_slider_initial_x_range(df['timestamp'].tolist()),
                 showgrid=True,
                 gridcolor="#1a1a1a",
-                fixedrange=True
+                fixedrange=False,
+                rangeslider=dict(visible=True, thickness=0.12, bgcolor="#1a1a1a")
             ),
             yaxis=dict(
                 range=[-1.0, 2.0],
@@ -5107,7 +5212,8 @@ def monitor_patient_health(n, selected_patient):
                 'text': "⚠️ ARRITMIA DETECTADA" if is_warning else "RITMO CARDÍACO NORMAL",
                 'font': {'color': line_color, 'size': 14, 'family': 'Arial Black'},
                 'x': 0.05
-            }
+            },
+            uirevision='doctor-ecg-static'
         )
 
         bpm = 75 + (float(df['ecg'].max()) * 5)
@@ -7326,9 +7432,11 @@ def export_patient_data_to_csv(n_clicks, patient_username):
 @app.callback(
     [Output('live-ecg-graph', 'figure'), 
      Output('live-imu-graph', 'figure'),
-     Output('ecg-status-msg', 'children'), 
-     Output('imu-status-msg', 'children')],
-    Input('sensor-interval', 'n_intervals'),
+     Output('ecg-status-msg', 'children'),
+     Output('imu-status-msg', 'children'),
+     Output('live-ecg-alert', 'children'),
+     Output('live-imu-alert', 'children')],
+    [Input('sensor-interval', 'n_intervals')],
     [State('exercise-uploaded-sensors-data', 'data'),
      State('exercise-execution-modal', 'is_open')],
     prevent_initial_call=True
@@ -7343,7 +7451,7 @@ def update_sensor_charts(n, upload_state, is_open):
             height=300,
             showlegend=False,
         )
-        return empty_fig, empty_fig, "⏸️ Esperando datos...", "⏸️ Esperando datos..."
+        return empty_fig, empty_fig, "⏸️ Esperando datos...", "⏸️ Esperando datos...", html.Div(), html.Div()
     
     try:
         upload_state = upload_state or {}
@@ -7354,28 +7462,33 @@ def update_sensor_charts(n, upload_state, is_open):
         ecg_source_df = df_uploaded_exercise_ecg_global if has_uploaded_ecg else df_ecg_global
         imu_source_df = df_uploaded_exercise_imu_global if has_uploaded_imu else df_imu_global
 
-        ecg_window_size = min(1000, len(ecg_source_df))
-        imu_window_size = min(1000, len(imu_source_df))
-
-        ecg_df = get_circular_sensor_window(n, ecg_source_df, ecg_window_size, "ecg_value", "ecg")
-        imu_df = get_circular_sensor_window(n, imu_source_df, imu_window_size, "imu_value", "imu")
+        # ECG en vista estática: se renderiza la señal completa con barra inferior para navegar en X.
+        ecg_df = get_static_ecg_view_dataframe(ecg_source_df)
+        imu_df = get_static_imu_view_dataframe(imu_source_df)
 
         if ecg_df.empty and imu_df.empty:
             return dash.no_update, dash.no_update, "📊 Recolectando...", "📊 Recolectando..."
 
         y_ecg = ecg_df['ecg'].tolist() if not ecg_df.empty else []
         y_imu = imu_df['imu'].tolist() if not imu_df.empty else []
-        x_ecg_vals = list(range(len(y_ecg))) if y_ecg else []
-        x_imu_vals = list(range(len(y_imu))) if y_imu else []
-
-        ecg_xmax = max(ecg_window_size - 1, 1)
-        imu_xmax = max(imu_window_size - 1, 1)
+        x_ecg_vals = ecg_df['timestamp'].tolist() if not ecg_df.empty else []
+        x_imu_vals = imu_df['timestamp'].tolist() if not imu_df.empty else []
         
-        # 2. Gráfica ECG con estilo consistente al dashboard principal
+        # 2. Preparar alerta si hay arritmia
+        has_arrhythmia = False
         if not ecg_df.empty and 'status_ecg' in ecg_df.columns:
             has_arrhythmia = (ecg_df['status_ecg'] == 'RED_FLAG_ARRHYTHMIA').any()
         else:
             has_arrhythmia = bool(y_ecg) and (np.nanmax(np.abs(np.asarray(y_ecg, dtype=float))) > 1.5)
+        
+        ecg_alert = html.Div()
+        if has_arrhythmia:
+            ecg_alert = dbc.Alert([
+                html.H5([html.I(className="bi bi-exclamation-triangle-fill me-2"), "⚠️ ECG ANÓMALO: ARRITMIA"], style={'color': '#ffffff', 'fontWeight': 'bold'}),
+                html.Hr(style={'borderColor': '#ffffff', 'opacity': 0.3}),
+                html.P("Se detectaron anomalías en el ritmo cardíaco durante la sesión. Descansa y consulta con tu médico.", style={'color': '#ffffff'})
+            ], color="danger", className="mb-3", style={'borderRadius': '8px', 'padding': '20px', 'backgroundColor': '#7f1d1d', 'borderLeft': '5px solid #ef4444'})
+        
         ecg_color = "#ef4444" if has_arrhythmia else "#2ebf7f"
         if ecg_df.empty:
             fig_ecg = go.Figure().update_layout(height=300, template="plotly_white", showlegend=False)
@@ -7385,19 +7498,22 @@ def update_sensor_charts(n, upload_state, is_open):
                 line=dict(color=ecg_color, width=2.5),
                 hoverinfo='none'
             ))
+
             fig_ecg.update_layout(
                 height=300,
                 margin=dict(l=50, r=20, t=40, b=40),
                 template="plotly_white",
+                dragmode='pan',
                 title={
                     'text': "⚠️ Alerta: Arritmia Detectada" if has_arrhythmia else "✅ Ritmo Cardíaco Normal",
                     'font': {'color': ecg_color}
                 },
                 xaxis=dict(
-                    range=[0, ecg_xmax],
-                    fixedrange=True,
+                    range=get_slider_initial_x_range(x_ecg_vals),
+                    fixedrange=False,
                     showgrid=True,
-                    gridcolor="#f0f0f0"
+                    gridcolor="#f0f0f0",
+                    rangeslider=dict(visible=True, thickness=0.12, bgcolor="#f8fafc")
                 ),
                 yaxis=dict(
                     autorange=True,
@@ -7407,14 +7523,24 @@ def update_sensor_charts(n, upload_state, is_open):
                     zerolinecolor="#e5e7eb"
                 ),
                 showlegend=False,
-                uirevision='constant'
+                uirevision='ecg-static'
             )
 
-        # 3. Gráfica IMU con datos reales
+        # 3. Preparar alerta si hay fatiga/movimiento anómalo
+        has_imu_warning = False
         if not imu_df.empty and 'status_imu' in imu_df.columns:
             has_imu_warning = (imu_df['status_imu'] == 'RED_FLAG_FATIGUE').any()
         else:
             has_imu_warning = bool(y_imu) and (np.nanmax(np.abs(np.asarray(y_imu, dtype=float))) > 0.9)
+        
+        imu_alert = html.Div()
+        if has_imu_warning:
+            imu_alert = dbc.Alert([
+                html.H5([html.I(className="bi bi-exclamation-triangle-fill me-2"), "⚠️ FATIGA DETECTADA"], style={'color': '#ffffff', 'fontWeight': 'bold'}),
+                html.Hr(style={'borderColor': '#ffffff', 'opacity': 0.3}),
+                html.P("Se detectaron signos de fatiga muscular. Se recomienda descansar antes de continuar.", style={'color': '#ffffff'})
+            ], color="warning", className="mb-3", style={'borderRadius': '8px', 'padding': '20px', 'backgroundColor': '#78350f', 'borderLeft': '5px solid #f59e0b'})
+        
         imu_color = "#f59e0b" if has_imu_warning else "#3b82f6"
         if imu_df.empty:
             fig_imu = go.Figure().update_layout(height=300, template="plotly_white", showlegend=False)
@@ -7430,15 +7556,17 @@ def update_sensor_charts(n, upload_state, is_open):
                 height=300,
                 margin=dict(l=50, r=20, t=40, b=40),
                 template="plotly_white",
+                dragmode='pan',
                 title={
                     'text': "⚠️ Alerta: Fatiga/Movimiento Anómalo" if has_imu_warning else "✅ Movimiento IMU Dentro de Rango",
                     'font': {'color': imu_color}
                 },
                 xaxis=dict(
-                    range=[0, imu_xmax],
-                    fixedrange=True,
+                    range=get_slider_initial_x_range(x_imu_vals),
+                    fixedrange=False,
                     showgrid=True,
-                    gridcolor="#f0f0f0"
+                    gridcolor="#f0f0f0",
+                    rangeslider=dict(visible=True, thickness=0.12, bgcolor="#f8fafc")
                 ),
                 yaxis=dict(
                     autorange=True,
@@ -7448,11 +7576,11 @@ def update_sensor_charts(n, upload_state, is_open):
                     zerolinecolor="#e5e7eb"
                 ),
                 showlegend=False,
-                uirevision='constant'
+                uirevision='imu-static'
             )
         
         ecg_msg = (
-            f"📤 ECG cargado: {uploaded_exercise_ecg_filename} ({len(ecg_df)} muestras)"
+            f"📤 ECG cargado: {uploaded_exercise_ecg_filename} ({len(ecg_source_df)} muestras)"
             if has_uploaded_ecg and uploaded_exercise_ecg_filename
             else f"📡 ECG real cargado: {len(ecg_source_df)} muestras ({ECG_REAL_FILE})"
         )
@@ -7462,11 +7590,11 @@ def update_sensor_charts(n, upload_state, is_open):
             else f"📡 IMU real activa ({imu_source_col})"
         )
         
-        return fig_ecg, fig_imu, ecg_msg, imu_msg
+        return fig_ecg, fig_imu, ecg_msg, imu_msg, ecg_alert, imu_alert
         
     except Exception as e:
         print(f"Error en sensores: {e}")
-        return dash.no_update, dash.no_update, "❌ Error", "❌ Error"
+        return dash.no_update, dash.no_update, "❌ Error", "❌ Error", html.Div(), html.Div()
 
 
 @app.callback(
