@@ -1480,13 +1480,18 @@ def render_tactical_plans_section(username):
     archived_plans = [p for p in plans if p.get('status') == 'archived']
 
     def _plan_card(plan, archived=False):
-        opponent = plan.get('opponent', {})
-        rounds = plan.get('game_plan_rounds', [])
+        opponent = plan.get('opponent', {}) if isinstance(plan, dict) else {}
+        rounds = plan.get('game_plan_rounds', []) if isinstance(plan, dict) else []
+        phase_name = plan.get('my_phase', 'Sin fase') if isinstance(plan, dict) else 'Sin fase'
+        target_date = plan.get('target_date', 'N/A') if isinstance(plan, dict) else 'N/A'
+        start_date = plan.get('start_date', 'N/A') if isinstance(plan, dict) else 'N/A'
+        status_label = '🟢 Activo' if not archived else '📦 Archivado'
+
         actions = []
         if archived:
             actions.append(
                 dbc.Button(
-                    "♻️ Recuperar",
+                    '♻️ Recuperar',
                     id={'type': 'restore-tactical-plan-btn', 'index': plan.get('fight_id')},
                     color='success',
                     size='sm'
@@ -1495,49 +1500,688 @@ def render_tactical_plans_section(username):
         else:
             actions.extend([
                 dbc.Button(
-                    "📝 Editar",
+                    '📝 Editar',
                     id={'type': 'edit-tactical-plan-btn', 'index': plan.get('fight_id')},
                     color='primary',
                     size='sm',
                     className='me-2'
                 ),
                 dbc.Button(
-                    "📦 Archivar",
+                    '📦 Archivar',
                     id={'type': 'archive-tactical-plan-btn', 'index': plan.get('fight_id')},
                     color='warning',
                     size='sm'
                 )
             ])
 
+        rounds_summary = ', '.join([
+            round_item.get('focus', round_item.get('title', ''))
+            for round_item in rounds[:3]
+            if isinstance(round_item, dict)
+        ])
+
         return dbc.Card(
             dbc.CardBody([
                 html.H6(f"🥊 vs {opponent.get('name', 'Sin rival')}", style={'color': COLORS['primary']}),
-                html.P(
-                    f"Estilo: {opponent.get('style', 'Balanced')} | Rounds: {len(rounds)}",
-                    style={'color': '#ffffff', 'marginBottom': '8px'}
-                ),
-                html.P(
-                    f"Fecha objetivo: {plan.get('target_date') or 'No definida'}",
-                    style={'color': COLORS['muted'], 'fontSize': '0.9em', 'marginBottom': '10px'}
-                ),
-                html.Div(actions)
+                html.P([
+                    html.Strong('Fase: '), phase_name,
+                    html.Br(),
+                    html.Strong('Estado: '), status_label,
+                    html.Br(),
+                    html.Strong('Inicio: '), start_date,
+                    html.Br(),
+                    html.Strong('Objetivo: '), target_date,
+                ], style={'color': '#ffffff', 'marginBottom': '10px'}),
+                html.P([
+                    html.Strong('Rounds: '),
+                    rounds_summary if rounds_summary else 'Sin rounds definidos'
+                ], style={'color': '#cbd5e1', 'fontSize': '0.9rem'}),
+                html.Div(actions, style={'marginTop': '12px'})
             ]),
-            className='mb-2',
-            style={'backgroundColor': '#111111', 'border': f"1px solid {COLORS['border_soft']}"}
+            style={'backgroundColor': '#111111', 'border': '1px solid #2b3440', 'marginBottom': '12px'}
         )
 
-    return html.Div([
-        html.H5("Activos", style={'color': '#ffffff', 'marginTop': '10px'}),
-        html.Div([_plan_card(p, archived=False) for p in active_plans]) if active_plans else html.P(
-            "No hay planes tácticos activos.",
-            style={'color': COLORS['muted']}
-        ),
-        html.Hr(),
-        html.H5("Archivados", style={'color': '#ffffff'}),
-        html.Div([_plan_card(p, archived=True) for p in archived_plans]) if archived_plans else html.P(
-            "No hay planes archivados.",
-            style={'color': COLORS['muted']}
+    cards = []
+    if active_plans:
+        cards.append(html.H6('Planes activos', style={'color': '#94a3b8', 'textTransform': 'uppercase', 'letterSpacing': '1px'}))
+        cards.extend([_plan_card(plan) for plan in active_plans])
+
+    if archived_plans:
+        cards.append(html.H6('Planes archivados', style={'color': '#94a3b8', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginTop': '16px'}))
+        cards.extend([_plan_card(plan, archived=True) for plan in archived_plans])
+
+    if not cards:
+        return html.P('No hay planes tácticos guardados aún.', style={'color': COLORS['muted'], 'textAlign': 'center', 'padding': '20px'})
+
+    return html.Div(cards)
+
+
+def _extract_tactical_plan_details(tactical_plan):
+    """Extrae detalles clave del plan táctico para mostrar alertas informativas."""
+    if not isinstance(tactical_plan, dict) or not tactical_plan:
+        return {'phases': [], 'missing_phases': [], 'rounds_count': 0, 'opponent_name': None}
+    
+    phases = tactical_plan.get('camp_phases', []) or []
+    rounds = tactical_plan.get('game_plan_rounds', []) or []
+    opponent = tactical_plan.get('opponent', {})
+    if not isinstance(opponent, dict):
+        opponent = {}
+    
+    pending_phases = []
+    for phase in phases:
+        if not isinstance(phase, dict):
+            continue
+        phase_name = phase.get('phase', 'Sin nombre')
+        phase_end = phase.get('end_date', '')
+        if phase_end:
+            try:
+                end_dt = datetime.fromisoformat(str(phase_end))
+                if end_dt.date() >= datetime.now().date():
+                    pending_phases.append(f"{phase_name} (hasta {end_dt.strftime('%d/%m')})")
+            except:
+                pass
+    
+    return {
+        'phases': [p.get('phase', 'Fase') for p in phases if isinstance(p, dict)],
+        'pending_phases': pending_phases[:2],
+        'rounds_count': len(rounds),
+        'opponent_name': opponent.get('name', 'Rival sin definir'),
+    }
+
+
+def _extract_meal_plan_details(meal_plan):
+    """Extrae macros e información del plan de comidas."""
+    if not isinstance(meal_plan, dict) or not meal_plan:
+        return {'macros': None, 'weight_change': None, 'days_remaining': None}
+    
+    macros = meal_plan.get('generated_macros', {})
+    if not isinstance(macros, dict):
+        macros = {}
+    
+    duration = meal_plan.get('duration', 0)
+    created = meal_plan.get('created_date', '')
+    days_remaining = None
+    if created and duration:
+        try:
+            created_dt = datetime.fromisoformat(str(created))
+            end_dt = created_dt + timedelta(days=int(duration))
+            days_remaining = max(0, (end_dt.date() - datetime.now().date()).days)
+        except:
+            pass
+    
+    return {
+        'macros': {
+            'kcal': macros.get('daily_kcal', 'N/A'),
+            'protein': macros.get('protein_g_per_kg', 'N/A'),
+            'carbs': macros.get('carbs_g_per_kg', 'N/A'),
+            'fats': macros.get('fats_g_per_kg', 'N/A'),
+        },
+        'weight_change': meal_plan.get('weight_change', 'none'),
+        'days_remaining': days_remaining,
+        'duration': duration,
+    }
+
+
+def _categorize_questionnaires(questionnaires, due_questionnaire_ids):
+    """Categoriza cuestionarios en pendientes, completados hoy, vencidos."""
+    today = datetime.now().date().isoformat()
+    completed_today = []
+    pending_today = list(due_questionnaire_ids or [])
+    
+    for q in (questionnaires or []):
+        if not isinstance(q, dict):
+            continue
+        q_id = q.get('questionnaire_id', '')
+        q_timestamp = q.get('timestamp', '')[:10] if q.get('timestamp') else ''
+        
+        if q_timestamp == today:
+            completed_today.append({
+                'id': q_id,
+                'title': q.get('questionnaire_title', q_id),
+                'time': q.get('timestamp', '')
+            })
+            if q_id in pending_today:
+                pending_today.remove(q_id)
+    
+    return {
+        'pending': pending_today,
+        'completed_today': completed_today,
+        'total_pending': len(pending_today),
+        'total_completed_today': len(completed_today),
+    }
+
+
+def _get_current_phase_from_plan(tactical_plan):
+    """Determine qué fase está activa hoy según el plan táctico."""
+    if not isinstance(tactical_plan, dict):
+        return None
+    
+    phases = tactical_plan.get('camp_phases', []) or []
+    today = datetime.now().date()
+    
+    for phase in phases:
+        if not isinstance(phase, dict):
+            continue
+        start_str = phase.get('start_date', '')
+        end_str = phase.get('end_date', '')
+        
+        try:
+            start_dt = datetime.fromisoformat(start_str).date() if start_str else None
+            end_dt = datetime.fromisoformat(end_str).date() if end_str else None
+            
+            if start_dt and end_dt and start_dt <= today <= end_dt:
+                return phase
+        except:
+            pass
+    
+    return None
+
+
+def _get_current_round_from_plan(tactical_plan):
+    """Determina qué round ejecutar hoy (Round 1, 2, 3, etc.)."""
+    if not isinstance(tactical_plan, dict):
+        return None
+    
+    fight_date_str = tactical_plan.get('target_date') or tactical_plan.get('date')
+    if not fight_date_str:
+        return None
+    
+    try:
+        fight_date = datetime.fromisoformat(fight_date_str).date()
+    except:
+        return None
+    
+    today = datetime.now().date()
+    days_until_fight = (fight_date - today).days
+    
+    # Lógica: si faltan 3-7 días = Round 3, 1-2 días = Round 2, <1 día = Round 1
+    rounds = tactical_plan.get('game_plan_rounds', []) or []
+    if not rounds:
+        return None
+    
+    if days_until_fight < 1:
+        round_idx = 2  # Última semana: enfoque en Round 3
+    elif days_until_fight < 3:
+        round_idx = 1  # 2-3 días: Round 2
+    else:
+        round_idx = 0  # Más de 3 días: Round 1
+    
+    if round_idx < len(rounds):
+        return rounds[round_idx]
+    return rounds[-1] if rounds else None
+
+
+def _recommend_exercises_for_round(round_data, exercise_catalog=None):
+    """Recomienda ejercicios específicos basado en el focus del round."""
+    if not isinstance(round_data, dict):
+        return []
+    
+    round_focus = (round_data.get('focus') or round_data.get('title') or '').lower()
+    techniques = round_data.get('techniques', []) or []
+    
+    # Mapeo simple: técnica → tipo de ejercicio recomendado
+    technique_to_exercise = {
+        'jab': ['Boxing - Jab Drills', 'Speed Bag', 'Double End Bag'],
+        'clinch': ['Thai Clinch Holds', 'wrestling takedown', 'Grappling Position'],
+        'takedown': ['Wrestling Takedown', 'Clinch Drills', 'Foundation Movement'],
+        'control': ['Positional Control', 'Core Stabilization', 'Balance Training'],
+        'presión': ['High Intensity Rounds', 'Cardio Conditioning', 'Sprint Intervals'],
+        'defensa': ['Defensive Footwork', 'Head Movement', 'Evasion Drills'],
+    }
+    
+    recommended = []
+    for technique in techniques[:3]:  # Top 3 técnicas
+        tech_lower = str(technique).lower()
+        for keyword, exercises in technique_to_exercise.items():
+            if keyword in tech_lower:
+                recommended.extend(exercises[:2])  # 2 ejercicios por técnica
+    
+    return list(dict.fromkeys(recommended))[:5]  # Máximo 5 únicos
+
+
+def _adapt_macros_by_phase(macros, phase_name):
+    """Adapta macros dinámicamente según la fase del plan."""
+    if not isinstance(macros, dict) or not phase_name:
+        return macros
+    
+    phase_lower = str(phase_name).lower()
+    kcal = float(macros.get('daily_kcal', 2400))
+    protein = float(macros.get('protein_g_per_kg', 1.8))
+    carbs = float(macros.get('carbs_g_per_kg', 4.0))
+    fats = float(macros.get('fats_g_per_kg', 0.9))
+    
+    # Adaptar según fase
+    if 'base' in phase_lower or 'volumen' in phase_lower:
+        # Fase base: más volumen → más calorías y carbos
+        multiplier = 1.1
+        carbs *= 1.15
+    elif 'específic' in phase_lower or 'simulación' in phase_lower:
+        # Fase específica: mantener pero proteína más alta
+        multiplier = 1.0
+        protein *= 1.1
+    elif 'descarga' in phase_lower or 'puesta a punto' in phase_lower:
+        # Descarga: menos volumen
+        multiplier = 0.85
+        carbs *= 0.9
+        kcal *= 0.9
+    elif 'pelea' in phase_lower or 'fight' in phase_lower:
+        # Última semana: recuperación + poco volumen
+        multiplier = 0.75
+        carbs *= 0.7
+        kcal *= 0.8
+    else:
+        multiplier = 1.0
+    
+    return {
+        'daily_kcal': int(kcal * multiplier),
+        'protein_g_per_kg': round(protein, 1),
+        'carbs_g_per_kg': round(carbs, 1),
+        'fats_g_per_kg': round(fats, 1),
+        'phase_adapted': True,
+        'phase_name': phase_name,
+    }
+
+
+def _build_today_briefing(tactical_plan, meal_plan, phase_name=None, round_data=None):
+    """Crea un briefing de 'qué toca hoy' basado en planes."""
+    briefing = {'phase': None, 'round': None, 'focus': None, 'exercises': None, 'macros': None, 'message': None}
+    
+    if not phase_name and tactical_plan:
+        phase = _get_current_phase_from_plan(tactical_plan)
+        phase_name = phase.get('phase', 'Sin fase') if isinstance(phase, dict) else None
+    
+    if not round_data and tactical_plan:
+        round_data = _get_current_round_from_plan(tactical_plan)
+    
+    briefing['phase'] = phase_name
+    
+    if isinstance(round_data, dict):
+        briefing['round'] = round_data.get('round_number')
+        briefing['focus'] = round_data.get('focus', round_data.get('title', ''))
+        briefing['exercises'] = _recommend_exercises_for_round(round_data)
+    
+    if meal_plan and phase_name:
+        macros = meal_plan.get('generated_macros', {})
+        if isinstance(macros, dict):
+            briefing['macros'] = _adapt_macros_by_phase(macros, phase_name)
+    
+    # Crear mensaje corto
+    if briefing['phase'] and briefing['round']:
+        briefing['message'] = f"Hoy: Fase {briefing['phase']} → {briefing['focus']}"
+    elif briefing['phase']:
+        briefing['message'] = f"Hoy: Fase {briefing['phase']}"
+    
+    return briefing
+
+
+def _parse_datetime_safe(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def _pick_latest_record(records, timestamp_keys):
+    timestamp_keys = timestamp_keys if isinstance(timestamp_keys, (list, tuple)) else [timestamp_keys]
+    parsed_records = []
+
+    for record in records or []:
+        if not isinstance(record, dict):
+            continue
+        parsed_dt = None
+        for key in timestamp_keys:
+            parsed_dt = _parse_datetime_safe(record.get(key))
+            if parsed_dt:
+                break
+        if parsed_dt:
+            parsed_records.append((parsed_dt, record))
+
+    if not parsed_records:
+        return (records or [None])[0] if records else None
+
+    parsed_records.sort(key=lambda item: item[0], reverse=True)
+    return parsed_records[0][1]
+
+
+def _pick_next_fight(fights):
+    parsed_fights = []
+
+    for fight in fights or []:
+        if not isinstance(fight, dict):
+            continue
+        parsed_dt = _parse_datetime_safe(fight.get('date'))
+        if parsed_dt:
+            parsed_fights.append((parsed_dt, fight))
+
+    if not parsed_fights:
+        return None
+
+    today = datetime.now().date()
+    future_fights = [item for item in parsed_fights if item[0].date() >= today]
+    selected_pool = future_fights or parsed_fights
+    selected_pool.sort(key=lambda item: item[0])
+    return selected_pool[0][1]
+
+
+def _pick_next_appointment(appointments):
+    parsed_appointments = []
+
+    for appointment in appointments or []:
+        if not isinstance(appointment, dict):
+            continue
+        parsed_dt = _parse_datetime_safe(appointment.get('datetime'))
+        if parsed_dt:
+            parsed_appointments.append((parsed_dt, appointment))
+
+    if not parsed_appointments:
+        return None
+
+    today = datetime.now().date()
+    future_appointments = [item for item in parsed_appointments if item[0].date() >= today]
+    selected_pool = future_appointments or parsed_appointments
+    selected_pool.sort(key=lambda item: item[0])
+    return selected_pool[0][1]
+
+
+def _pick_latest_active_plan(plans):
+    plans = [plan for plan in (plans or []) if isinstance(plan, dict)]
+    if not plans:
+        return None
+
+    active_plans = [plan for plan in plans if str(plan.get('status', 'active')).lower() == 'active']
+    pool = active_plans or plans
+    return _pick_latest_record(pool, ['created_date', 'created_at'])
+
+
+def build_daily_continuity_context(username):
+    try:
+        patient_data = db.get_complete_user_data(username) or {}
+    except Exception:
+        patient_data = {}
+
+    user_record = _USER_DB.get(username, {})
+    profile = patient_data.get('profile', {}) or {}
+    appointments = patient_data.get('appointments', []) or []
+    questionnaires = patient_data.get('questionnaires', []) or []
+    exercises = patient_data.get('exercises', []) or []
+    fights = user_record.get('fights', []) or []
+    meal_plans = user_record.get('meal_plans', []) or []
+    tactical_plans = user_record.get('tactical_plans', []) or []
+    health_status = profile.get('health_status', 'listo')
+    injury_types = profile.get('injury_types', []) or []
+    current_weight = profile.get('current_weight')
+
+    next_fight = _pick_next_fight(fights)
+    active_meal_plan = _pick_latest_active_plan(meal_plans)
+    active_tactical_plan = _pick_latest_active_plan(tactical_plans)
+    latest_questionnaire = _pick_latest_record(questionnaires, ['timestamp'])
+    latest_exercise = _pick_latest_record(exercises, ['timestamp'])
+    next_appointment = _pick_next_appointment(appointments)
+
+    recommended_questionnaires = get_recommended_questionnaires(health_status, injury_types)
+    due_questionnaires = []
+    for questionnaire_id in recommended_questionnaires:
+        if QuestionnaireService.can_submit_today(questionnaires, questionnaire_id):
+            due_questionnaires.append(questionnaire_id)
+
+    next_fight_dt = _parse_datetime_safe(next_fight.get('date')) if next_fight else None
+    days_to_fight = (next_fight_dt.date() - datetime.now().date()).days if next_fight_dt else None
+    next_appointment_dt = _parse_datetime_safe(next_appointment.get('datetime')) if next_appointment else None
+    days_to_appointment = (next_appointment_dt.date() - datetime.now().date()).days if next_appointment_dt else None
+
+    # Extraer detalles de planes
+    tactical_details = _extract_tactical_plan_details(active_tactical_plan)
+    meal_details = _extract_meal_plan_details(active_meal_plan)
+    questionnaire_status = _categorize_questionnaires(questionnaires, due_questionnaires)
+    
+    # Crear briefing de "qué toca hoy" basado en planes activos
+    today_briefing = _build_today_briefing(active_tactical_plan, active_meal_plan)
+    
+    # Adaptar macros del plan de comidas según la fase táctica actual
+    if active_meal_plan and today_briefing.get('phase'):
+        adapted_macros = _adapt_macros_by_phase(
+            active_meal_plan.get('generated_macros', {}),
+            today_briefing['phase']
         )
+        meal_details['macros'] = adapted_macros
+        meal_details['adapted'] = True
+
+    alerts = []
+    if health_status == 'lesionado':
+        alerts.append('Prioriza rehabilitacion y control de carga.')
+    if current_weight is not None and next_fight and next_fight.get('target_weight') not in [None, '']:
+        try:
+            weight_diff = float(current_weight) - float(next_fight.get('target_weight'))
+            if abs(weight_diff) > 2:
+                alerts.append(f'El peso actual ({current_weight} kg) se aleja {abs(weight_diff):.1f} kg del objetivo.')
+        except (TypeError, ValueError):
+            pass
+    if days_to_fight is not None and days_to_fight <= 21 and not active_tactical_plan:
+        alerts.append('Falta un plan tactico activo para el campamento cercano.')
+    if days_to_fight is not None and days_to_fight <= 21 and not active_meal_plan:
+        alerts.append('Falta plan de comidas para mantener nutricion durante campamento.')
+    
+    # Alerta por detalles del plan táctico
+    if active_tactical_plan and tactical_details.get('pending_phases'):
+        phases_text = ', '.join(tactical_details['pending_phases'])
+        alerts.append(f'Fases activas: {phases_text}')
+    
+    # Alerta por macros del plan de comidas
+    if active_meal_plan and meal_details.get('macros') and meal_details['macros'].get('kcal') != 'N/A':
+        macros = meal_details['macros']
+        adapted_text = " (adaptados)" if meal_details.get('adapted') else ""
+        alerts.append(f"Macros hoy: {macros['kcal']} kcal | P{macros['protein']}g/kg | C{macros['carbs']}g/kg{adapted_text}")
+    
+    # Alerta del briefing: qué toca hoy
+    if today_briefing.get('message'):
+        alerts.insert(0, f"📌 {today_briefing['message']}")
+    if today_briefing.get('exercises'):
+        exercises_text = ', '.join(today_briefing['exercises'][:3])
+        alerts.append(f"💪 Ejercicios recomendados hoy: {exercises_text}")
+
+    actions = []
+    if due_questionnaires:
+        actions.append({'label': 'Completar cuestionario de hoy', 'action': 'modal-questionnaire', 'color': 'primary', 'questionnaires': due_questionnaires})
+    if days_to_fight is not None and days_to_fight <= 21 and not active_tactical_plan:
+        actions.append({'label': 'Crear plan tactico', 'href': '/tactical-planning', 'color': 'danger'})
+    if days_to_fight is not None and days_to_fight <= 21 and not active_meal_plan:
+        actions.append({'label': 'Crear plan de comidas', 'href': '/meal-plans', 'color': 'success'})
+    if not latest_exercise or latest_exercise.get('timestamp', '')[:10] != datetime.now().date().isoformat():
+        actions.append({'label': 'Registrar ejercicio', 'href': '/exercises', 'color': 'warning'})
+    if next_appointment:
+        actions.append({'label': 'Revisar cita', 'href': '/view-patient-appointments', 'color': 'info'})
+
+    if not actions:
+        actions.append({'label': 'Abrir plan tactico', 'href': '/tactical-planning', 'color': 'secondary'})
+
+    return {
+        'profile': profile,
+        'health_status': health_status,
+        'injury_types': injury_types,
+        'current_weight': current_weight,
+        'fights': fights,
+        'next_fight': next_fight,
+        'days_to_fight': days_to_fight,
+        'meal_plan': active_meal_plan,
+        'meal_details': meal_details,
+        'tactical_plan': active_tactical_plan,
+        'tactical_details': tactical_details,
+        'appointments': appointments,
+        'next_appointment': next_appointment,
+        'days_to_appointment': days_to_appointment,
+        'questionnaires': questionnaires,
+        'latest_questionnaire': latest_questionnaire,
+        'due_questionnaires': due_questionnaires,
+        'questionnaire_status': questionnaire_status,
+        'exercises': exercises,
+        'latest_exercise': latest_exercise,
+        'today_briefing': today_briefing,
+        'alerts': alerts,
+        'actions': actions,
+    }
+
+
+def render_daily_continuity_panel(username, current_search="", compact=False):
+    context = build_daily_continuity_context(username)
+    next_fight = context.get('next_fight') or {}
+    tactical_plan = context.get('tactical_plan') or {}
+    tactical_details = context.get('tactical_details') or {}
+    meal_plan = context.get('meal_plan') or {}
+    meal_details = context.get('meal_details') or {}
+    next_appointment = context.get('next_appointment') or {}
+    latest_questionnaire = context.get('latest_questionnaire') or {}
+    latest_exercise = context.get('latest_exercise') or {}
+    injury_types = context.get('injury_types') or []
+    alerts = context.get('alerts') or []
+    actions = context.get('actions') or []
+    questionnaire_status = context.get('questionnaire_status') or {}
+    today_briefing = context.get('today_briefing') or {}
+
+    def _metric_card(title, value, subtitle='', border_color='#1f2937'):
+        return html.Div([
+            html.Div(title, style={'color': '#94a3b8', 'fontSize': '0.78rem', 'textTransform': 'uppercase', 'letterSpacing': '0.08em'}),
+            html.Div(value, style={'color': '#ffffff', 'fontSize': '1.05rem', 'fontWeight': '700', 'marginTop': '4px'}),
+            html.Div(subtitle, style={'color': '#94a3b8', 'fontSize': '0.82rem', 'marginTop': '2px'}) if subtitle else None,
+        ], style={'backgroundColor': '#111827', 'border': f'1px solid {border_color}', 'borderRadius': '10px', 'padding': '12px'})
+
+    # Panel destacado de "Qué toca hoy"
+    today_panel = None
+    if today_briefing.get('phase') or today_briefing.get('round'):
+        phase_text = f"📍 Fase: {today_briefing.get('phase', 'N/A')}"
+        round_text = f"🥊 Round {today_briefing.get('round', 'N/A')}"
+        focus_text = today_briefing.get('focus', '')
+        
+        exercises_list = today_briefing.get('exercises', [])
+        exercises_text = ''
+        if exercises_list:
+            exer_display = ', '.join(exercises_list[:3])
+            exercises_text = f"💪 Ejercicios: {exer_display}"
+        
+        macros_info = today_briefing.get('macros')
+        macros_text = ''
+        if macros_info:
+            kcal = macros_info.get('daily_kcal', 'N/A')
+            protein = macros_info.get('protein_g_per_kg', 'N/A')
+            carbs = macros_info.get('carbs_g_per_kg', 'N/A')
+            adapted = " (adaptadas)" if macros_info.get('phase_adapted') else ""
+            macros_text = f"🍎 Macros: {kcal} kcal | P{protein}g/kg | C{carbs}g/kg{adapted}"
+        
+        today_panel = html.Div([
+            html.Div([
+                html.Span('📅 ', style={'fontSize': '1.2em'}),
+                html.Span('QUÉ TOCA HOY', style={'fontWeight': '900', 'letterSpacing': '1px'})
+            ], style={'color': '#10b981', 'fontWeight': '800', 'marginBottom': '10px', 'fontSize': '0.95rem', 'textTransform': 'uppercase'}),
+            html.Div([
+                html.P([phase_text, html.Br(), round_text], style={'margin': '0 0 8px 0', 'color': '#ffffff', 'fontWeight': '600'}),
+                html.P(f"🎯 {focus_text}", style={'margin': '0 0 8px 0', 'color': '#cbd5e1', 'fontSize': '0.95rem'}) if focus_text else None,
+                html.P(exercises_text, style={'margin': '0 0 8px 0', 'color': '#cbd5e1', 'fontSize': '0.9rem'}) if exercises_text else None,
+                html.P(macros_text, style={'margin': '0', 'color': '#cbd5e1', 'fontSize': '0.9rem'}) if macros_text else None,
+            ], style={'padding': '12px', 'backgroundColor': '#0f4c3a', 'borderRadius': '8px', 'border': '1px solid #10b981'})
+        ], style={'marginBottom': '14px', 'padding': '12px', 'backgroundColor': '#111111', 'borderRadius': '10px', 'border': '1px solid #2b3440'})
+
+    fight_label = 'Sin combate programado'
+    if next_fight.get('date'):
+        fight_dt = _parse_datetime_safe(next_fight.get('date'))
+        if fight_dt:
+            days_text = f"{context.get('days_to_fight')} d" if context.get('days_to_fight') is not None else 'fecha pendiente'
+            fight_label = f"{fight_dt.strftime('%d/%m/%Y')} · {days_text}"
+        else:
+            fight_label = str(next_fight.get('date'))
+
+    appointment_label = 'Sin cita pendiente'
+    if next_appointment.get('datetime'):
+        appointment_dt = _parse_datetime_safe(next_appointment.get('datetime'))
+        if appointment_dt:
+            appointment_label = f"{appointment_dt.strftime('%d/%m/%Y %H:%M')} · {context.get('days_to_appointment')} d"
+        else:
+            appointment_label = str(next_appointment.get('datetime'))
+
+    tactical_opponent = tactical_plan.get('opponent') or {}
+    tactical_label = tactical_opponent.get('name', tactical_plan.get('opponent_name', 'Sin plan activo')) if isinstance(tactical_opponent, dict) else tactical_plan.get('opponent_name', 'Sin plan activo')
+    meal_label = meal_plan.get('name', 'Sin plan activo')
+    
+    # Subtítulos con detalles de planes
+    tactical_subtitle = f"{tactical_details.get('rounds_count', 0)} rounds"
+    meal_subtitle = f"{meal_details.get('duration', 0)} días" if meal_details.get('duration') else "Sin duración"
+    
+    # Estado de cuestionarios
+    q_status = questionnaire_status.get('total_completed_today', 0)
+    q_total = q_status + questionnaire_status.get('total_pending', 0)
+    q_label = f"✅ {q_status}/{q_total}" if q_total > 0 else "Sin cuestionarios"
+
+    if compact:
+        metric_columns = [
+            dbc.Col(_metric_card('Combate', fight_label, next_fight.get('opponent', 'Próxima referencia')), width=12, lg=4),
+            dbc.Col(_metric_card('Táctica', tactical_label, tactical_subtitle), width=12, lg=4),
+            dbc.Col(_metric_card('Comidas', meal_label, meal_subtitle), width=12, lg=4),
+        ]
+    else:
+        metric_columns = [
+            dbc.Col(_metric_card('Estado', context.get('health_status', 'listo').capitalize(), ', '.join(injury_types) if injury_types else 'Sin lesiones registradas'), width=12, lg=3),
+            dbc.Col(_metric_card('Combate', fight_label, next_fight.get('opponent', 'Próxima referencia')), width=12, lg=3),
+            dbc.Col(_metric_card('Táctica', tactical_label, tactical_subtitle), width=12, lg=3),
+            dbc.Col(_metric_card('Comidas', meal_label, meal_subtitle), width=12, lg=3),
+            dbc.Col(_metric_card('Cita', appointment_label, next_appointment.get('hospital', 'Sin cita pendiente')), width=12, lg=3),
+            dbc.Col(_metric_card('Cuestionarios', q_label, 'Progreso de hoy'), width=12, lg=3),
+            dbc.Col(_metric_card('Último ejercicio', latest_exercise.get('exercise_name', 'Sin registros'), str(latest_exercise.get('timestamp', ''))[:10] if latest_exercise else ''), width=12, lg=3),
+            dbc.Col(_metric_card('Pendientes hoy', f"{questionnaire_status.get('total_pending', 0)} cuestionarios", 'Revisar antes de entrenar'), width=12, lg=3),
+        ]
+
+    action_buttons = []
+    for action in actions[:4]:
+        if action.get('action') == 'modal-questionnaire':
+            # Botón que abre modal en lugar de navegar
+            action_buttons.append(
+                dbc.Col(
+                    dbc.Button(
+                        action['label'],
+                        id='open-questionnaire-modal-btn',
+                        color=action['color'],
+                        className='w-100 fw-bold',
+                        n_clicks=0
+                    ),
+                    width=12,
+                    lg=max(3, 12 // max(1, min(4, len(actions[:4])))),
+                )
+            )
+        else:
+            # Botón de navegación normal
+            action_buttons.append(
+                dbc.Col(
+                    dbc.Button(
+                        action['label'],
+                        href=f"{action['href']}{current_search}" if current_search else action['href'],
+                        color=action['color'],
+                        className='w-100 fw-bold'
+                    ),
+                    width=12,
+                    lg=max(3, 12 // max(1, min(4, len(actions[:4])))),
+                )
+            )
+
+    alert_block = None
+    if alerts:
+        alert_block = html.Div([
+            html.Div('🎯 Información de hoy', style={'color': '#fbbf24', 'fontWeight': '700', 'marginBottom': '6px'}),
+            html.Ul([html.Li(alert, style={'marginBottom': '4px'}) for alert in alerts[:5]], style={'marginBottom': 0, 'color': '#fde68a'})
+        ], style={'backgroundColor': '#1f1b0c', 'border': '1px solid #7c5c13', 'borderRadius': '10px', 'padding': '12px', 'marginTop': '14px'})
+
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Span('🧭 ', style={'fontSize': '1.3em'}),
+                html.Span('CONTINUIDAD DIARIA', style={'fontWeight': '900', 'letterSpacing': '1px'})
+            ], style=STYLES['card_header_tactical']),
+            html.Div([
+                today_panel if today_panel else None,
+                dbc.Row(metric_columns, className='g-3'),
+                html.Div('Hoy toca un solo flujo: revisar estado, ejecutar el plan y ajustar según sensaciones y datos.', style={'color': '#cbd5e1', 'marginTop': '14px'}),
+                dbc.Row(action_buttons, className='g-2 mt-3') if action_buttons else None,
+                alert_block,
+            ], style={'backgroundColor': '#111111', 'padding': '20px', 'borderRadius': '8px', 'border': '1px solid #2b3440'})
+        ], style=STYLES['card'])
     ])
 
 
@@ -3167,6 +3811,15 @@ def get_exercises_layout(username, full_name, current_search=""):
     health_status = profile_data.get('health_status', 'listo')
     injury_types = profile_data.get('injury_types', [])
 
+    # Agregar contexto del plan táctico
+    user_record = _USER_DB.get(username, {})
+    tactical_plans = user_record.get('tactical_plans', []) or []
+    active_tactical_plan = _pick_latest_active_plan(tactical_plans)
+    
+    # Obtener "qué toca hoy" para mostrar ejercicios recomendados
+    today_briefing = _build_today_briefing(active_tactical_plan, None)
+    recommended_by_plan = today_briefing.get('exercises', [])
+
     exercises = get_recommended_exercises(health_status, injury_types)
     if not exercises:
         exercises = HEALTHY_FIGHTER_EXERCISES if health_status == 'listo' else KNEE_EXERCISES
@@ -3174,6 +3827,58 @@ def get_exercises_layout(username, full_name, current_search=""):
     exercise_title = ExerciseService.get_exercise_title(health_status, injury_types)
     exercise_fig = create_exercise_plot(patient_data.get('exercises', []))
     exercise_alerts = patient_data.get('exercise_alerts', [])
+    
+    # Crear sección de "Alineado con plan táctico"
+    aligned_exercises_section = None
+    if recommended_by_plan and active_tactical_plan:
+        briefing_msg = today_briefing.get('message', 'Según plan')
+        aligned_exercises = [ex for ex in exercises if any(rec.lower() in ex['title'].lower() for rec in recommended_by_plan)]
+        
+        if aligned_exercises:
+            aligned_html = html.Div([
+                html.Div([
+                    html.Span("🎯 ", style={'fontSize': '1.2em'}),
+                    f"Alineado con tu plan - {briefing_msg}"
+                ], style={'color': '#10b981', 'fontWeight': '800', 'marginBottom': '15px', 'fontSize': '0.9rem', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
+                html.Div([
+                    html.Div([
+                        html.Img(
+                            src=ex['images'][0],
+                            style={
+                                'width': '100%', 'height': '150px', 'objectFit': 'cover',
+                                'borderRadius': '4px', 'marginBottom': '10px', 'filter': 'brightness(0.8)'
+                            },
+                            id={'type': 'exercise-image-aligned', 'index': ex['id']}
+                        ),
+                        html.H6(ex['title'].upper(), style={'color': '#10b981', 'fontWeight': 'bold'}),
+                        html.P(f"DIFICULTAD: {ex['difficulty'].upper()}", style={'color': COLORS['muted'], 'fontSize': '0.7em'}),
+                        html.Button(
+                            'INICIAR',
+                            id={'type': 'start-exercise-btn', 'index': ex['id']},
+                            n_clicks=0,
+                            style={**STYLES['button_primary'], 'backgroundColor': '#10b981', 'borderColor': '#10b981'}
+                        )
+                    ],
+                    className='exercise-card',
+                    style={
+                        'background': '#0f4c3a',
+                        'padding': '15px',
+                        'border': '1px solid #10b981',
+                        'borderRadius': '8px',
+                        'textAlign': 'center'
+                    })
+                    for ex in aligned_exercises[:3]  # Mostrar máximo 3
+                ], style={'display': 'grid', 'gridTemplateColumns': 'repeat(auto-fit, minmax(150px, 1fr))', 'gap': '15px'})
+            ], style={'backgroundColor': '#111111', 'padding': '20px', 'borderRadius': '8px', 'border': '1px solid #2b3440', 'marginBottom': '20px'})
+            
+            aligned_exercises_section = aligned_html
+        else:
+            aligned_exercises_section = None
+    else:
+        aligned_exercises_section = None
+
+    if not exercises:
+        exercises = HEALTHY_FIGHTER_EXERCISES if health_status == 'listo' else KNEE_EXERCISES
 
     exercise_grid = html.Div([
         html.Div([
@@ -3307,12 +4012,58 @@ def get_exercises_layout(username, full_name, current_search=""):
 
             # COLUMNA DERECHA
             html.Div([
+                aligned_exercises_section if aligned_exercises_section else None,
                 exercise_grid,
             ], style={'flex': 1, 'minWidth': '320px'})
         ], style={'display': 'flex', 'gap': '20px', 'padding': '24px', 'flexWrap': 'wrap'})
     ], style=STYLES['main_container'])
 
 # --- DASHBOARDS ---
+
+def build_questionnaires_modal(username, health_status='listo', injury_types=None):
+    """Construye un modal flotante para completar cuestionarios inline."""
+    if injury_types is None:
+        injury_types = []
+    
+    recommended_qs = get_recommended_questionnaires(health_status, injury_types)
+    
+    modal_content = dbc.ModalBody([
+        html.Div([
+            html.H6("📋 Completa hoy tu cuestionario", style={'color': '#ffffff', 'marginBottom': '20px'}),
+            html.P("Selecciona cuál deseas completar ahora mismo:", style={'color': '#cbd5e1', 'marginBottom': '15px'}),
+            
+            dcc.Dropdown(
+                id='questionnaire-modal-select',
+                options=[
+                    {'label': QUESTIONNAIRES[q_id]['title'], 'value': q_id}
+                    for q_id in recommended_qs
+                    if q_id in QUESTIONNAIRES
+                ],
+                placeholder='Seleccione cuestionario...',
+                style={'marginBottom': '20px', 'backgroundColor': '#111111', 'color': '#ffffff', 'border': '1px solid #444'},
+            ),
+            
+            html.Div(id='questionnaire-modal-content', style={'marginBottom': '20px'}),
+            html.Div(id='questionnaire-modal-feedback', style={'marginBottom': '15px'}),
+        ], style={'padding': '10px'})
+    ])
+    
+    modal = dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Completar Cuestionario", style={'color': '#ffffff'}), close_button=True, style={'backgroundColor': '#111111', 'border': '1px solid #333'}),
+        modal_content,
+        dbc.ModalFooter([
+            dbc.Button("Cerrar", id="close-questionnaire-modal-btn", className="ms-auto", color="secondary", n_clicks=0),
+            dbc.Button("Enviar", id="submit-questionnaire-modal-btn", color="success", n_clicks=0),
+        ], style={'backgroundColor': '#111111', 'border': '1px solid #333'}),
+    ],
+        id='questionnaire-modal',
+        is_open=False,
+        size='lg',
+        backdrop='static',
+        style={'z-index': '9999'}
+    )
+    
+    return modal
 
 def get_patient_dashboard(username, full_name, current_search=""): 
     initial_ecg_fig, initial_bpm_text = create_initial_ecg_figure()
@@ -3331,6 +4082,7 @@ def get_patient_dashboard(username, full_name, current_search=""):
     profile_data = patient_data.get('profile', {})
     fights_data = user_raw_data.get('fights', [])
     nutrition_data = user_raw_data.get('nutrition', {})
+    daily_continuity_panel = render_daily_continuity_panel(username, current_search)
     
     # Determinar qué cuestionarios están permitidos según el estado/lesiones del paciente
     allowed_qids = None
@@ -3424,6 +4176,8 @@ def get_patient_dashboard(username, full_name, current_search=""):
     return html.Div([
         get_user_navbar("🧑‍🦽", full_name.upper(), "PANEL PACIENTE", current_search, username, 'paciente'), 
 
+        html.Div([daily_continuity_panel], style={'padding': '10px 24px 0'}),
+
         html.Div([
             # COLUMNA IZQUIERDA
             html.Div([
@@ -3506,12 +4260,16 @@ def get_patient_dashboard(username, full_name, current_search=""):
 
                 fights_section,
             ], style={'flex': 2, 'minWidth': '400px'})
-        ], style={'display': 'flex', 'gap': '20px', 'padding': '10px 24px', 'flexWrap': 'wrap'})
+        ], style={'display': 'flex', 'gap': '20px', 'padding': '10px 24px', 'flexWrap': 'wrap'}),
+        
+        # Modal de Cuestionarios
+        build_questionnaires_modal(username, health_status, injury_types),
 
     ], style=STYLES['main_container']) # Fondo gris oscuro general
 
 def get_tactical_planning_layout(username, full_name, current_search=""):
     today_str = datetime.now().date().isoformat()
+    continuity_panel = render_daily_continuity_panel(username, current_search, compact=True)
 
     wizard_modal = dbc.Modal([
         dbc.ModalHeader([
@@ -3708,6 +4466,7 @@ def get_tactical_planning_layout(username, full_name, current_search=""):
 
     return html.Div([
         get_user_navbar("🧑‍🦽", full_name, "Planificación Táctica", current_search, username, 'paciente'),
+        html.Div([continuity_panel], style={'padding': '10px 24px 0'}),
         html.Div([
             dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-5", href=f"/{current_search}", color="primary",
                        style={'marginBottom': '20px'}),
@@ -5661,6 +6420,130 @@ def submit_specialized_questionnaire(n_clicks, questionnaire_id, username, input
         return html.Div(f"❌ Error al enviar cuestionario: {str(e)}", style={'color': 'red'}), dash.no_update
 
 
+# === CALLBACKS PARA MODAL DE CUESTIONARIOS ===
+
+@app.callback(
+    Output('questionnaire-modal', 'is_open'),
+    [Input('open-questionnaire-modal-btn', 'n_clicks'),
+     Input('close-questionnaire-modal-btn', 'n_clicks')],
+    [State('questionnaire-modal', 'is_open')],
+    prevent_initial_call=True
+)
+def toggle_questionnaire_modal(open_clicks, close_clicks, is_open):
+    ctx = callback_context
+    if not ctx.triggered:
+        return is_open
+    
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if 'close' in trigger_id:
+        return False
+    elif 'open' in trigger_id:
+        return True
+    return is_open
+
+
+@app.callback(
+    Output('questionnaire-modal-content', 'children'),
+    Input('questionnaire-modal-select', 'value'),
+    State('current-patient-username', 'data'),
+    prevent_initial_call=True
+)
+def display_questionnaire_in_modal(selected_questionnaire, username):
+    if not selected_questionnaire:
+        return html.P("Selecciona un cuestionario para comenzar.", style={'color': COLORS['muted']})
+    
+    if not username:
+        return html.P("❌ No se pudo identificar al paciente actual.", style={'color': 'red'})
+
+    user_history = _QUESTIONNAIRE_HISTORY_DB.get(username, [])
+    ya_realizado = not QuestionnaireService.can_submit_today(user_history, selected_questionnaire)
+
+    if ya_realizado:
+        return dbc.Alert(
+            [
+                html.H5("✅ Tarea completada", className="alert-heading"),
+                html.P(f"Ya has realizado este cuestionario hoy."),
+                html.Hr(),
+                html.P("Solo se permite uno al día. ¡Vuelve mañana!", className="mb-0"),
+            ],
+            color="info"
+        )
+
+    questionnaire = QUESTIONNAIRES.get(selected_questionnaire)
+    if not questionnaire:
+        return html.P("Cuestionario no encontrado.", style={'color': 'red'})
+    
+    questions_content = QuestionnaireService.build_questionnaire_component(questionnaire, 'questionnaire-modal-input')
+    return html.Div(questions_content)
+
+
+@app.callback(
+    [Output('questionnaire-modal-feedback', 'children'),
+     Output('questionnaire-modal', 'is_open', allow_duplicate=True),
+     Output('reload-trigger', 'data', allow_duplicate=True)],
+    Input('submit-questionnaire-modal-btn', 'n_clicks'),
+    [State('questionnaire-modal-select', 'value'),
+     State('current-patient-username', 'data'),
+     State({'type': 'questionnaire-modal-input', 'questionnaire': dash.ALL, 'index': dash.ALL}, 'id'),
+     State({'type': 'questionnaire-modal-input', 'questionnaire': dash.ALL, 'index': dash.ALL}, 'value'),
+     State('reload-trigger', 'data')],
+    prevent_initial_call=True
+)
+def submit_questionnaire_from_modal(n_clicks, questionnaire_id, username, input_ids, input_values, reload_trigger):
+    if n_clicks is None or n_clicks == 0:
+        return dash.no_update, dash.no_update, dash.no_update
+    
+    if not questionnaire_id:
+        return html.Div("❌ Error: No se ha seleccionado cuestionario", style={'color': 'red'}), dash.no_update, dash.no_update
+
+    if not username:
+        return html.Div("❌ Error de sesión: paciente no identificado.", style={'color': 'red'}), dash.no_update, dash.no_update
+
+    try:
+        user_history = _QUESTIONNAIRE_HISTORY_DB.get(username, [])
+        if not QuestionnaireService.can_submit_today(user_history, questionnaire_id):
+            return html.Div(
+                "⚠️ Ya has completado este cuestionario hoy.",
+                style={'color': 'orange', 'fontWeight': 'bold'}
+            ), dash.no_update, dash.no_update
+    except Exception as e:
+        print(f"Error en validación: {e}")
+
+    try:
+        questionnaire = QUESTIONNAIRES.get(questionnaire_id)
+        if not questionnaire:
+            return html.Div("❌ Cuestionario no encontrado.", style={'color': 'red'}), dash.no_update, dash.no_update
+
+        ok, responses, missing = QuestionnaireService.extract_questionnaire_responses(
+            questionnaire,
+            questionnaire_id,
+            input_ids,
+            input_values,
+        )
+        if not ok:
+            return html.Div(f"⚠️ Error: Faltan {len(missing)} respuestas.", style={'color': 'orange'}), dash.no_update, dash.no_update
+
+        questionnaire_data = QuestionnaireService.build_submission_payload(
+            questionnaire_id,
+            questionnaire['title'],
+            responses,
+        )
+        
+        db.save_specialized_questionnaire(username, questionnaire_data)
+        
+        new_trigger = reload_trigger + 1 if reload_trigger is not None else 1
+        feedback = html.Div([
+            html.H6("✅ Cuestionario completado!", style={'color': '#22c55e', 'marginBottom': '10px'}),
+            html.P("Tus respuestas han sido registradas correctamente.", style={'color': '#dcfce7'})
+        ], style={'padding': '12px', 'backgroundColor': '#1b3a1b', 'borderRadius': '6px', 'border': '1px solid #22c55e'})
+        
+        return feedback, False, new_trigger
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        return html.Div(f"❌ Error al enviar: {str(e)}", style={'color': 'red'}), dash.no_update, dash.no_update
+
+
 # Callback: Iniciar ejercicio (abrir modal) (Se mantiene)
 @app.callback(
     [Output('exercise-execution-modal', 'is_open'),
@@ -6424,10 +7307,10 @@ def generate_meal_plan_draft(
     user_profile = _USER_DB.get(username, {}).get('profile', {})
     current_weight = user_profile.get('current_weight')
 
-    fights = _USER_DB.get(username, {}).get('fights', [])
+    continuity_context = build_daily_continuity_context(username)
     fight_context = None
-    if fights:
-        next_fight = fights[-1]
+    next_fight = continuity_context.get('next_fight')
+    if next_fight:
         fight_date_raw = next_fight.get('date')
         if fight_date_raw:
             try:
@@ -6584,6 +7467,7 @@ def get_meal_plans_layout(username, full_name, current_search=""):
     profile_data = user_data.get('profile', {})
     meal_plans_data = user_data.get('meal_plans', [])
     fights_data = user_data.get('fights', [])
+    continuity_panel = render_daily_continuity_panel(username, current_search, compact=True)
     
     athlete_weight = profile_data.get('current_weight', 'N/A')
     weight_class = profile_data.get('weight_class', 'No definida')
@@ -6599,6 +7483,7 @@ def get_meal_plans_layout(username, full_name, current_search=""):
     
     return html.Div([
         get_user_navbar("🍽️", full_name.upper(), "PLANES DE COMIDA", current_search, username, 'paciente'),
+        html.Div([continuity_panel], style={'padding': '10px 24px 0'}),
         dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-meal-plans", href=f"/{current_search}", color="primary", style={'margin': '15px 24px 0'}),
         
         html.Div([
