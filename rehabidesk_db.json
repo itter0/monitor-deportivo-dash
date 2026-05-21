@@ -196,13 +196,14 @@
                 "birth_date": "1900-01-23",
                 "emergency_contact": "1",
                 "emergency_phone": "600123456",
-                "blood_type": "A-",
+                "blood_type": "A+",
                 "injury_types": [
                     "codo",
+                    "rodilla",
                     "hombro"
                 ],
                 "health_status": "lesionado",
-                "current_weight": 75.0,
+                "current_weight": 75,
                 "weight_class": "middleweight"
             },
             "tactical_plans": [

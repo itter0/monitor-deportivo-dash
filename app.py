@@ -1032,7 +1032,7 @@ KNEE_EXERCISES = [
           'rest_sec': 30,
           'difficulty': 'Principiante',
           'weight': 'Sin peso / 2-5kg',
-          'images': ['https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop'],
+          'images': ['https://images.unsplash.com/photo-1600026453194-11ae289732b8?q=80&w=1476&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'],
           'video_url': 'https://www.youtube.com/embed/example1',
           'muscles': ['Cuádriceps'],
           'instructions': [
@@ -1053,7 +1053,7 @@ KNEE_EXERCISES = [
           'rest_sec': 30,
           'difficulty': 'Principiante',
           'weight': 'Sin peso / banda elástica',
-          'images': ['https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=300&h=200&fit=crop'],
+          'images': ['https://plus.unsplash.com/premium_photo-1712848347313-ce96f76bf6f2?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'],
           'video_url': 'https://www.youtube.com/embed/example2',
           'muscles': ['Isquiotibiales'],
           'instructions': [
@@ -1078,7 +1078,7 @@ ELBOW_EXERCISES = [
           'rest_sec': 30,
           'difficulty': 'Principiante',
           'weight': 'Sin peso / 1-3kg',
-          'images': ['https://images.unsplash.com/photo-1578722969876-2c0b6b8b5d6f?w=300&h=200&fit=crop'],
+          'images': ['https://images.unsplash.com/photo-1584952449254-80c846de339d?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'],
           'video_url': 'https://www.youtube.com/embed/elbow1',
           'muscles': ['Tríceps'],
           'instructions': [
@@ -1099,7 +1099,7 @@ ELBOW_EXERCISES = [
           'rest_sec': 30,
           'difficulty': 'Principiante',
           'weight': 'Sin peso / 2-4kg',
-          'images': ['https://images.unsplash.com/photo-1580828343064-fde4fc206bc6?w=300&h=200&fit=crop'],
+          'images': ['https://images.unsplash.com/photo-1559949557-7d0ac3e655f2?q=80&w=1090&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'],
           'video_url': 'https://www.youtube.com/embed/elbow2',
           'muscles': ['Bíceps'],
           'instructions': [
@@ -1123,7 +1123,7 @@ SHOULDER_EXERCISES = [
           'rest_sec': 30,
           'difficulty': 'Principiante',
           'weight': 'Sin peso / 1-2kg',
-          'images': ['https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&h=200&fit=crop'],
+          'images': ['https://images.unsplash.com/photo-1743944701181-63a24c01280b?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'],
           'video_url': 'https://www.youtube.com/embed/shoulder1',
           'muscles': ['Deltoides'],
           'instructions': [
@@ -1144,7 +1144,7 @@ SHOULDER_EXERCISES = [
           'rest_sec': 30,
           'difficulty': 'Principiante',
           'weight': 'Sin peso / 1-2kg',
-          'images': ['https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=300&h=200&fit=crop'],
+          'images': ['https://images.unsplash.com/photo-1730167237917-89caef4b6f17?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'],
           'video_url': 'https://www.youtube.com/embed/shoulder2',
           'muscles': ['Deltoides anterior'],
           'instructions': [
@@ -8784,8 +8784,7 @@ if __name__ == '__main__':
     # Cambiado por defecto a 8051 para evitar conflictos comunes en desarrollo
     port = int(os.environ.get("PORT", 8051))
     debug_mode = os.environ.get("DASH_DEBUG", "false").lower() == "true"
-    is_render = os.environ.get("RENDER") == "true" or bool(os.environ.get("RENDER_SERVICE_ID"))
-    host = "0.0.0.0" if is_render else "127.0.0.1"
+    host = os.environ.get("HOST", "0.0.0.0")
     if not QUIET_CONSOLE:
         print(f"Servidor RehabiDesk levantando en http://{host}:{port}")
     
