@@ -198,8 +198,8 @@
                 "emergency_phone": "600123456",
                 "blood_type": "A-",
                 "injury_types": [
-                    "rodilla",
-                    "codo"
+                    "codo",
+                    "hombro"
                 ],
                 "health_status": "lesionado",
                 "current_weight": 75.0,
@@ -1808,6 +1808,64 @@
         ],
         "luchador": [
             {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "sin_dificultad",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2026-05-06T17:25:29.382254",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "dolor_codo",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "nada"
+                },
+                "timestamp": "2026-05-06T16:55:20.309161",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Codo"
+            },
+            {
+                "questionnaire_id": "dolor_codo",
+                "responses": {
+                    "q1": 3,
+                    "q2": 5,
+                    "q3": "mucho"
+                },
+                "timestamp": "2026-04-29T17:52:00.906475",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Codo"
+            },
+            {
+                "questionnaire_id": "dolor_rodilla",
+                "responses": {
+                    "q1": 3,
+                    "q2": 5,
+                    "q3": "moderado"
+                },
+                "timestamp": "2026-04-29T17:51:12.188231",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
+            },
+            {
+                "questionnaire_id": "funcionalidad",
+                "responses": {
+                    "q1": "sin_dificultad",
+                    "q2": "sin_problemas"
+                },
+                "timestamp": "2026-04-15T16:53:18.220500",
+                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
+            },
+            {
+                "questionnaire_id": "dolor_hombro",
+                "responses": {
+                    "q1": 5,
+                    "q2": 3,
+                    "q3": "mucho"
+                },
+                "timestamp": "2026-03-10T21:58:27.282352",
+                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Hombro"
+            },
+            {
                 "questionnaire_title": "Dolor Rodilla",
                 "questionnaire_id": "dolor_rodilla",
                 "timestamp": "2026-03-07T20:26:37.132211",
@@ -1826,64 +1884,6 @@
                     "q2": 5,
                     "q3": "moderado"
                 }
-            },
-            {
-                "questionnaire_id": "dolor_hombro",
-                "responses": {
-                    "q1": 5,
-                    "q2": 3,
-                    "q3": "mucho"
-                },
-                "timestamp": "2026-03-10T21:58:27.282352",
-                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Hombro"
-            },
-            {
-                "questionnaire_id": "funcionalidad",
-                "responses": {
-                    "q1": "sin_dificultad",
-                    "q2": "sin_problemas"
-                },
-                "timestamp": "2026-04-15T16:53:18.220500",
-                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
-            },
-            {
-                "questionnaire_id": "dolor_rodilla",
-                "responses": {
-                    "q1": 3,
-                    "q2": 5,
-                    "q3": "moderado"
-                },
-                "timestamp": "2026-04-29T17:51:12.188231",
-                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Rodilla"
-            },
-            {
-                "questionnaire_id": "dolor_codo",
-                "responses": {
-                    "q1": 3,
-                    "q2": 5,
-                    "q3": "mucho"
-                },
-                "timestamp": "2026-04-29T17:52:00.906475",
-                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Codo"
-            },
-            {
-                "questionnaire_id": "dolor_codo",
-                "responses": {
-                    "q1": 5,
-                    "q2": 3,
-                    "q3": "nada"
-                },
-                "timestamp": "2026-05-06T16:55:20.309161",
-                "questionnaire_title": "\ud83d\udccb Cuestionario de Dolor de Codo"
-            },
-            {
-                "questionnaire_id": "funcionalidad",
-                "responses": {
-                    "q1": "sin_dificultad",
-                    "q2": "sin_problemas"
-                },
-                "timestamp": "2026-05-06T17:25:29.382254",
-                "questionnaire_title": "\ud83d\udcca Cuestionario de Funcionalidad"
             }
         ],
         "marcos": [

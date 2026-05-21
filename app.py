@@ -4867,35 +4867,29 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
         appointments = []
         
     now = datetime.now()
-    
+
+    # Parsear de forma segura las fechas de las citas y clasificar
+    parsed_items = []
+    for app in appointments:
+        parsed_dt = _parse_datetime_safe(app.get('datetime'))
+        if not parsed_dt:
+            # Si no se puede parsear, omitimos la cita para evitar errores en la vista
+            continue
+        parsed_items.append((parsed_dt, app))
+
     # 1. Citas Pendientes de Confirmación (Estado: scheduled, fecha futura)
-    pending_apps = [
-        app for app in appointments
-        if datetime.fromisoformat(app['datetime']) > now and app.get('status', 'scheduled') == 'scheduled'
-    ]
-    pending_apps.sort(key=lambda x: x['datetime'])
+    pending_apps = [app for dt, app in parsed_items if dt > now and app.get('status', 'scheduled') == 'scheduled']
+    pending_apps.sort(key=lambda x: _parse_datetime_safe(x.get('datetime')))
 
     # 2. Próximas Citas (Estado: confirmed, fecha futura)
-    upcoming_apps = [
-        app for app in appointments
-        if datetime.fromisoformat(app['datetime']) > now and app.get('status', 'scheduled') == 'confirmed'
-    ]
-    upcoming_apps.sort(key=lambda x: x['datetime'])
+    upcoming_apps = [app for dt, app in parsed_items if dt > now and app.get('status') == 'confirmed']
+    upcoming_apps.sort(key=lambda x: _parse_datetime_safe(x.get('datetime')))
 
-    # 3. Citas Anteriores (Fecha pasada o Cancelada/Atendida, fecha pasada o cualquier estado finalizado)
-    past_apps_all = [
-        app for app in appointments
-        if datetime.fromisoformat(app['datetime']) <= now or app.get('status') in ['cancelled', 'attended']
-    ]
-    
-    # Aseguramos que las citas canceladas o atendidas con fecha futura no aparezcan aquí
-    # Se considera 'anterior' si la fecha es pasada O si el estado es final (cancelada/atendida)
-    # Excluimos las citas canceladas que ya están contadas en past_apps
-    past_apps = [app for app in past_apps_all if datetime.fromisoformat(app['datetime']) <= now or app.get('status') == 'cancelled']
-    
-    # Eliminar duplicados si una cita cancelada también tenía fecha pasada (redundante)
+    # 3. Citas Anteriores (Fecha pasada o Cancelada/Atendida)
+    past_apps = [app for dt, app in parsed_items if dt <= now or app.get('status') in ['cancelled', 'attended']]
+    # Eliminar duplicados por id y ordenar por fecha descendente
     unique_past_apps = {app['id']: app for app in past_apps}.values()
-    past_apps = sorted(list(unique_past_apps), key=lambda x: x['datetime'], reverse=True)
+    past_apps = sorted(list(unique_past_apps), key=lambda x: _parse_datetime_safe(x.get('datetime')) or datetime.min, reverse=True)
 
 
     def build_appointment_card(app, category):
@@ -8787,7 +8781,8 @@ def update_exercises_on_injury_change(add_clicks, remove_clicks, patient_usernam
 # --- INICIO DEL SISTEMA ---
 # ==========================================================================
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8050))
+    # Cambiado por defecto a 8051 para evitar conflictos comunes en desarrollo
+    port = int(os.environ.get("PORT", 8051))
     debug_mode = os.environ.get("DASH_DEBUG", "false").lower() == "true"
     is_render = os.environ.get("RENDER") == "true" or bool(os.environ.get("RENDER_SERVICE_ID"))
     host = "0.0.0.0" if is_render else "127.0.0.1"
