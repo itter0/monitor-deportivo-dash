@@ -5302,6 +5302,51 @@ def normalize_uploaded_ecg_dataframe(df_uploaded):
     return normalized
 
 
+def _serialize_dataframe_for_store(df):
+    if df is None or df.empty:
+        return None
+    return df.to_json(orient="split", date_format="iso")
+
+
+def _deserialize_dataframe_from_store(data):
+    if not data:
+        return pd.DataFrame()
+
+    if isinstance(data, str):
+        try:
+            return pd.read_json(io.StringIO(data), orient="split")
+        except ValueError:
+            return pd.DataFrame()
+
+    if isinstance(data, dict):
+        encoded = data.get("data")
+        if encoded:
+            return _deserialize_dataframe_from_store(encoded)
+
+    return pd.DataFrame()
+
+
+def _build_ecg_upload_payload(df_normalized, filename):
+    return {
+        "filename": filename,
+        "samples": int(len(df_normalized)),
+        "source": "uploaded",
+        "data": _serialize_dataframe_for_store(df_normalized),
+    }
+
+
+def _extract_uploaded_ecg_dataframe(uploaded_ecg_data):
+    return _deserialize_dataframe_from_store((uploaded_ecg_data or {}).get("data"))
+
+
+def _extract_uploaded_sensor_dataframe(sensor_data, sensor_key):
+    if not isinstance(sensor_data, dict):
+        return pd.DataFrame()
+
+    sensor_payload = sensor_data.get(sensor_key) or {}
+    return _deserialize_dataframe_from_store(sensor_payload.get("data"))
+
+
 def normalize_uploaded_imu_dataframe(df_uploaded):
     """Normaliza columnas de CSV subido a formato timestamp/imu_value."""
     if df_uploaded is None or df_uploaded.empty:
@@ -5467,11 +5512,7 @@ def handle_ecg_csv_upload(contents, filename):
         df_uploaded_ecg_global = df_normalized
         uploaded_ecg_filename = filename
 
-        payload = {
-            "filename": filename,
-            "samples": int(len(df_normalized)),
-            "source": "uploaded"
-        }
+        payload = _build_ecg_upload_payload(df_normalized, filename)
         return payload, f"✅ Archivo cargado: {filename} ({len(df_normalized)} muestras ECG)"
     except Exception as e:
         return dash.no_update, f"❌ Error al leer el CSV: {e}"
@@ -5500,7 +5541,7 @@ def reset_ecg_source_to_default(n_clicks):
      Input("url", "pathname")]
 )
 def toggle_reset_ecg_button(uploaded_ecg_data, pathname):
-    has_uploaded_data = bool(uploaded_ecg_data) and not df_uploaded_ecg_global.empty
+    has_uploaded_data = not _extract_uploaded_ecg_dataframe(uploaded_ecg_data).empty or not df_uploaded_ecg_global.empty
     if pathname == "/" and has_uploaded_data:
         return {
             "display": "inline-flex",
@@ -5549,6 +5590,7 @@ def handle_exercise_ecg_csv_upload(contents, filename):
                 "filename": filename,
                 "samples": int(len(df_normalized)),
                 "source": "uploaded"
+                ,"data": _serialize_dataframe_for_store(df_normalized)
             },
             "imu": None,
         }
@@ -5588,11 +5630,13 @@ def handle_exercise_imu_csv_upload(contents, filename):
                 "filename": uploaded_exercise_ecg_filename,
                 "samples": int(len(df_uploaded_exercise_ecg_global)) if not df_uploaded_exercise_ecg_global.empty else None,
                 "source": "uploaded" if not df_uploaded_exercise_ecg_global.empty else None,
+                "data": _serialize_dataframe_for_store(df_uploaded_exercise_ecg_global) if not df_uploaded_exercise_ecg_global.empty else None,
             } if not df_uploaded_exercise_ecg_global.empty else None,
             "imu": {
                 "filename": filename,
                 "samples": int(len(df_normalized)),
                 "source": "uploaded"
+                ,"data": _serialize_dataframe_for_store(df_normalized)
             },
         }
         return payload, f"✅ IMU cargado: {filename} ({len(df_normalized)} muestras)"
@@ -5633,8 +5677,8 @@ def reset_exercise_sensor_sources(n_clicks):
     [Input("exercise-uploaded-sensors-data", "data")]
 )
 def toggle_exercise_reset_button(upload_state):
-    has_ecg = bool(upload_state and upload_state.get("ecg")) or not df_uploaded_exercise_ecg_global.empty
-    has_imu = bool(upload_state and upload_state.get("imu")) or not df_uploaded_exercise_imu_global.empty
+    has_ecg = not _extract_uploaded_sensor_dataframe(upload_state, "ecg").empty or not df_uploaded_exercise_ecg_global.empty
+    has_imu = not _extract_uploaded_sensor_dataframe(upload_state, "imu").empty or not df_uploaded_exercise_imu_global.empty
     if has_ecg or has_imu:
         return {"display": "inline-flex"}
     return {"display": "none"}
@@ -5772,21 +5816,22 @@ def estimate_bpm_from_ecg_dataframe(df_ecg):
 )
 def update_main_dashboard_auto(n, uploaded_ecg_data, pathname):
     # Solo actualizar si el usuario está en el Dashboard y hay ECG cargado en memoria
-    has_uploaded_data = bool(uploaded_ecg_data)
-    if pathname != '/' or (df_ecg_global.empty and df_uploaded_ecg_global.empty):
+    uploaded_source_df = _extract_uploaded_ecg_dataframe(uploaded_ecg_data)
+    has_uploaded_data = not uploaded_source_df.empty
+    if pathname != '/' or (df_ecg_global.empty and uploaded_source_df.empty and df_uploaded_ecg_global.empty):
         raise PreventUpdate
     
     try:
         # 1. Usar señal completa en modo estático (sin loop por ventanas)
-        if has_uploaded_data and not df_uploaded_ecg_global.empty:
-            source_df = df_uploaded_ecg_global.copy()
+        if has_uploaded_data:
+            source_df = uploaded_source_df.copy()
             df = get_static_ecg_view_dataframe(source_df)
-            display_name = uploaded_ecg_filename or (uploaded_ecg_data or {}).get("filename", "archivo.csv")
+            display_name = (uploaded_ecg_data or {}).get("filename") or uploaded_ecg_filename or "archivo.csv"
             source_msg = f"📤 ECG cargado desde CSV: {display_name} ({len(source_df)} muestras)"
         else:
             source_df = df_ecg_global.copy()
             df = get_static_ecg_view_dataframe(source_df)
-            if has_uploaded_data and df_uploaded_ecg_global.empty:
+            if bool(uploaded_ecg_data) and df_uploaded_ecg_global.empty:
                 source_msg = "⚠️ El ECG subido no está disponible en memoria; mostrando señal original"
             else:
                 source_msg = f"📡 ECG real cargado: {len(df_ecg_global)} muestras ({ECG_REAL_FILE})"
@@ -8335,11 +8380,17 @@ def update_sensor_charts(n, upload_state, is_open):
     try:
         upload_state = upload_state or {}
 
-        has_uploaded_ecg = bool(upload_state.get("ecg")) and not df_uploaded_exercise_ecg_global.empty
-        has_uploaded_imu = bool(upload_state.get("imu")) and not df_uploaded_exercise_imu_global.empty
+        uploaded_ecg_df = _extract_uploaded_sensor_dataframe(upload_state, "ecg")
+        uploaded_imu_df = _extract_uploaded_sensor_dataframe(upload_state, "imu")
+        has_uploaded_ecg = not uploaded_ecg_df.empty
+        has_uploaded_imu = not uploaded_imu_df.empty
 
-        ecg_source_df = df_uploaded_exercise_ecg_global if has_uploaded_ecg else df_ecg_global
-        imu_source_df = df_uploaded_exercise_imu_global if has_uploaded_imu else df_imu_global
+        ecg_source_df = uploaded_ecg_df if has_uploaded_ecg else df_uploaded_exercise_ecg_global
+        if ecg_source_df.empty:
+            ecg_source_df = df_ecg_global
+        imu_source_df = uploaded_imu_df if has_uploaded_imu else df_uploaded_exercise_imu_global
+        if imu_source_df.empty:
+            imu_source_df = df_imu_global
 
         # ECG en vista estática: se renderiza la señal completa con barra inferior para navegar en X.
         ecg_df = get_static_ecg_view_dataframe(ecg_source_df)
