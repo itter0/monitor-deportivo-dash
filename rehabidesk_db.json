@@ -23,7 +23,105 @@
                 "allergies": "Penicilina",
                 "current_medications": "Ibuprofeno 600mg",
                 "medical_conditions": "Osteoartritis leve"
-            }
+            },
+            "meal_plans": [
+                {
+                    "name": "Guardado prueba",
+                    "weight_change": "none",
+                    "target_weight": null,
+                    "target_body_fat": null,
+                    "duration": 14,
+                    "status": "active",
+                    "generation_logic": "template",
+                    "generated_macros": {
+                        "daily_kcal": 2240,
+                        "protein_g_per_kg": 1.6,
+                        "carbs_g_per_kg": 4.37,
+                        "fats_g_per_kg": 0.9,
+                        "protein_total_g": 112,
+                        "carbs_total_g": 306,
+                        "fats_total_g": 63,
+                        "weight_reference_kg": 70.0,
+                        "lean_mass_estimate_kg": 59.5,
+                        "target_body_fat_pct": 15.0,
+                        "meals_per_day": 5,
+                        "meal_breakdown": [
+                            {
+                                "meal": "Desayuno",
+                                "protein_g": 25,
+                                "carbs_g": 67,
+                                "fats_g": 14,
+                                "kcal": 494
+                            },
+                            {
+                                "meal": "Media manana",
+                                "protein_g": 17,
+                                "carbs_g": 46,
+                                "fats_g": 9,
+                                "kcal": 333
+                            },
+                            {
+                                "meal": "Comida",
+                                "protein_g": 29,
+                                "carbs_g": 80,
+                                "fats_g": 16,
+                                "kcal": 580
+                            },
+                            {
+                                "meal": "Merienda",
+                                "protein_g": 13,
+                                "carbs_g": 37,
+                                "fats_g": 8,
+                                "kcal": 272
+                            },
+                            {
+                                "meal": "Cena",
+                                "protein_g": 28,
+                                "carbs_g": 76,
+                                "fats_g": 16,
+                                "kcal": 560
+                            }
+                        ],
+                        "distribution_text": "Distribucion sugerida por comida:\n1) Desayuno: P 25 g | C 67 g | G 14 g\n2) Media manana: P 17 g | C 46 g | G 9 g\n3) Comida: P 29 g | C 80 g | G 16 g\n4) Merienda: P 13 g | C 37 g | G 8 g\n5) Cena: P 28 g | C 76 g | G 16 g"
+                    },
+                    "dietary_constraints": "",
+                    "food_preferences": "",
+                    "supplement_use": "",
+                    "meals_per_day": 5,
+                    "current_weight": null,
+                    "description": "Objetivo diario: 2240 kcal\nMacros objetivo: 2240 kcal | P 112 g/d\u00eda (1.6 g/kg) | C 306 g/d\u00eda (4.37 g/kg) | G 63 g/d\u00eda (0.9 g/kg)\n\nDistribucion sugerida por comida:\n1) Desayuno: P 25 g | C 67 g | G 14 g\n2) Media manana: P 17 g | C 46 g | G 9 g\n3) Comida: P 29 g | C 80 g | G 16 g\n4) Merienda: P 13 g | C 37 g | G 8 g\n5) Cena: P 28 g | C 76 g | G 16 g\n\nRestricciones a considerar: Ninguna\nUsa equivalencias de alimentos para cumplir estos gramos sin imponer platos concretos.",
+                    "notes": "Logica: template | Restricciones: Ninguna | Preferencias: No especificadas | Suplementos: No especificados",
+                    "created_date": "2026-05-22T10:11:09.018841"
+                }
+            ],
+            "tactical_plans": [
+                {
+                    "fight_id": "fight-test-1",
+                    "opponent": {
+                        "name": "Rival Test",
+                        "style": "Striking",
+                        "strengths": [],
+                        "weaknesses": []
+                    },
+                    "my_specialty": "Striking",
+                    "my_phase": "Base (Volumen Alto)",
+                    "game_plan_rounds": [],
+                    "contingencies": [],
+                    "drill_focus": [],
+                    "recommended_exercises": [],
+                    "injury_restrictions": {},
+                    "created_at": "2026-05-22T00:00:00",
+                    "status": "active",
+                    "execution_logs": [],
+                    "version": "1.0",
+                    "adaptive_adjustments": [],
+                    "version_history": [],
+                    "target_date": null,
+                    "target_days_left": 30,
+                    "weigh_in_date": null,
+                    "fight_weight": null
+                }
+            ]
         },
         "paciente1": {
             "password": "1234",
@@ -743,6 +841,273 @@
                 "health_status": "listo",
                 "injury_types": []
             }
+        },
+        "carlos.ulberg": {
+            "password": "1234",
+            "role": "paciente",
+            "full_name": "Carlos Ulberg",
+            "member_since": "2026-05-22T09:00:00",
+            "profile": {
+                "email": "carlos.ulberg@gmail.com",
+                "phone": "+64 21 555 018",
+                "address": "Auckland, New Zealand",
+                "dni": "NZD-ULB-2026",
+                "birth_date": "1990-11-17",
+                "emergency_contact": "Team Ulberg",
+                "emergency_phone": "+64 21 555 019",
+                "blood_type": "O+",
+                "allergies": null,
+                "current_medications": "Naproxeno 250 mg si hay dolor post-sesi\u00f3n",
+                "medical_conditions": "Sobrecarga de hombro derecho y codo izquierdo por volumen de golpeo",
+                "health_status": "lesionado",
+                "injury_types": [
+                    "codo",
+                    "hombro"
+                ],
+                "current_weight": 93.4,
+                "weight_class": "light_heavyweight",
+                "specialty": "Striking"
+            },
+            "tactical_plans": [
+                {
+                    "fight_id": "fight-carlos-ulberg-2026-06-14",
+                    "opponent": {
+                        "name": "Demo Opponent",
+                        "style": "Wrestler",
+                        "strengths": [
+                            "Presi\u00f3n en clinch",
+                            "Entradas a derribo"
+                        ],
+                        "weaknesses": [
+                            "Defensa en retroceso",
+                            "Cardio en asaltos largos"
+                        ],
+                        "notes": "Rival de perfil f\u00edsico para una demo de campamento t\u00e1ctico completo.",
+                        "stance": "Diestra",
+                        "reach": "193 cm",
+                        "cardio": "Medio"
+                    },
+                    "my_specialty": "Striking",
+                    "my_phase": "Campamento principal",
+                    "game_plan_rounds": [
+                        {
+                            "round_number": 1,
+                            "focus": "Marcar el centro y castigar la entrada con jab, low kick y control de distancia",
+                            "techniques": [
+                                "Jab al rostro",
+                                "Low kick externo",
+                                "Salida lateral"
+                            ],
+                            "contingency": "Si el rival cierra distancia, usar clinch corto y romper con rodillas al cuerpo."
+                        },
+                        {
+                            "round_number": 2,
+                            "focus": "Aumentar volumen de manos y obligar a cambios de nivel previsibles",
+                            "techniques": [
+                                "Cross recto",
+                                "Uppercut de izquierda",
+                                "Codo corto en separaci\u00f3n"
+                            ],
+                            "contingency": "Si el derribo aparece, priorizar underhook y levantarse con pared."
+                        },
+                        {
+                            "round_number": 3,
+                            "focus": "Cerrar el combate con presi\u00f3n, precisi\u00f3n y lectura de fatiga del rival",
+                            "techniques": [
+                                "Combinaci\u00f3n 1-2-3",
+                                "Patada al cuerpo",
+                                "Defensa de contraataque"
+                            ],
+                            "contingency": "Si el rival sube ritmo, entrar en modo de control y puntuar con volumen seguro."
+                        }
+                    ],
+                    "contingencies": [
+                        "Si el rival cierra distancia, usar clinch corto y romper con rodillas al cuerpo.",
+                        "Si el derribo aparece, priorizar underhook y levantarse con pared.",
+                        "Si el rival sube ritmo, entrar en modo de control y puntuar con volumen seguro."
+                    ],
+                    "drill_focus": [
+                        "Entradas y salidas con jab",
+                        "Defensa de derribo en pared",
+                        "Golpeo al cuerpo en secuencias de 3 minutos"
+                    ],
+                    "injury_restrictions": {
+                        "hombro": "Evitar cargas por encima de la cabeza y sparring de potencia",
+                        "codo": "Reducir impacto directo y trabajo de saco pesado"
+                    },
+                    "created_at": "2026-05-22T09:15:00",
+                    "status": "active",
+                    "execution_logs": [
+                        {
+                            "timestamp": "2026-05-21T18:00:00",
+                            "note": "Revisi\u00f3n t\u00e1ctica completada con enfoque en striking y control de distancia."
+                        }
+                    ],
+                    "version": "2.1",
+                    "adaptive_adjustments": [
+                        "Reducir golpeo pesado durante 7 d\u00edas",
+                        "Priorizar precisi\u00f3n y timing frente a volumen bruto"
+                    ],
+                    "version_history": [
+                        {
+                            "version": "2.0",
+                            "updated_at": "2026-05-18T11:30:00",
+                            "summary": "Plan inicial de campamento y an\u00e1lisis del rival."
+                        }
+                    ],
+                    "target_date": "2026-06-14",
+                    "target_days_left": 23,
+                    "start_date": "2026-05-22",
+                    "prep_window": "custom",
+                    "camp_phases": [
+                        {
+                            "phase": "Base t\u00e9cnica",
+                            "start": "2026-05-22",
+                            "end": "2026-05-28",
+                            "focus": "Recuperaci\u00f3n activa, t\u00e9cnica limpia y ritmo aer\u00f3bico controlado",
+                            "weight_goal": "maintain",
+                            "nutrition_note": "Mantenimiento cal\u00f3rico con prote\u00edna alta y buena hidrataci\u00f3n."
+                        },
+                        {
+                            "phase": "Espec\u00edfico rival",
+                            "start": "2026-05-29",
+                            "end": "2026-06-08",
+                            "focus": "Simulaci\u00f3n de derribos, defensa de pared y ajustes por estilo del rival",
+                            "weight_goal": "maintain",
+                            "nutrition_note": "Carbohidratos estrat\u00e9gicos alrededor de las sesiones m\u00e1s intensas."
+                        },
+                        {
+                            "phase": "Puesta a punto",
+                            "start": "2026-06-09",
+                            "end": "2026-06-14",
+                            "focus": "Descarga, velocidad, precisi\u00f3n y control de carga articular",
+                            "weight_goal": "maintain",
+                            "nutrition_note": "Ligero ajuste de volumen alimentario sin comprometer energ\u00eda."
+                        }
+                    ],
+                    "weight_direction": "auto",
+                    "phase_custom_notes": "Demo preparada para mostrar un campamento de alto rendimiento con restricciones por sobrecarga articular."
+                }
+            ],
+            "fights": [
+                {
+                    "date": "2026-06-14",
+                    "opponent": "Demo Opponent",
+                    "location": "Las Vegas"
+                },
+                {
+                    "date": "2026-03-30",
+                    "opponent": "Sparring Demo",
+                    "location": "Perth",
+                    "target_weight": 93.0,
+                    "weigh_in_date": "2026-03-29"
+                }
+            ],
+            "nutrition": {
+                "weight": 93.4,
+                "diet": "Alta en prote\u00edna, carbohidratos periodizados y control de sodio previo al combate",
+                "last_update": "2026-05-22T09:20:00"
+            },
+            "meal_plans": [
+                {
+                    "name": "Campamento Carlos Ulberg",
+                    "weight_change": "maintain",
+                    "target_weight": 93.0,
+                    "duration": 23,
+                    "status": "active",
+                    "description": "Desayuno: avena, fruta y huevos.\nMedia ma\u00f1ana: yogurt griego y nueces.\nAlmuerzo: arroz, pollo y vegetales.\nMerienda: batido de prote\u00edna y banana.\nCena: salm\u00f3n, papa cocida y ensalada.\n\nMacros objetivo: 3300 kcal | P 2.2 g/kg | C 4.0 g/kg | G 1.0 g/kg",
+                    "notes": "Mantenimiento de peso con foco en energ\u00eda para striking y recuperaci\u00f3n articular.",
+                    "created_date": "2026-05-22T09:25:00",
+                    "generation_logic": "demo-camp",
+                    "generated_macros": {
+                        "daily_kcal": 3300,
+                        "protein_g_per_kg": 2.2,
+                        "carbs_g_per_kg": 4.0,
+                        "fats_g_per_kg": 1.0,
+                        "meals_per_day": 5
+                    },
+                    "dietary_constraints": "Sin alcohol, control de ultraprocesados y grasas pesadas antes de sparring",
+                    "food_preferences": "Prote\u00ednas magras, arroz, avena, fruta, salm\u00f3n y batidos post-entreno",
+                    "meals_per_day": 5,
+                    "current_weight": 93.4
+                },
+                {
+                    "name": "Base previa Ulberg",
+                    "weight_change": "maintain",
+                    "target_weight": 93.0,
+                    "duration": 21,
+                    "status": "inactive",
+                    "created_date": "2026-05-01T08:00:00"
+                },
+                {
+                    "name": "plan",
+                    "weight_change": "gain",
+                    "target_weight": 98.0,
+                    "target_body_fat": null,
+                    "duration": 15,
+                    "status": "active",
+                    "generation_logic": "template",
+                    "generated_macros": {
+                        "daily_kcal": 3289,
+                        "protein_g_per_kg": 1.62,
+                        "carbs_g_per_kg": 4.95,
+                        "fats_g_per_kg": 1,
+                        "protein_total_g": 151,
+                        "carbs_total_g": 462,
+                        "fats_total_g": 93,
+                        "weight_reference_kg": 93.4,
+                        "lean_mass_estimate_kg": 79.4,
+                        "target_body_fat_pct": 15,
+                        "meals_per_day": 5,
+                        "meal_breakdown": [
+                            {
+                                "meal": "Desayuno",
+                                "protein_g": 33,
+                                "carbs_g": 102,
+                                "fats_g": 20,
+                                "kcal": 720
+                            },
+                            {
+                                "meal": "Media manana",
+                                "protein_g": 23,
+                                "carbs_g": 69,
+                                "fats_g": 14,
+                                "kcal": 494
+                            },
+                            {
+                                "meal": "Comida",
+                                "protein_g": 39,
+                                "carbs_g": 120,
+                                "fats_g": 24,
+                                "kcal": 852
+                            },
+                            {
+                                "meal": "Merienda",
+                                "protein_g": 18,
+                                "carbs_g": 55,
+                                "fats_g": 11,
+                                "kcal": 391
+                            },
+                            {
+                                "meal": "Cena",
+                                "protein_g": 38,
+                                "carbs_g": 116,
+                                "fats_g": 24,
+                                "kcal": 832
+                            }
+                        ],
+                        "distribution_text": "Distribucion sugerida por comida:\n1) Desayuno: P 33 g | C 102 g | G 20 g\n2) Media manana: P 23 g | C 69 g | G 14 g\n3) Comida: P 39 g | C 120 g | G 24 g\n4) Merienda: P 18 g | C 55 g | G 11 g\n5) Cena: P 38 g | C 116 g | G 24 g"
+                    },
+                    "dietary_constraints": "",
+                    "food_preferences": "",
+                    "supplement_use": "",
+                    "meals_per_day": 5,
+                    "current_weight": 93.4,
+                    "description": "Objetivo diario: 3289 kcal\nMacros objetivo: 3289 kcal | P 151 g/d\u00eda (1.62 g/kg) | C 462 g/d\u00eda (4.95 g/kg) | G 93 g/d\u00eda (1.0 g/kg)\n\nDistribucion sugerida por comida:\n1) Desayuno: P 33 g | C 102 g | G 20 g\n2) Media manana: P 23 g | C 69 g | G 14 g\n3) Comida: P 39 g | C 120 g | G 24 g\n4) Merienda: P 18 g | C 55 g | G 11 g\n5) Cena: P 38 g | C 116 g | G 24 g\n\nRestricciones a considerar: Ninguna\nUsa equivalencias de alimentos para cumplir estos gramos sin imponer platos concretos.",
+                    "notes": "Logica: template | Restricciones: Ninguna | Preferencias: No especificadas | Suplementos: No especificados",
+                    "created_date": "2026-05-22T10:12:37.100064"
+                }
+            ]
         }
     },
     "appointments": [
@@ -909,6 +1274,32 @@
             "created_at": "2026-02-11T19:34:35.964367",
             "id": "appt-12",
             "patient_notes": "Acci\u00f3n del paciente: Cambio de estado."
+        },
+        {
+            "patient_username": "carlos.ulberg",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2026-05-29T10:30:00",
+            "hospital": "High Performance Clinic",
+            "office": "Consultorio 7",
+            "comments": "Revisi\u00f3n de hombro y codo con valoraci\u00f3n de carga y movilidad.",
+            "status": "scheduled",
+            "created_at": "2026-05-22T09:30:00",
+            "id": "appt-13"
+        },
+        {
+            "patient_username": "carlos.ulberg",
+            "professional_username": "medico1",
+            "professional_name": "M\u00e9dico 1",
+            "professional_role": "medico",
+            "datetime": "2026-06-12T09:00:00",
+            "hospital": "High Performance Clinic",
+            "office": "Consultorio 9",
+            "comments": "Chequeo pre-pelea y ajuste final de peso.",
+            "status": "confirmed",
+            "created_at": "2026-05-22T09:35:00",
+            "id": "appt-14"
         }
     ],
     "patient_info": {
@@ -953,6 +1344,12 @@
             "doctor_user": "medico1",
             "physio_user": null,
             "full_name": "lulu"
+        },
+        "carlos.ulberg": {
+            "diagnosis": "Sobrecarga de hombro derecho y codo izquierdo",
+            "doctor_user": "medico1",
+            "physio_user": "fisioterapeuta1",
+            "full_name": "Carlos Ulberg"
         }
     },
     "questionnaire_history": {
@@ -1906,6 +2303,160 @@
                     "q1": 7,
                     "q2": 5,
                     "q3": "moderado"
+                }
+            }
+        ],
+        "carlos.ulberg": [
+            {
+                "questionnaire_title": "Dolor de Codo",
+                "questionnaire_id": "dolor_codo",
+                "timestamp": "2026-05-21T08:30:00",
+                "responses": {
+                    "q1": 2,
+                    "q2": 3,
+                    "q3": "poco"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor de Codo",
+                "questionnaire_id": "dolor_codo",
+                "timestamp": "2026-05-18T08:30:00",
+                "responses": {
+                    "q1": 3,
+                    "q2": 4,
+                    "q3": "moderado"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor de Codo",
+                "questionnaire_id": "dolor_codo",
+                "timestamp": "2026-05-14T08:30:00",
+                "responses": {
+                    "q1": 4,
+                    "q2": 5,
+                    "q3": "moderado"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor de Codo",
+                "questionnaire_id": "dolor_codo",
+                "timestamp": "2026-05-10T08:30:00",
+                "responses": {
+                    "q1": 5,
+                    "q2": 6,
+                    "q3": "mucho"
+                }
+            },
+            {
+                "questionnaire_title": "Movilidad de Codo",
+                "questionnaire_id": "movilidad_codo",
+                "timestamp": "2026-05-21T08:35:00",
+                "responses": {
+                    "q1": "con_molestia",
+                    "q2": 3
+                }
+            },
+            {
+                "questionnaire_title": "Movilidad de Codo",
+                "questionnaire_id": "movilidad_codo",
+                "timestamp": "2026-05-18T08:35:00",
+                "responses": {
+                    "q1": "con_molestia",
+                    "q2": 4
+                }
+            },
+            {
+                "questionnaire_title": "Movilidad de Codo",
+                "questionnaire_id": "movilidad_codo",
+                "timestamp": "2026-05-14T08:35:00",
+                "responses": {
+                    "q1": "limitado",
+                    "q2": 5
+                }
+            },
+            {
+                "questionnaire_title": "Movilidad de Codo",
+                "questionnaire_id": "movilidad_codo",
+                "timestamp": "2026-05-10T08:35:00",
+                "responses": {
+                    "q1": "limitado",
+                    "q2": 6
+                }
+            },
+            {
+                "questionnaire_title": "Dolor de Hombro",
+                "questionnaire_id": "dolor_hombro",
+                "timestamp": "2026-05-21T08:40:00",
+                "responses": {
+                    "q1": 3,
+                    "q2": 4,
+                    "q3": "algo"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor de Hombro",
+                "questionnaire_id": "dolor_hombro",
+                "timestamp": "2026-05-18T08:40:00",
+                "responses": {
+                    "q1": 4,
+                    "q2": 5,
+                    "q3": "algo"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor de Hombro",
+                "questionnaire_id": "dolor_hombro",
+                "timestamp": "2026-05-14T08:40:00",
+                "responses": {
+                    "q1": 5,
+                    "q2": 6,
+                    "q3": "mucho"
+                }
+            },
+            {
+                "questionnaire_title": "Dolor de Hombro",
+                "questionnaire_id": "dolor_hombro",
+                "timestamp": "2026-05-10T08:40:00",
+                "responses": {
+                    "q1": 6,
+                    "q2": 7,
+                    "q3": "mucho"
+                }
+            },
+            {
+                "questionnaire_title": "Movilidad de Hombro",
+                "questionnaire_id": "movilidad_hombro",
+                "timestamp": "2026-05-21T08:45:00",
+                "responses": {
+                    "q1": "con_dolor",
+                    "q2": 3
+                }
+            },
+            {
+                "questionnaire_title": "Movilidad de Hombro",
+                "questionnaire_id": "movilidad_hombro",
+                "timestamp": "2026-05-18T08:45:00",
+                "responses": {
+                    "q1": "con_dolor",
+                    "q2": 4
+                }
+            },
+            {
+                "questionnaire_title": "Movilidad de Hombro",
+                "questionnaire_id": "movilidad_hombro",
+                "timestamp": "2026-05-14T08:45:00",
+                "responses": {
+                    "q1": "con_dolor",
+                    "q2": 5
+                }
+            },
+            {
+                "questionnaire_title": "Movilidad de Hombro",
+                "questionnaire_id": "movilidad_hombro",
+                "timestamp": "2026-05-10T08:45:00",
+                "responses": {
+                    "q1": "no",
+                    "q2": 6
                 }
             }
         ]
@@ -3131,6 +3682,56 @@
                 "sets": 3,
                 "reps": 10
             }
+        ],
+        "carlos.ulberg": [
+            {
+                "exercise_id": "ext_codo",
+                "exercise_name": "Extensi\u00f3n de Codo",
+                "timestamp": "2026-05-12T09:00:00",
+                "duration_seconds": 150,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "flex_codo",
+                "exercise_name": "Flexi\u00f3n de Codo",
+                "timestamp": "2026-05-13T09:05:00",
+                "duration_seconds": 180,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "abd_hombro",
+                "exercise_name": "Abducci\u00f3n de Hombro",
+                "timestamp": "2026-05-14T09:10:00",
+                "duration_seconds": 180,
+                "sets": 3,
+                "reps": 10
+            },
+            {
+                "exercise_id": "flex_hombro",
+                "exercise_name": "Flexi\u00f3n de Hombro",
+                "timestamp": "2026-05-16T09:15:00",
+                "duration_seconds": 180,
+                "sets": 3,
+                "reps": 12
+            },
+            {
+                "exercise_id": "shadow_boxing",
+                "exercise_name": "Shadow Boxing",
+                "timestamp": "2026-05-18T18:20:00",
+                "duration_seconds": 300,
+                "sets": 4,
+                "reps": 3
+            },
+            {
+                "exercise_id": "wrestling_takedown",
+                "exercise_name": "Pr\u00e1ctica de Derribos",
+                "timestamp": "2026-05-20T18:25:00",
+                "duration_seconds": 420,
+                "sets": 5,
+                "reps": 5
+            }
         ]
     },
     "exercise_alerts": {
@@ -3154,6 +3755,35 @@
                 "sensor_source": "ECG:100.csv | IMU:real",
                 "severity": "critical",
                 "message": "Durante la sesi\u00f3n se detectaron 226 eventos de fatiga y 650000 posibles eventos de arritmia."
+            }
+        ],
+        "carlos.ulberg": [
+            {
+                "timestamp": "2026-05-20T18:30:00",
+                "exercise_name": "Pr\u00e1ctica de Derribos",
+                "sensor_source": "imu",
+                "severity": "warning",
+                "fatigue_count": 2,
+                "arrhythmia_count": 0,
+                "message": "Aumento de fatiga moderada en bloque final de derribos."
+            },
+            {
+                "timestamp": "2026-05-18T18:35:00",
+                "exercise_name": "Shadow Boxing",
+                "sensor_source": "ecg",
+                "severity": "warning",
+                "fatigue_count": 1,
+                "arrhythmia_count": 0,
+                "message": "Respuesta cardiovascular controlada, sin picos de riesgo."
+            },
+            {
+                "timestamp": "2026-05-14T09:20:00",
+                "exercise_name": "Abducci\u00f3n de Hombro",
+                "sensor_source": "imu",
+                "severity": "critical",
+                "fatigue_count": 3,
+                "arrhythmia_count": 0,
+                "message": "Sobrecarga de hombro detectada; conviene bajar volumen de carga."
             }
         ]
     }

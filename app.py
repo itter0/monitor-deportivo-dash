@@ -20,6 +20,7 @@ import signal
 import base64
 import io
 from scipy.signal import find_peaks
+from werkzeug.serving import WSGIRequestHandler
 
 QUIET_CONSOLE = os.environ.get("QUIET_CONSOLE", "true").lower() == "true"
 
@@ -34,6 +35,26 @@ def print(*args, **kwargs):
         return None
 
     return _builtins.print(*args, **kwargs)
+
+
+class QuietRequestHandler(WSGIRequestHandler):
+    """Evita registrar handshakes TLS que llegan por error al puerto HTTP."""
+
+    _tls_probe_prefixes = (b"\x16\x03", b"\x80\x00")
+
+    def _is_tls_probe(self):
+        raw_requestline = getattr(self, "raw_requestline", b"")
+        return isinstance(raw_requestline, (bytes, bytearray)) and raw_requestline.startswith(self._tls_probe_prefixes)
+
+    def log_request(self, code="-", size="-"):
+        if str(code) == "400" and self._is_tls_probe():
+            return
+        super().log_request(code, size)
+
+    def log_error(self, format, *args):
+        if self._is_tls_probe() and isinstance(format, str) and format.startswith("code 400, message Bad request"):
+            return
+        super().log_error(format, *args)
 
 from tactical_system import (
     TacticalPlanningService,
@@ -655,6 +676,49 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True
 )
+
+
+# Endpoint para descargar PDF del plan táctico
+@app.server.route('/download-tactical-pdf')
+def download_tactical_pdf_route():
+    from flask import request, make_response
+    import tactical_system as ts
+
+    username = request.args.get('user')
+    fight_id = request.args.get('fight_id')
+
+    if not username or not fight_id:
+        return "Missing 'user' or 'fight_id' query parameters", 400
+
+    # Obtener plan desde la DB dummy
+    plan_dict = db.get_tactical_plan_by_fight_id(username, fight_id)
+    if not plan_dict:
+        return f"Tactical plan not found for user={username} fight_id={fight_id}", 404
+
+    # Convertir a TacticalPlan si es necesario
+    try:
+        plan_obj = ts.TacticalPlan.from_dict(plan_dict) if isinstance(plan_dict, dict) else plan_dict
+    except Exception:
+        return "Error parsing tactical plan", 500
+
+    # Allow overriding target date via query param
+    target_date = request.args.get('target_date') or plan_dict.get('target_date') or plan_dict.get('created_at') or ''
+
+    try:
+        pdf_bytes = ts.generate_calendar_pdf(plan_obj, target_date)
+    except Exception as e:
+        print(f"Error generating tactical PDF: {e}")
+        return "Error generating PDF", 500
+
+    if not pdf_bytes:
+        return "No PDF generated", 500
+
+    response = make_response(pdf_bytes)
+    response.headers.set('Content-Type', 'application/pdf')
+    filename = f"plan_tactico_{fight_id}.pdf"
+    response.headers.set('Content-Disposition', 'attachment', filename=filename)
+    return response
+
 
 # Inyectar CSS global para mejorar visibilidad en temas oscuros (Dropdown, Sliders...)
 app.index_string = '''
@@ -2046,6 +2110,39 @@ def render_daily_continuity_panel(username, current_search="", compact=False):
             html.Div(subtitle, style={'color': '#94a3b8', 'fontSize': '0.82rem', 'marginTop': '2px'}) if subtitle else None,
         ], style={'backgroundColor': '#111827', 'border': f'1px solid {border_color}', 'borderRadius': '10px', 'padding': '12px'})
 
+    def _format_nutricion(meal_plan, meal_details):
+        macros = meal_details.get('macros', {})
+        if not isinstance(macros, dict) or not macros:
+            return None, None
+
+        kcal = macros.get('kcal', 'N/A')
+        protein = macros.get('protein', 'N/A')
+        carbs = macros.get('carbs', 'N/A')
+        fats = macros.get('fats', 'N/A')
+        plan_name = meal_plan.get('name', 'Plan de comidas') if isinstance(meal_plan, dict) else 'Plan de comidas'
+        days_remaining = meal_details.get('days_remaining')
+
+        value = f"🔥 {kcal} kcal" if kcal != 'N/A' else 'Nutrición'
+        subtitle_parts = [plan_name]
+        if days_remaining is not None:
+            subtitle_parts.append(f"{days_remaining} días restantes")
+        subtitle_parts.append(f"🥩 P: {protein}g | 🍚 C: {carbs}g | 🥑 G: {fats}g" if kcal != 'N/A' else 'Revisa tu plan detallado')
+        subtitle = ' · '.join(subtitle_parts)
+        return value, subtitle
+
+    def _format_tactica(today_briefing):
+        exercises = today_briefing.get('exercises', [])
+        exercises = [exercise for exercise in (exercises or []) if exercise]
+        if not exercises:
+            return 'Táctica', 'Sin sesión programada'
+
+        primary = f"💪 {exercises[0]}"
+        if len(exercises) > 1:
+            subtitle = ' + '.join(exercises[1:2])
+        else:
+            subtitle = 'Sesión principal'
+        return primary, subtitle
+
     # Panel destacado de "Qué toca hoy"
     today_panel = None
     if today_briefing.get('phase') or today_briefing.get('round'):
@@ -2098,14 +2195,9 @@ def render_daily_continuity_panel(username, current_search="", compact=False):
         else:
             appointment_label = str(next_appointment.get('datetime'))
 
-    tactical_opponent = tactical_plan.get('opponent') or {}
-    tactical_label = tactical_opponent.get('name', tactical_plan.get('opponent_name', 'Sin plan activo')) if isinstance(tactical_opponent, dict) else tactical_plan.get('opponent_name', 'Sin plan activo')
-    meal_label = meal_plan.get('name', 'Sin plan activo')
-    
-    # Subtítulos con detalles de planes
-    tactical_subtitle = f"{tactical_details.get('rounds_count', 0)} rounds"
-    meal_subtitle = f"{meal_details.get('duration', 0)} días" if meal_details.get('duration') else "Sin duración"
-    
+    tac_val, tac_sub = _format_tactica(today_briefing)
+    nut_val, nut_sub = _format_nutricion(meal_plan, meal_details)
+
     # Estado de cuestionarios
     q_status = questionnaire_status.get('total_completed_today', 0)
     q_total = q_status + questionnaire_status.get('total_pending', 0)
@@ -2113,20 +2205,17 @@ def render_daily_continuity_panel(username, current_search="", compact=False):
 
     if compact:
         metric_columns = [
-            dbc.Col(_metric_card('Combate', fight_label, next_fight.get('opponent', 'Próxima referencia')), width=12, lg=4),
-            dbc.Col(_metric_card('Táctica', tactical_label, tactical_subtitle), width=12, lg=4),
-            dbc.Col(_metric_card('Comidas', meal_label, meal_subtitle), width=12, lg=4),
+            dbc.Col(_metric_card('Hoy: Entrenamiento', tac_val, tac_sub, '#3b82f6'), width=12, lg=4),
+            dbc.Col(_metric_card('Hoy: Nutrición', nut_val, nut_sub, '#3b82f6'), width=12, lg=4),
+            dbc.Col(_metric_card('Seguimiento', q_label, 'Cuestionarios completados hoy', '#10b981'), width=12, lg=4),
         ]
     else:
         metric_columns = [
-            dbc.Col(_metric_card('Estado', context.get('health_status', 'listo').capitalize(), ', '.join(injury_types) if injury_types else 'Sin lesiones registradas'), width=12, lg=3),
-            dbc.Col(_metric_card('Combate', fight_label, next_fight.get('opponent', 'Próxima referencia')), width=12, lg=3),
-            dbc.Col(_metric_card('Táctica', tactical_label, tactical_subtitle), width=12, lg=3),
-            dbc.Col(_metric_card('Comidas', meal_label, meal_subtitle), width=12, lg=3),
-            dbc.Col(_metric_card('Cita', appointment_label, next_appointment.get('hospital', 'Sin cita pendiente')), width=12, lg=3),
-            dbc.Col(_metric_card('Cuestionarios', q_label, 'Progreso de hoy'), width=12, lg=3),
-            dbc.Col(_metric_card('Último ejercicio', latest_exercise.get('exercise_name', 'Sin registros'), str(latest_exercise.get('timestamp', ''))[:10] if latest_exercise else ''), width=12, lg=3),
-            dbc.Col(_metric_card('Pendientes hoy', f"{questionnaire_status.get('total_pending', 0)} cuestionarios", 'Revisar antes de entrenar'), width=12, lg=3),
+            dbc.Col(_metric_card('Hoy: Entrenamiento', tac_val, tac_sub, '#3b82f6'), width=12, lg=4),
+            dbc.Col(_metric_card('Hoy: Nutrición', nut_val, nut_sub, '#3b82f6'), width=12, lg=4),
+            dbc.Col(_metric_card('Seguimiento', q_label, 'Cuestionarios completados hoy', '#10b981'), width=12, lg=4),
+            dbc.Col(_metric_card('Estado Médico', context.get('health_status', 'listo').capitalize(), ', '.join(injury_types) if injury_types else 'Sin lesiones registradas'), width=12, lg=6),
+            dbc.Col(_metric_card('Próxima Cita', appointment_label, next_appointment.get('hospital', 'Sin cita pendiente')), width=12, lg=6),
         ]
 
     action_buttons = []
@@ -4269,7 +4358,7 @@ def get_patient_dashboard(username, full_name, current_search=""):
 
 def get_tactical_planning_layout(username, full_name, current_search=""):
     today_str = datetime.now().date().isoformat()
-    continuity_panel = render_daily_continuity_panel(username, current_search, compact=True)
+    # El panel de continuidad se muestra sólo en el dashboard principal.
 
     wizard_modal = dbc.Modal([
         dbc.ModalHeader([
@@ -4466,7 +4555,6 @@ def get_tactical_planning_layout(username, full_name, current_search=""):
 
     return html.Div([
         get_user_navbar("🧑‍🦽", full_name, "Planificación Táctica", current_search, username, 'paciente'),
-        html.Div([continuity_panel], style={'padding': '10px 24px 0'}),
         html.Div([
             dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-5", href=f"/{current_search}", color="primary",
                        style={'marginBottom': '20px'}),
@@ -7253,15 +7341,28 @@ def render_meal_plans_cards(meal_plans_data):
             status_label = '🟢 Activo' if plan.get('status') == 'active' else '🔴 Inactivo'
             logic_label = logic_labels.get(plan.get('generation_logic'), 'Manual')
             macros = plan.get('generated_macros', {}) if isinstance(plan.get('generated_macros'), dict) else {}
+            meal_breakdown = macros.get('meal_breakdown', []) if isinstance(macros.get('meal_breakdown'), list) else []
 
             macros_text = "Sin macros calculadas"
             if macros:
                 macros_text = (
                     f"{macros.get('daily_kcal', 'N/A')} kcal | "
-                    f"P {macros.get('protein_g_per_kg', 'N/A')} g/kg | "
-                    f"C {macros.get('carbs_g_per_kg', 'N/A')} g/kg | "
-                    f"G {macros.get('fats_g_per_kg', 'N/A')} g/kg"
+                    f"P {macros.get('protein_total_g', macros.get('protein_g_per_kg', 'N/A'))} g | "
+                    f"C {macros.get('carbs_total_g', macros.get('carbs_g_per_kg', 'N/A'))} g | "
+                    f"G {macros.get('fats_total_g', macros.get('fats_g_per_kg', 'N/A'))} g"
                 )
+
+            meal_breakdown_html = []
+            if meal_breakdown:
+                meal_breakdown_html = [
+                    html.Ul([
+                        html.Li(
+                            f"{meal.get('meal', 'Comida')}: P {meal.get('protein_g', 'N/A')} g | C {meal.get('carbs_g', 'N/A')} g | G {meal.get('fats_g', 'N/A')} g",
+                            style={'color': '#d9d9d9'}
+                        )
+                        for meal in meal_breakdown
+                    ], style={'marginBottom': '0', 'paddingLeft': '20px'})
+                ]
 
             meal_plans_html.append(
                 dbc.Card([
@@ -7286,6 +7387,7 @@ def render_meal_plans_cards(meal_plans_data):
                             html.Strong("Macros: "),
                             html.Span(macros_text, style={'fontSize': '0.85em', 'color': '#ccc'})
                         ], style={'marginBottom': '10px'}),
+                        *meal_breakdown_html,
                         html.P([
                             html.Strong("Descripción: "),
                             html.Pre(
@@ -7363,10 +7465,12 @@ def generate_meal_plan_draft(
         generation_logic,
         current_weight,
         target_weight,
+        None,
         duration,
         weight_change,
         dietary_constraints,
         food_preferences,
+        '',
         meals_per_day,
         fight_context,
     )
@@ -7423,10 +7527,12 @@ def save_meal_plan(
         generation_logic,
         weight_change,
         target_weight,
+        None,
         duration,
         status,
         dietary_constraints,
         food_preferences,
+        (generated_meta or {}).get('supplement_use', ''),
         meals_per_day,
         description,
         notes,
@@ -7500,13 +7606,40 @@ def delete_meal_plan(n_clicks_list, username):
     return render_meal_plans_cards(meal_plans_data)
 
 
+@app.callback(
+    Output('update-weight-feedback', 'children'),
+    Input('update-weight-btn', 'n_clicks'),
+    State('update-weight-input', 'value'),
+    State('current-patient-username', 'data'),
+    prevent_initial_call=True
+)
+def update_athlete_weight(n_clicks, new_weight, username):
+    if not n_clicks:
+        return dash.no_update
+    if not username or username not in _USER_DB:
+        return dash.no_update
+    try:
+        if new_weight in [None, '']:
+            return html.Div('Introduce un valor válido para el peso.', style={'color': '#f59e0b'})
+        weight_val = float(new_weight)
+        user_record = _USER_DB.get(username, {})
+        profile = user_record.get('profile') or {}
+        profile['current_weight'] = round(weight_val, 1)
+        user_record['profile'] = profile
+        _USER_DB[username] = user_record
+        db.save_data()
+        return html.Div('Peso actualizado correctamente.', style={'color': '#10b981', 'fontWeight': '700'})
+    except Exception as e:
+        print(f"Error updating weight for {username}: {e}")
+        return html.Div('Error al actualizar el peso.', style={'color': '#ef4444', 'fontWeight': '700'})
+
+
 def get_meal_plans_layout(username, full_name, current_search=""):
     """Generate meal plans management layout for patients."""
     user_data = _USER_DB.get(username, {})
     profile_data = user_data.get('profile', {})
     meal_plans_data = user_data.get('meal_plans', [])
     fights_data = user_data.get('fights', [])
-    continuity_panel = render_daily_continuity_panel(username, current_search, compact=True)
     
     athlete_weight = profile_data.get('current_weight', 'N/A')
     weight_class = profile_data.get('weight_class', 'No definida')
@@ -7522,7 +7655,6 @@ def get_meal_plans_layout(username, full_name, current_search=""):
     
     return html.Div([
         get_user_navbar("🍽️", full_name.upper(), "PLANES DE COMIDA", current_search, username, 'paciente'),
-        html.Div([continuity_panel], style={'padding': '10px 24px 0'}),
         dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-meal-plans", href=f"/{current_search}", color="primary", style={'margin': '15px 24px 0'}),
         
         html.Div([
@@ -7536,6 +7668,12 @@ def get_meal_plans_layout(username, full_name, current_search=""):
                         dbc.Col([
                             html.P([html.Strong("⚖️ Peso Actual: "), f"{athlete_weight} kg" if athlete_weight != 'N/A' else "No registrado"], style={'color': '#ffffff'}),
                             html.P([html.Strong("📊 Categoría: "), weight_class], style={'color': '#ffffff'}),
+                            html.Div([
+                                html.Label("Actualizar Peso (kg)", style={'color': '#ffffff', 'fontWeight': '600', 'marginTop': '8px'}),
+                                dcc.Input(id='update-weight-input', type='number', step=0.1, value=athlete_weight if isinstance(athlete_weight, (int, float)) else None, placeholder='Ej: 75.3', style={'width': '60%', 'marginRight': '8px', 'padding': '6px'}),
+                                dbc.Button("Actualizar", id='update-weight-btn', n_clicks=0, color='info', size='sm'),
+                                html.Div(id='update-weight-feedback', style={'marginTop': '8px'})
+                            ], style={'marginTop': '6px'})
                         ], width=6),
                         dbc.Col([
                             html.P([html.Strong("🥊 Combates: "), fights_info], style={'color': '#00ff88'})
@@ -7606,8 +7744,8 @@ def get_meal_plans_layout(username, full_name, current_search=""):
                     dbc.Button("⚙️ Auto-generar borrador", id='generate-meal-plan-btn', n_clicks=0, color='primary', className='w-100', size='md', style={'marginBottom': '10px'}),
                     html.Div(id='meal-plan-generation-feedback', style={'marginBottom': '10px'}),
                     
-                    html.Label("Descripción (Macros, Alimentos, Horarios)", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '10px'}),
-                    dcc.Textarea(id='meal-plan-description', placeholder='• Desayuno:\n• Almuerzo:\n• Merienda:\n• Cena:\n• Macros:', style={'width': '100%', 'height': '150px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
+                    html.Label("Distribución de macronutrientes (sin alimentos concretos)", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '10px'}),
+                    dcc.Textarea(id='meal-plan-description', placeholder='• Objetivo diario:\n• Proteínas totales (g):\n• Carbohidratos totales (g):\n• Grasas totales (g):\n• Reparto por comida:\n  - Desayuno: P / C / G\n  - Comida: P / C / G\n  - Cena: P / C / G', style={'width': '100%', 'height': '150px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
                     
                     html.Label("Notas Adicionales", style={'fontWeight': 'bold', 'color': '#ffffff'}),
                     dcc.Textarea(id='meal-plan-notes', placeholder='Restricciones, alergias, preferencias...', style={'width': '100%', 'height': '80px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
@@ -8846,6 +8984,7 @@ if __name__ == '__main__':
         host=host,
         port=port,
         use_reloader=False, # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
+        request_handler=QuietRequestHandler,
         dev_tools_silence_routes_logging=True
     )
 

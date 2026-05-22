@@ -208,6 +208,7 @@ class TacticalPlan:
     game_plan_rounds: List[RoundGamePlan] = field(default_factory=list)
     contingencies: List[ContingencyScenario] = field(default_factory=list)
     drill_focus: List[str] = field(default_factory=list)  # Ej: ['wrestling_takedown', 'clinch_drills']
+    recommended_exercises: List[str] = field(default_factory=list)  # Lista completa de ejercicios recomendados
     injury_restrictions: Dict[str, str] = field(default_factory=dict)  # {injury_type: restriction}
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     status: TacticalPlanStatus = TacticalPlanStatus.ACTIVE
@@ -229,6 +230,7 @@ class TacticalPlan:
             "game_plan_rounds": [r.to_dict() for r in self.game_plan_rounds],
             "contingencies": [c.to_dict() for c in self.contingencies],
             "drill_focus": self.drill_focus,
+            "recommended_exercises": self.recommended_exercises,
             "injury_restrictions": self.injury_restrictions,
             "created_at": self.created_at,
             "status": self.status.value,
@@ -263,6 +265,7 @@ class TacticalPlan:
             target_days_left=data.get("target_days_left", 30),
             weigh_in_date=data.get("weigh_in_date"),
             fight_weight=data.get("fight_weight"),
+            recommended_exercises=data.get("recommended_exercises", []),
         )
 
 
@@ -515,6 +518,35 @@ def generate_initial_tactical_plan(
     
     # Agregar recomendaciones de drills
     plan.drill_focus = matchup_strategy['drill_recommendations'][:3]
+
+    # Compilar lista completa de ejercicios/recomendaciones basadas en el plan
+    exercises = []
+    # Incluir drills directos sugeridos por el matchup
+    exercises.extend(plan.drill_focus)
+    # Incluir técnicas por round
+    for rnd in plan.game_plan_rounds:
+        for t in rnd.techniques:
+            exercises.append(t)
+    # Incluir técnicas de contingencias
+    for c in plan.contingencies:
+        for t in c.response_techniques:
+            exercises.append(t)
+    # Añadir librería común como respaldo
+    exercises.extend(COMMON_DRILLS)
+    exercises.extend(COMMON_TECHNIQUES)
+
+    # Normalizar y deduplicar manteniendo el orden
+    seen = set()
+    normalized = []
+    for e in exercises:
+        if not e:
+            continue
+        key = str(e).strip()
+        if key and key.lower() not in seen:
+            seen.add(key.lower())
+            normalized.append(key)
+
+    plan.recommended_exercises = normalized
     
     # Aplicar restricciones por lesión si existen
     if injury_restrictions:
@@ -712,6 +744,7 @@ DEFAULT_TACTICAL_PLAN_TEMPLATE = {
     "game_plan_rounds": [],
     "contingencies": [],
     "drill_focus": [],
+    "recommended_exercises": [],
     "injury_restrictions": {},
 }
 
@@ -1260,6 +1293,8 @@ class TacticalPlanningService:
             'phase_custom_notes': phase_custom_notes or '',
             'fight_weight': fight_target_weight,
             'weigh_in_date': selected_fight.get('weigh_in_date') if selected_fight else (existing_plan.get('weigh_in_date') if existing_plan else None)
+            ,
+            'recommended_exercises': existing_plan.get('recommended_exercises', []) if existing_plan else []
         }
 
     @staticmethod

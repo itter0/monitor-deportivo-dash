@@ -77,13 +77,17 @@ def get_meal_plans_layout_html(get_full_href, get_user_navbar, html, dbc, dcc, S
                 dcc.Input(id='meal-plan-duration', type='number', min=1, max=365, value=30,
                          style={'width': '100%', 'marginBottom': '10px', 'padding': '8px'}),
                 
-                html.Label("Descripción del Plan (Macros, Alimentos, Horarios)", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '15px'}),
-                dcc.Textarea(id='meal-plan-description', placeholder='''Describe tu plan de comida detallado:
-- Desayuno: ...
-- Almuerzo: ...
-- Merienda: ...
-- Cena: ... 
-- Macros diarios: Proteínas, carbohidratos, grasas
+                                html.Label("Distribución de macronutrientes (sin alimentos concretos)", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '15px'}),
+                                dcc.Textarea(id='meal-plan-description', placeholder='''Describe la distribución de tus macros:
+- Objetivo diario:
+- Proteínas totales (g):
+- Carbohidratos totales (g):
+- Grasas totales (g):
+- Reparto por comida:
+    - Desayuno: P / C / G
+    - Comida: P / C / G
+    - Merienda: P / C / G
+    - Cena: P / C / G
 - Suplementos: ...''', 
                              style={'width': '100%', 'height': '200px', 'marginBottom': '10px', 'padding': '8px'}),
                 

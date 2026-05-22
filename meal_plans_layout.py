@@ -123,13 +123,17 @@ def get_meal_plans_layout(username, full_name, _USER_DB, html, dbc, dcc, ALL, ST
                     dcc.Input(id='meal-plan-duration', type='number', min=1, max=365, value=30,
                              style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
                     
-                    html.Label("Descripción del Plan (Macros, Alimentos, Horarios)", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '15px'}),
-                    dcc.Textarea(id='meal-plan-description', placeholder='''Describe tu plan de comida detallado:
-• Desayuno: ...
-• Almuerzo: ...
-• Merienda: ...
-• Cena: ... 
-• Macros diarios: Proteínas, carbohidratos, grasas (g)
+                                        html.Label("Distribución de macronutrientes (sin alimentos concretos)", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '15px'}),
+                                        dcc.Textarea(id='meal-plan-description', placeholder='''Describe la distribución de tus macros:
+• Objetivo diario:
+• Proteínas totales (g):
+• Carbohidratos totales (g):
+• Grasas totales (g):
+• Reparto por comida:
+    - Desayuno: P / C / G
+    - Comida: P / C / G
+    - Merienda: P / C / G
+    - Cena: P / C / G
 • Suplementos: ...
 • Hidratación: ...''', 
                                 style={'width': '100%', 'height': '200px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
