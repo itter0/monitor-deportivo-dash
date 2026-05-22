@@ -7274,7 +7274,8 @@ def render_meal_plans_cards(meal_plans_data):
 
         for idx, plan in enumerate(meal_plans_data):
             weight_change = weight_change_labels.get(plan.get('weight_change'), 'N/A')
-            status_label = '🟢 Activo' if plan.get('status') == 'active' else '🔴 Inactivo'
+            is_active = str(plan.get('status', 'inactive')).lower() == 'active'
+            status_label = '🟢 Activo' if is_active else '🔴 Inactivo'
             logic_label = logic_labels.get(plan.get('generation_logic'), 'Manual')
             macros = plan.get('generated_macros', {}) if isinstance(plan.get('generated_macros'), dict) else {}
             meal_breakdown = macros.get('meal_breakdown', []) if isinstance(macros.get('meal_breakdown'), list) else []
@@ -7338,6 +7339,13 @@ def render_meal_plans_cards(meal_plans_data):
                                 }
                             )
                         ], style={'marginBottom': '10px'}),
+                        dbc.Button(
+                            '🔴 Desactivar' if is_active else '🟢 Activar',
+                            id={'type': 'toggle-meal-plan-status-btn', 'index': idx},
+                            color='warning' if is_active else 'success',
+                            size='sm',
+                            style={'marginRight': '5px'}
+                        ),
                         dbc.Button("✏️ Editar", id={'type': 'edit-meal-plan-btn', 'index': idx}, color='warning', size='sm', style={'marginRight': '5px'}),
                         dbc.Button("🗑️ Eliminar", id={'type': 'delete-meal-plan-btn', 'index': idx}, color='danger', size='sm')
                     ], style={'color': '#ffffff'})
@@ -7352,6 +7360,38 @@ def render_meal_plans_cards(meal_plans_data):
         )
 
     return meal_plans_html
+
+
+def _deactivate_other_meal_plans(meal_plans):
+    updated_plans = []
+    for plan in meal_plans or []:
+        if isinstance(plan, dict):
+            plan_copy = dict(plan)
+            if str(plan_copy.get('status', 'inactive')).lower() == 'active':
+                plan_copy['status'] = 'inactive'
+            updated_plans.append(plan_copy)
+        else:
+            updated_plans.append(plan)
+    return updated_plans
+
+
+def _set_meal_plan_status_by_index(meal_plans, idx, new_status):
+    updated_plans = []
+    changed_plan_name = None
+    for current_idx, plan in enumerate(meal_plans or []):
+        if not isinstance(plan, dict):
+            updated_plans.append(plan)
+            continue
+
+        plan_copy = dict(plan)
+        if current_idx == idx:
+            plan_copy['status'] = new_status
+            changed_plan_name = plan_copy.get('name', 'Plan de comida')
+        elif new_status == 'active':
+            plan_copy['status'] = 'inactive'
+        updated_plans.append(plan_copy)
+
+    return updated_plans, changed_plan_name
 
 
 @app.callback(
@@ -7401,10 +7441,12 @@ def generate_meal_plan_draft(
         generation_logic,
         current_weight,
         target_weight,
+        None,
         duration,
         weight_change,
         dietary_constraints,
         food_preferences,
+        '',
         meals_per_day,
         fight_context,
     )
@@ -7423,7 +7465,9 @@ def generate_meal_plan_draft(
 
 
 @app.callback(
-    Output('meal-plan-feedback', 'children'),
+    [Output('meal-plan-feedback', 'children'),
+     Output('meal-plan-generated-meta', 'data'),
+     Output('meal-plan-edit-index', 'data')],
     Input('save-meal-plan-btn', 'n_clicks'),
     [State('meal-plan-name', 'value'),
      State('meal-plan-generation-logic', 'value'),
@@ -7445,26 +7489,30 @@ def save_meal_plan(
     dietary_constraints, food_preferences, meals_per_day, description, notes, generated_meta, username
 ):
     if not n_clicks or n_clicks == 0:
-        return dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update
     
     if not username or username not in _USER_DB:
-        return html.Div("❌ Usuario no autenticado", style={'color': 'red'})
+        return html.Div("❌ Usuario no autenticado", style={'color': 'red'}), dash.no_update, dash.no_update
     
     if not name or not name.strip():
-        return html.Div("⚠️ Debes ingresar un nombre para el plan", style={'color': 'orange'})
+        return html.Div("⚠️ Debes ingresar un nombre para el plan", style={'color': 'orange'}), dash.no_update, dash.no_update
     
     profile = _USER_DB.get(username, {}).get('profile', {})
     current_weight = profile.get('current_weight')
+    target_body_fat = generated_meta.get('target_body_fat') if isinstance(generated_meta, dict) else None
+    supplement_use = generated_meta.get('supplement_use', '') if isinstance(generated_meta, dict) else ''
 
     meal_plan, review = MealPlanService.build_plan_for_save(
         name,
         generation_logic,
         weight_change,
         target_weight,
+        target_body_fat,
         duration,
         status,
         dietary_constraints,
         food_preferences,
+        supplement_use,
         meals_per_day,
         description,
         notes,
@@ -7474,7 +7522,18 @@ def save_meal_plan(
     
     user_record = _USER_DB[username]
     meal_plans = user_record.get('meal_plans', [])
-    meal_plans.append(meal_plan)
+    if str(status).lower() == 'active':
+        meal_plans = _deactivate_other_meal_plans(meal_plans)
+    edit_index = None
+    if isinstance(generated_meta, dict):
+        edit_index = generated_meta.get('edit_index')
+        generated_meta = dict(generated_meta)
+        generated_meta.pop('edit_index', None)
+
+    if isinstance(edit_index, int) and 0 <= edit_index < len(meal_plans):
+        meal_plans[edit_index] = meal_plan
+    else:
+        meal_plans.append(meal_plan)
     user_record['meal_plans'] = meal_plans
     db.save_data()
     
@@ -7482,9 +7541,136 @@ def save_meal_plan(
         return html.Div([
             html.P("✅ Plan guardado con advertencias", style={'color': '#00ff88', 'fontWeight': 'bold', 'marginBottom': '6px'}),
             html.Ul([html.Li(w, style={'color': '#ffd166'}) for w in review.get('warnings', [])], style={'marginBottom': 0})
-        ])
+        ]), generated_meta, None
 
-    return html.Div("✅ Plan de comida guardado correctamente", style={'color': 'green', 'fontWeight': 'bold'})
+    return html.Div("✅ Plan de comida guardado correctamente", style={'color': 'green', 'fontWeight': 'bold'}), generated_meta, None
+
+
+@app.callback(
+    [Output('meal-plan-name', 'value'),
+     Output('meal-plan-generation-logic', 'value'),
+     Output('meal-plan-weight-change', 'value'),
+     Output('meal-plan-target-weight', 'value'),
+     Output('meal-plan-duration', 'value'),
+     Output('meal-plan-status', 'value'),
+     Output('meal-plan-dietary-constraints', 'value'),
+     Output('meal-plan-food-preferences', 'value'),
+     Output('meal-plan-meals-per-day', 'value'),
+     Output('meal-plan-description', 'value'),
+     Output('meal-plan-notes', 'value'),
+     Output('meal-plan-generated-meta', 'data'),
+     Output('meal-plan-edit-index', 'data'),
+     Output('meal-plan-feedback', 'children')],
+    Input({'type': 'edit-meal-plan-btn', 'index': ALL}, 'n_clicks'),
+    State('current-patient-username', 'data'),
+    prevent_initial_call=True
+)
+def load_meal_plan_for_edit(n_clicks_list, username):
+    if not username or username not in _USER_DB:
+        return [dash.no_update] * 14
+
+    if not callback_context.triggered:
+        return [dash.no_update] * 14
+
+    trigger_id = callback_context.triggered[0]['prop_id']
+    if 'edit-meal-plan-btn' not in trigger_id:
+        return [dash.no_update] * 14
+
+    try:
+        trigger_data = json.loads(trigger_id.split('.')[0])
+        idx = trigger_data['index']
+        meal_plans = _USER_DB.get(username, {}).get('meal_plans', [])
+        if not isinstance(idx, int) or idx < 0 or idx >= len(meal_plans):
+            return [dash.no_update] * 14
+
+        plan = meal_plans[idx] if isinstance(meal_plans[idx], dict) else {}
+        generated_meta = {
+            'generation_logic': plan.get('generation_logic', 'template'),
+            'generated_macros': plan.get('generated_macros', {}),
+            'target_body_fat': plan.get('target_body_fat'),
+            'supplement_use': plan.get('supplement_use', ''),
+            'dietary_constraints': plan.get('dietary_constraints', ''),
+            'food_preferences': plan.get('food_preferences', ''),
+            'meals_per_day': plan.get('meals_per_day', 5),
+            'edit_index': idx,
+        }
+        feedback = html.Div(
+            f"✏️ Editando {plan.get('name', 'plan de comida')}. Haz cambios y pulsa Guardar para reemplazarlo.",
+            style={'color': '#60a5fa', 'fontWeight': 'bold'}
+        )
+
+        return (
+            plan.get('name', ''),
+            plan.get('generation_logic', 'template'),
+            plan.get('weight_change', 'none'),
+            plan.get('target_weight'),
+            plan.get('duration', 30),
+            plan.get('status', 'active'),
+            plan.get('dietary_constraints', ''),
+            plan.get('food_preferences', ''),
+            plan.get('meals_per_day', 5),
+            plan.get('description', ''),
+            plan.get('notes', ''),
+            generated_meta,
+            idx,
+            feedback,
+        )
+    except Exception as e:
+        print(f"Error loading meal plan for edit: {e}")
+        return [dash.no_update] * 14
+
+
+@app.callback(
+    [Output('meal-plans-list', 'children', allow_duplicate=True),
+     Output('meal-plan-feedback', 'children')],
+    Input({'type': 'toggle-meal-plan-status-btn', 'index': ALL}, 'n_clicks'),
+    State('current-patient-username', 'data'),
+    prevent_initial_call=True
+)
+def toggle_meal_plan_status(n_clicks_list, username):
+    if not username or username not in _USER_DB:
+        return dash.no_update, dash.no_update
+
+    if not callback_context.triggered:
+        return dash.no_update, dash.no_update
+
+    trigger_id = callback_context.triggered[0]['prop_id']
+    if 'toggle-meal-plan-status-btn' not in trigger_id:
+        return dash.no_update, dash.no_update
+
+    try:
+        import json
+        trigger_data = json.loads(trigger_id.split('.')[0])
+        idx = trigger_data['index']
+
+        user_record = _USER_DB[username]
+        meal_plans = user_record.get('meal_plans', [])
+        if not isinstance(idx, int) or idx < 0 or idx >= len(meal_plans):
+            return dash.no_update, dash.no_update
+
+        current_plan = meal_plans[idx] if isinstance(meal_plans[idx], dict) else {}
+        current_status = str(current_plan.get('status', 'inactive')).lower()
+        new_status = 'inactive' if current_status == 'active' else 'active'
+
+        updated_meal_plans, changed_plan_name = _set_meal_plan_status_by_index(meal_plans, idx, new_status)
+        user_record['meal_plans'] = updated_meal_plans
+        db.save_data()
+
+        if new_status == 'active':
+            feedback = html.Div(
+                f"✅ {changed_plan_name or 'El plan'} quedó activo y será el usado por Continuidad.",
+                style={'color': '#00ff88', 'fontWeight': 'bold'}
+            )
+        else:
+            feedback = html.Div(
+                f"🟡 {changed_plan_name or 'El plan'} quedó inactivo.",
+                style={'color': '#ffd166', 'fontWeight': 'bold'}
+            )
+
+        return render_meal_plans_cards(updated_meal_plans), feedback
+    except Exception as e:
+        print(f"Error toggling meal plan status: {e}")
+        return dash.no_update, html.Div("❌ No se pudo cambiar el estado del plan.", style={'color': 'red'})
 
 
 @app.callback(
@@ -7621,6 +7807,7 @@ def get_meal_plans_layout(username, full_name, current_search=""):
                 ], style=STYLES['card_header_tactical']), style={'backgroundColor': '#000', 'border': '1px solid #333'}),
                 dbc.CardBody([
                     dcc.Store(id='meal-plan-generated-meta', data={}),
+                    dcc.Store(id='meal-plan-edit-index', data=None),
                     html.Label("Nombre del Plan", style={'fontWeight': 'bold', 'color': '#ffffff'}),
                     dcc.Input(id='meal-plan-name', type='text', placeholder='Ej: Plan Pre-Combate', style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
 
