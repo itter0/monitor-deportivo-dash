@@ -20,7 +20,6 @@ import signal
 import base64
 import io
 from scipy.signal import find_peaks
-from werkzeug.serving import WSGIRequestHandler
 
 QUIET_CONSOLE = os.environ.get("QUIET_CONSOLE", "true").lower() == "true"
 
@@ -35,26 +34,6 @@ def print(*args, **kwargs):
         return None
 
     return _builtins.print(*args, **kwargs)
-
-
-class QuietRequestHandler(WSGIRequestHandler):
-    """Evita registrar handshakes TLS que llegan por error al puerto HTTP."""
-
-    _tls_probe_prefixes = (b"\x16\x03", b"\x80\x00")
-
-    def _is_tls_probe(self):
-        raw_requestline = getattr(self, "raw_requestline", b"")
-        return isinstance(raw_requestline, (bytes, bytearray)) and raw_requestline.startswith(self._tls_probe_prefixes)
-
-    def log_request(self, code="-", size="-"):
-        if str(code) == "400" and self._is_tls_probe():
-            return
-        super().log_request(code, size)
-
-    def log_error(self, format, *args):
-        if self._is_tls_probe() and isinstance(format, str) and format.startswith("code 400, message Bad request"):
-            return
-        super().log_error(format, *args)
 
 from tactical_system import (
     TacticalPlanningService,
@@ -676,49 +655,6 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True
 )
-
-
-# Endpoint para descargar PDF del plan táctico
-@app.server.route('/download-tactical-pdf')
-def download_tactical_pdf_route():
-    from flask import request, make_response
-    import tactical_system as ts
-
-    username = request.args.get('user')
-    fight_id = request.args.get('fight_id')
-
-    if not username or not fight_id:
-        return "Missing 'user' or 'fight_id' query parameters", 400
-
-    # Obtener plan desde la DB dummy
-    plan_dict = db.get_tactical_plan_by_fight_id(username, fight_id)
-    if not plan_dict:
-        return f"Tactical plan not found for user={username} fight_id={fight_id}", 404
-
-    # Convertir a TacticalPlan si es necesario
-    try:
-        plan_obj = ts.TacticalPlan.from_dict(plan_dict) if isinstance(plan_dict, dict) else plan_dict
-    except Exception:
-        return "Error parsing tactical plan", 500
-
-    # Allow overriding target date via query param
-    target_date = request.args.get('target_date') or plan_dict.get('target_date') or plan_dict.get('created_at') or ''
-
-    try:
-        pdf_bytes = ts.generate_calendar_pdf(plan_obj, target_date)
-    except Exception as e:
-        print(f"Error generating tactical PDF: {e}")
-        return "Error generating PDF", 500
-
-    if not pdf_bytes:
-        return "No PDF generated", 500
-
-    response = make_response(pdf_bytes)
-    response.headers.set('Content-Type', 'application/pdf')
-    filename = f"plan_tactico_{fight_id}.pdf"
-    response.headers.set('Content-Disposition', 'attachment', filename=filename)
-    return response
-
 
 # Inyectar CSS global para mejorar visibilidad en temas oscuros (Dropdown, Sliders...)
 app.index_string = '''
@@ -7465,12 +7401,10 @@ def generate_meal_plan_draft(
         generation_logic,
         current_weight,
         target_weight,
-        None,
         duration,
         weight_change,
         dietary_constraints,
         food_preferences,
-        '',
         meals_per_day,
         fight_context,
     )
@@ -7527,12 +7461,10 @@ def save_meal_plan(
         generation_logic,
         weight_change,
         target_weight,
-        None,
         duration,
         status,
         dietary_constraints,
         food_preferences,
-        (generated_meta or {}).get('supplement_use', ''),
         meals_per_day,
         description,
         notes,
@@ -8984,7 +8916,6 @@ if __name__ == '__main__':
         host=host,
         port=port,
         use_reloader=False, # CRÍTICO: Si está en True, cierra el hilo del simulador y da error de señal
-        request_handler=QuietRequestHandler,
         dev_tools_silence_routes_logging=True
     )
 
