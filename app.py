@@ -8,6 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import json
 import pandas as pd
+from datetime import datetime, date, timedelta
 import numpy as np
 import logging
 import flask.cli as flask_cli
@@ -16,6 +17,20 @@ from urllib.parse import urlparse, parse_qs, urlencode
 import os
 import re 
 import subprocess
+def _json_default_serializer(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, timedelta):
+        return obj.total_seconds()
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return str(obj)
 import signal
 import base64
 import io
@@ -259,7 +274,7 @@ class DummyDB:
         }
         try:
             with open(DB_FILE, 'w') as f:
-                json.dump(data, f, indent=4)
+                json.dump(data, f, indent=4, default=_json_default_serializer)
         except Exception as e:
             print(f"ERROR: No se pudo guardar la DB en {DB_FILE}: {e}")
 
@@ -759,7 +774,6 @@ app.index_string = '''
                 color: #f3f4f6 !important;
                 border: 1px solid #3b82f6 !important;
                 border-radius: 12px;
-                font-family: 'Oswald', sans-serif !important;
                 box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(59, 130, 246, 0.3) !important;
             }
             .tactical-modal .modal-header {
@@ -779,100 +793,6 @@ app.index_string = '''
             /* Ocultar el botón de cierre por defecto si aparece feo */
             .tactical-modal .btn-close {
                 filter: invert(1) grayscale(100%) brightness(200%);
-            }
-            /* Estilos específicos para el modal de cuestionarios */
-            .tactical-modal .modal-body {
-                background-color: #111827 !important;
-            }
-
-            .tactical-modal .questionnaire-modal-inner {
-                font-family: 'Oswald', sans-serif !important;
-            }
-
-            .tactical-modal .card,
-            .tactical-modal .questionnaire-modal-content > div {
-                background-color: #1f2937 !important;
-                border: 1px solid #2b384e !important;
-                border-left: 4px solid #3b82f6 !important;
-                border-radius: 8px !important;
-                padding: 20px !important;
-                margin-bottom: 16px !important;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
-            }
-
-            .tactical-modal label,
-            .tactical-modal .card-title {
-                color: #ffffff !important;
-                font-weight: 600 !important;
-                letter-spacing: 0.5px !important;
-                margin-bottom: 15px !important;
-            }
-
-            .octagon-dropdown .Select-control {
-                background-color: #0b0f19 !important;
-                border: 1px solid #2b384e !important;
-                height: 44px !important;
-                display: flex !important;
-                align-items: center !important;
-            }
-
-            .octagon-dropdown .Select-menu-outer {
-                background-color: #0b0f19 !important;
-                border: 1px solid #3b82f6 !important;
-                z-index: 10000 !important;
-            }
-
-            .octagon-dropdown .Select-value-label,
-            .octagon-dropdown .Select-placeholder {
-                color: #ffffff !important;
-                font-family: 'Oswald', sans-serif !important;
-            }
-
-            .octagon-dropdown .Select-input input {
-                color: #ffffff !important;
-                font-family: 'Oswald', sans-serif !important;
-            }
-
-            .octagon-dropdown .Select-option {
-                background-color: #0b0f19 !important;
-                color: #e5e7eb !important;
-                font-family: 'Oswald', sans-serif !important;
-            }
-
-            .octagon-dropdown .Select-option.is-focused,
-            .octagon-dropdown .Select-option.is-selected {
-                background-color: #3b82f6 !important;
-                color: #ffffff !important;
-            }
-
-            .tactical-modal .rc-slider-rail {
-                background-color: #374151 !important;
-                height: 8px !important;
-            }
-
-            .tactical-modal .rc-slider-track {
-                background-color: #3b82f6 !important;
-                height: 8px !important;
-            }
-
-            .tactical-modal .rc-slider-handle {
-                width: 20px !important;
-                height: 20px !important;
-                margin-top: -6px !important;
-                background-color: #0b0f19 !important;
-                border: 3px solid #3b82f6 !important;
-            }
-
-            .tactical-modal .rc-slider-mark-text {
-                color: #9ca3af !important;
-                font-family: 'Oswald', sans-serif !important;
-                font-size: 13px !important;
-                top: 25px !important;
-            }
-
-            .tactical-modal .rc-slider-mark-text-active {
-                color: #ffffff !important;
-                text-shadow: 0 0 5px #3b82f6 !important;
             }
             /* Estilos Oscuros para DatePicker */
             .tactical-date-picker-wrapper .SingleDatePicker,
@@ -4163,29 +4083,27 @@ def build_questionnaires_modal(username, health_status='listo', injury_types=Non
                     if q_id in QUESTIONNAIRES
                 ],
                 placeholder='Seleccione cuestionario...',
-                style={'marginBottom': '20px'},
-                className='octagon-dropdown'
+                style={'marginBottom': '20px', 'backgroundColor': '#111111', 'color': '#ffffff', 'border': '1px solid #444'},
             ),
             
-            html.Div(id='questionnaire-modal-content', className='questionnaire-modal-content', style={'marginBottom': '20px'}),
-            html.Div(id='questionnaire-modal-feedback', className='questionnaire-modal-feedback', style={'marginBottom': '15px'}),
-        ], className='questionnaire-modal-inner', style={'padding': '10px'})
+            html.Div(id='questionnaire-modal-content', style={'marginBottom': '20px'}),
+            html.Div(id='questionnaire-modal-feedback', style={'marginBottom': '15px'}),
+        ], style={'padding': '10px'})
     ])
     
     modal = dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Completar Cuestionario", style={'color': '#ffffff', 'fontFamily': "'Oswald', sans-serif"}), close_button=True, style={'backgroundColor': '#111111', 'border': '1px solid #333'}),
+        dbc.ModalHeader(dbc.ModalTitle("Completar Cuestionario", style={'color': '#ffffff'}), close_button=True, style={'backgroundColor': '#111111', 'border': '1px solid #333'}),
         modal_content,
         dbc.ModalFooter([
             dbc.Button("Cerrar", id="close-questionnaire-modal-btn", className="ms-auto", color="secondary", n_clicks=0),
-            dbc.Button("Enviar", id="submit-questionnaire-modal-btn", color="success", className="fw-bold", n_clicks=0),
+            dbc.Button("Enviar", id="submit-questionnaire-modal-btn", color="success", n_clicks=0),
         ], style={'backgroundColor': '#111111', 'border': '1px solid #333'}),
     ],
         id='questionnaire-modal',
         is_open=False,
         size='lg',
         backdrop='static',
-        className='tactical-modal',
-        style={'zIndex': '9999'}
+        style={'z-index': '9999'}
     )
     
     return modal
@@ -7711,16 +7629,17 @@ def load_meal_plan_for_edit(n_clicks_list, username):
         trigger_data = json.loads(trigger_id.split('.')[0])
         idx = trigger_data['index']
         meal_plans = _USER_DB.get(username, {}).get('meal_plans', [])
-        if not isinstance(idx, int) or idx < 0 or idx >= len(meal_plans):
+        target_index = _find_meal_plan_index(meal_plans, idx)
+        if target_index is None:
             return [dash.no_update] * 8
 
-        plan = meal_plans[idx] if isinstance(meal_plans[idx], dict) else {}
+        plan = meal_plans[target_index] if isinstance(meal_plans[target_index], dict) else {}
         generated_meta = {
             'generation_logic': plan.get('generation_logic', 'goal_based'),
             'generated_macros': plan.get('generated_macros', {}),
             'target_body_fat': plan.get('target_body_fat'),
             'supplement_use': plan.get('supplement_use', ''),
-            'edit_index': idx,
+            'edit_index': target_index,
             'edit_plan_id': plan.get('plan_id'),
         }
         feedback = html.Div(
@@ -7732,9 +7651,10 @@ def load_meal_plan_for_edit(n_clicks_list, username):
             plan.get('name', ''),
             plan.get('target_weight'),
             plan.get('duration', 30),
+            plan.get('description', ''),
             plan.get('notes', ''),
             generated_meta,
-            idx,
+            target_index,
             feedback,
         )
     except Exception as e:
