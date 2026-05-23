@@ -25,6 +25,7 @@ class MealPlanService:
         meals_per_day,
         fight_context,
     ):
+        generation_logic = generation_logic or 'goal_based'
         generated = generate_personalized_meal_plan(
             name=name,
             generation_logic=generation_logic,
@@ -87,16 +88,18 @@ class MealPlanService:
         except (TypeError, ValueError):
             duration_val = 30
 
-        selected_logic = generation_logic or 'template'
+        selected_logic = generation_logic or 'goal_based'
         macros_data = {}
         if isinstance(generated_meta, dict):
             selected_logic = generated_meta.get('generation_logic') or selected_logic
             if isinstance(generated_meta.get('generated_macros'), dict):
                 macros_data = generated_meta.get('generated_macros')
 
+        inferred_weight_change = weight_change or _resolve_weight_direction(current_weight, target_weight_val, None)
+
         meal_plan = {
             'name': str(name or '').strip(),
-            'weight_change': weight_change or 'none',
+            'weight_change': inferred_weight_change,
             'target_weight': target_weight_val,
             'target_body_fat': _safe_float(target_body_fat),
             'duration': duration_val,

@@ -19,6 +19,7 @@ import subprocess
 import signal
 import base64
 import io
+import uuid
 from scipy.signal import find_peaks
 
 QUIET_CONSOLE = os.environ.get("QUIET_CONSOLE", "true").lower() == "true"
@@ -758,6 +759,7 @@ app.index_string = '''
                 color: #f3f4f6 !important;
                 border: 1px solid #3b82f6 !important;
                 border-radius: 12px;
+                font-family: 'Oswald', sans-serif !important;
                 box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(59, 130, 246, 0.3) !important;
             }
             .tactical-modal .modal-header {
@@ -777,6 +779,100 @@ app.index_string = '''
             /* Ocultar el botón de cierre por defecto si aparece feo */
             .tactical-modal .btn-close {
                 filter: invert(1) grayscale(100%) brightness(200%);
+            }
+            /* Estilos específicos para el modal de cuestionarios */
+            .tactical-modal .modal-body {
+                background-color: #111827 !important;
+            }
+
+            .tactical-modal .questionnaire-modal-inner {
+                font-family: 'Oswald', sans-serif !important;
+            }
+
+            .tactical-modal .card,
+            .tactical-modal .questionnaire-modal-content > div {
+                background-color: #1f2937 !important;
+                border: 1px solid #2b384e !important;
+                border-left: 4px solid #3b82f6 !important;
+                border-radius: 8px !important;
+                padding: 20px !important;
+                margin-bottom: 16px !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+            }
+
+            .tactical-modal label,
+            .tactical-modal .card-title {
+                color: #ffffff !important;
+                font-weight: 600 !important;
+                letter-spacing: 0.5px !important;
+                margin-bottom: 15px !important;
+            }
+
+            .octagon-dropdown .Select-control {
+                background-color: #0b0f19 !important;
+                border: 1px solid #2b384e !important;
+                height: 44px !important;
+                display: flex !important;
+                align-items: center !important;
+            }
+
+            .octagon-dropdown .Select-menu-outer {
+                background-color: #0b0f19 !important;
+                border: 1px solid #3b82f6 !important;
+                z-index: 10000 !important;
+            }
+
+            .octagon-dropdown .Select-value-label,
+            .octagon-dropdown .Select-placeholder {
+                color: #ffffff !important;
+                font-family: 'Oswald', sans-serif !important;
+            }
+
+            .octagon-dropdown .Select-input input {
+                color: #ffffff !important;
+                font-family: 'Oswald', sans-serif !important;
+            }
+
+            .octagon-dropdown .Select-option {
+                background-color: #0b0f19 !important;
+                color: #e5e7eb !important;
+                font-family: 'Oswald', sans-serif !important;
+            }
+
+            .octagon-dropdown .Select-option.is-focused,
+            .octagon-dropdown .Select-option.is-selected {
+                background-color: #3b82f6 !important;
+                color: #ffffff !important;
+            }
+
+            .tactical-modal .rc-slider-rail {
+                background-color: #374151 !important;
+                height: 8px !important;
+            }
+
+            .tactical-modal .rc-slider-track {
+                background-color: #3b82f6 !important;
+                height: 8px !important;
+            }
+
+            .tactical-modal .rc-slider-handle {
+                width: 20px !important;
+                height: 20px !important;
+                margin-top: -6px !important;
+                background-color: #0b0f19 !important;
+                border: 3px solid #3b82f6 !important;
+            }
+
+            .tactical-modal .rc-slider-mark-text {
+                color: #9ca3af !important;
+                font-family: 'Oswald', sans-serif !important;
+                font-size: 13px !important;
+                top: 25px !important;
+            }
+
+            .tactical-modal .rc-slider-mark-text-active {
+                color: #ffffff !important;
+                text-shadow: 0 0 5px #3b82f6 !important;
             }
             /* Estilos Oscuros para DatePicker */
             .tactical-date-picker-wrapper .SingleDatePicker,
@@ -1885,13 +1981,15 @@ def _pick_next_appointment(appointments):
     return selected_pool[0][1]
 
 
-def _pick_latest_active_plan(plans):
+def _pick_latest_active_plan(plans, fallback_to_any=True):
     plans = [plan for plan in (plans or []) if isinstance(plan, dict)]
     if not plans:
         return None
 
     active_plans = [plan for plan in plans if str(plan.get('status', 'active')).lower() == 'active']
-    pool = active_plans or plans
+    pool = active_plans if active_plans else (plans if fallback_to_any else [])
+    if not pool:
+        return None
     return _pick_latest_record(pool, ['created_date', 'created_at'])
 
 
@@ -1914,7 +2012,7 @@ def build_daily_continuity_context(username):
     current_weight = profile.get('current_weight')
 
     next_fight = _pick_next_fight(fights)
-    active_meal_plan = _pick_latest_active_plan(meal_plans)
+    active_meal_plan = _pick_latest_active_plan(meal_plans, fallback_to_any=False)
     active_tactical_plan = _pick_latest_active_plan(tactical_plans)
     latest_questionnaire = _pick_latest_record(questionnaires, ['timestamp'])
     latest_exercise = _pick_latest_record(exercises, ['timestamp'])
@@ -4065,27 +4163,29 @@ def build_questionnaires_modal(username, health_status='listo', injury_types=Non
                     if q_id in QUESTIONNAIRES
                 ],
                 placeholder='Seleccione cuestionario...',
-                style={'marginBottom': '20px', 'backgroundColor': '#111111', 'color': '#ffffff', 'border': '1px solid #444'},
+                style={'marginBottom': '20px'},
+                className='octagon-dropdown'
             ),
             
-            html.Div(id='questionnaire-modal-content', style={'marginBottom': '20px'}),
-            html.Div(id='questionnaire-modal-feedback', style={'marginBottom': '15px'}),
-        ], style={'padding': '10px'})
+            html.Div(id='questionnaire-modal-content', className='questionnaire-modal-content', style={'marginBottom': '20px'}),
+            html.Div(id='questionnaire-modal-feedback', className='questionnaire-modal-feedback', style={'marginBottom': '15px'}),
+        ], className='questionnaire-modal-inner', style={'padding': '10px'})
     ])
     
     modal = dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Completar Cuestionario", style={'color': '#ffffff'}), close_button=True, style={'backgroundColor': '#111111', 'border': '1px solid #333'}),
+        dbc.ModalHeader(dbc.ModalTitle("Completar Cuestionario", style={'color': '#ffffff', 'fontFamily': "'Oswald', sans-serif"}), close_button=True, style={'backgroundColor': '#111111', 'border': '1px solid #333'}),
         modal_content,
         dbc.ModalFooter([
             dbc.Button("Cerrar", id="close-questionnaire-modal-btn", className="ms-auto", color="secondary", n_clicks=0),
-            dbc.Button("Enviar", id="submit-questionnaire-modal-btn", color="success", n_clicks=0),
+            dbc.Button("Enviar", id="submit-questionnaire-modal-btn", color="success", className="fw-bold", n_clicks=0),
         ], style={'backgroundColor': '#111111', 'border': '1px solid #333'}),
     ],
         id='questionnaire-modal',
         is_open=False,
         size='lg',
         backdrop='static',
-        style={'z-index': '9999'}
+        className='tactical-modal',
+        style={'zIndex': '9999'}
     )
     
     return modal
@@ -7256,7 +7356,37 @@ def update_injury_types_store(injury_types):
     return injury_types if injury_types else []
 
 
-def render_meal_plans_cards(meal_plans_data):
+def _normalize_meal_plan_status(status):
+    normalized = str(status or 'active').lower()
+    if normalized == 'active':
+        return 'active'
+    return 'archived'
+
+
+def _get_meal_plan_identifier(plan, fallback_index=None):
+    if isinstance(plan, dict):
+        plan_id = plan.get('plan_id')
+        if plan_id not in [None, '']:
+            return plan_id
+    return fallback_index
+
+
+def _find_meal_plan_index(meal_plans, identifier):
+    for idx, plan in enumerate(meal_plans or []):
+        if not isinstance(plan, dict):
+            continue
+
+        plan_id = plan.get('plan_id')
+        if plan_id not in [None, ''] and plan_id == identifier:
+            return idx
+
+    if isinstance(identifier, int) and 0 <= identifier < len(meal_plans or []):
+        return identifier
+
+    return None
+
+
+def render_meal_plans_cards(meal_plans_data, archived=False):
     meal_plans_html = []
     if meal_plans_data:
         logic_labels = {
@@ -7273,9 +7403,16 @@ def render_meal_plans_cards(meal_plans_data):
         }
 
         for idx, plan in enumerate(meal_plans_data):
+            if not isinstance(plan, dict):
+                continue
+
+            status = _normalize_meal_plan_status(plan.get('status', 'active'))
+            is_archived_plan = status == 'archived'
+            if archived != is_archived_plan:
+                continue
+
             weight_change = weight_change_labels.get(plan.get('weight_change'), 'N/A')
-            is_active = str(plan.get('status', 'inactive')).lower() == 'active'
-            status_label = '🟢 Activo' if is_active else '🔴 Inactivo'
+            status_label = '📦 Archivado' if is_archived_plan else '🟢 Activo'
             logic_label = logic_labels.get(plan.get('generation_logic'), 'Manual')
             macros = plan.get('generated_macros', {}) if isinstance(plan.get('generated_macros'), dict) else {}
             meal_breakdown = macros.get('meal_breakdown', []) if isinstance(macros.get('meal_breakdown'), list) else []
@@ -7300,6 +7437,17 @@ def render_meal_plans_cards(meal_plans_data):
                         for meal in meal_breakdown
                     ], style={'marginBottom': '0', 'paddingLeft': '20px'})
                 ]
+
+            actions = []
+            if is_archived_plan:
+                actions.append(
+                    dbc.Button("♻️ Recuperar", id={'type': 'restore-meal-plan-btn', 'index': _get_meal_plan_identifier(plan, idx)}, color='success', size='sm')
+                )
+            else:
+                actions.extend([
+                    dbc.Button("📦 Archivar", id={'type': 'archive-meal-plan-btn', 'index': _get_meal_plan_identifier(plan, idx)}, color='warning', size='sm', style={'marginRight': '5px'}),
+                    dbc.Button("✏️ Editar", id={'type': 'edit-meal-plan-btn', 'index': _get_meal_plan_identifier(plan, idx)}, color='warning', size='sm')
+                ])
 
             meal_plans_html.append(
                 dbc.Card([
@@ -7339,22 +7487,15 @@ def render_meal_plans_cards(meal_plans_data):
                                 }
                             )
                         ], style={'marginBottom': '10px'}),
-                        dbc.Button(
-                            '🔴 Desactivar' if is_active else '🟢 Activar',
-                            id={'type': 'toggle-meal-plan-status-btn', 'index': idx},
-                            color='warning' if is_active else 'success',
-                            size='sm',
-                            style={'marginRight': '5px'}
-                        ),
-                        dbc.Button("✏️ Editar", id={'type': 'edit-meal-plan-btn', 'index': idx}, color='warning', size='sm', style={'marginRight': '5px'}),
-                        dbc.Button("🗑️ Eliminar", id={'type': 'delete-meal-plan-btn', 'index': idx}, color='danger', size='sm')
+                        html.Div(actions)
                     ], style={'color': '#ffffff'})
                 ], style={'marginBottom': '10px', 'backgroundColor': '#1a1a1a', 'border': '1px solid #333'})
             )
-    else:
+
+    if not meal_plans_html:
         meal_plans_html.append(
             html.Div(
-                "📭 No hay planes de comida guardados aún",
+                "📭 No hay planes archivados" if archived else "📭 No hay planes activos",
                 style={'color': '#d9d9d9', 'textAlign': 'center', 'padding': '20px'}
             )
         )
@@ -7367,8 +7508,8 @@ def _deactivate_other_meal_plans(meal_plans):
     for plan in meal_plans or []:
         if isinstance(plan, dict):
             plan_copy = dict(plan)
-            if str(plan_copy.get('status', 'inactive')).lower() == 'active':
-                plan_copy['status'] = 'inactive'
+            if _normalize_meal_plan_status(plan_copy.get('status', 'active')) == 'active':
+                plan_copy['status'] = 'archived'
             updated_plans.append(plan_copy)
         else:
             updated_plans.append(plan)
@@ -7378,17 +7519,19 @@ def _deactivate_other_meal_plans(meal_plans):
 def _set_meal_plan_status_by_index(meal_plans, idx, new_status):
     updated_plans = []
     changed_plan_name = None
+    normalized_new_status = _normalize_meal_plan_status(new_status)
     for current_idx, plan in enumerate(meal_plans or []):
         if not isinstance(plan, dict):
             updated_plans.append(plan)
             continue
 
         plan_copy = dict(plan)
-        if current_idx == idx:
-            plan_copy['status'] = new_status
+        plan_identifier = plan_copy.get('plan_id')
+        matches_identifier = plan_identifier not in [None, ''] and plan_identifier == idx
+        matches_index = isinstance(idx, int) and current_idx == idx
+        if matches_identifier or matches_index:
+            plan_copy['status'] = normalized_new_status
             changed_plan_name = plan_copy.get('name', 'Plan de comida')
-        elif new_status == 'active':
-            plan_copy['status'] = 'inactive'
         updated_plans.append(plan_copy)
 
     return updated_plans, changed_plan_name
@@ -7401,19 +7544,13 @@ def _set_meal_plan_status_by_index(meal_plans, idx, new_status):
      Output('meal-plan-generated-meta', 'data')],
     Input('generate-meal-plan-btn', 'n_clicks'),
     [State('meal-plan-name', 'value'),
-     State('meal-plan-generation-logic', 'value'),
-     State('meal-plan-weight-change', 'value'),
      State('meal-plan-target-weight', 'value'),
      State('meal-plan-duration', 'value'),
-     State('meal-plan-dietary-constraints', 'value'),
-     State('meal-plan-food-preferences', 'value'),
-     State('meal-plan-meals-per-day', 'value'),
      State('current-patient-username', 'data')],
     prevent_initial_call=True
 )
 def generate_meal_plan_draft(
-    n_clicks, name, generation_logic, weight_change, target_weight, duration,
-    dietary_constraints, food_preferences, meals_per_day, username
+    n_clicks, name, target_weight, duration, username
 ):
     if not n_clicks:
         return dash.no_update, dash.no_update, dash.no_update, dash.no_update
@@ -7438,16 +7575,16 @@ def generate_meal_plan_draft(
 
     generated, review, generated_meta = MealPlanService.build_draft(
         name,
-        generation_logic,
+        None,
         current_weight,
         target_weight,
         None,
         duration,
-        weight_change,
-        dietary_constraints,
-        food_preferences,
+        None,
         '',
-        meals_per_day,
+        '',
+        '',
+        5,
         fight_context,
     )
 
@@ -7470,14 +7607,8 @@ def generate_meal_plan_draft(
      Output('meal-plan-edit-index', 'data')],
     Input('save-meal-plan-btn', 'n_clicks'),
     [State('meal-plan-name', 'value'),
-     State('meal-plan-generation-logic', 'value'),
-     State('meal-plan-weight-change', 'value'),
      State('meal-plan-target-weight', 'value'),
      State('meal-plan-duration', 'value'),
-     State('meal-plan-status', 'value'),
-     State('meal-plan-dietary-constraints', 'value'),
-     State('meal-plan-food-preferences', 'value'),
-     State('meal-plan-meals-per-day', 'value'),
      State('meal-plan-description', 'value'),
      State('meal-plan-notes', 'value'),
      State('meal-plan-generated-meta', 'data'),
@@ -7485,8 +7616,7 @@ def generate_meal_plan_draft(
     prevent_initial_call=True
 )
 def save_meal_plan(
-    n_clicks, name, generation_logic, weight_change, target_weight, duration, status,
-    dietary_constraints, food_preferences, meals_per_day, description, notes, generated_meta, username
+    n_clicks, name, target_weight, duration, description, notes, generated_meta, username
 ):
     if not n_clicks or n_clicks == 0:
         return dash.no_update, dash.no_update, dash.no_update
@@ -7501,19 +7631,21 @@ def save_meal_plan(
     current_weight = profile.get('current_weight')
     target_body_fat = generated_meta.get('target_body_fat') if isinstance(generated_meta, dict) else None
     supplement_use = generated_meta.get('supplement_use', '') if isinstance(generated_meta, dict) else ''
+    edit_plan_id = generated_meta.get('edit_plan_id') if isinstance(generated_meta, dict) else None
+    edit_index = generated_meta.get('edit_index') if isinstance(generated_meta, dict) else None
 
     meal_plan, review = MealPlanService.build_plan_for_save(
         name,
-        generation_logic,
-        weight_change,
+        None,
+        None,
         target_weight,
         target_body_fat,
         duration,
-        status,
-        dietary_constraints,
-        food_preferences,
+        'active',
+        '',
+        '',
         supplement_use,
-        meals_per_day,
+        5,
         description,
         notes,
         generated_meta,
@@ -7522,16 +7654,21 @@ def save_meal_plan(
     
     user_record = _USER_DB[username]
     meal_plans = user_record.get('meal_plans', [])
-    if str(status).lower() == 'active':
-        meal_plans = _deactivate_other_meal_plans(meal_plans)
-    edit_index = None
+    existing_plan_id = edit_plan_id
     if isinstance(generated_meta, dict):
-        edit_index = generated_meta.get('edit_index')
         generated_meta = dict(generated_meta)
         generated_meta.pop('edit_index', None)
+        generated_meta.pop('edit_plan_id', None)
 
-    if isinstance(edit_index, int) and 0 <= edit_index < len(meal_plans):
-        meal_plans[edit_index] = meal_plan
+    if existing_plan_id in [None, ''] and isinstance(edit_index, int) and 0 <= edit_index < len(meal_plans):
+        existing_plan = meal_plans[edit_index] if isinstance(meal_plans[edit_index], dict) else {}
+        existing_plan_id = existing_plan.get('plan_id')
+
+    meal_plan['plan_id'] = existing_plan_id or uuid.uuid4().hex
+
+    target_index = _find_meal_plan_index(meal_plans, existing_plan_id if existing_plan_id not in [None, ''] else edit_index)
+    if target_index is not None:
+        meal_plans[target_index] = meal_plan
     else:
         meal_plans.append(meal_plan)
     user_record['meal_plans'] = meal_plans
@@ -7548,14 +7685,8 @@ def save_meal_plan(
 
 @app.callback(
     [Output('meal-plan-name', 'value'),
-     Output('meal-plan-generation-logic', 'value'),
-     Output('meal-plan-weight-change', 'value'),
      Output('meal-plan-target-weight', 'value'),
      Output('meal-plan-duration', 'value'),
-     Output('meal-plan-status', 'value'),
-     Output('meal-plan-dietary-constraints', 'value'),
-     Output('meal-plan-food-preferences', 'value'),
-     Output('meal-plan-meals-per-day', 'value'),
      Output('meal-plan-description', 'value'),
      Output('meal-plan-notes', 'value'),
      Output('meal-plan-generated-meta', 'data'),
@@ -7567,32 +7698,30 @@ def save_meal_plan(
 )
 def load_meal_plan_for_edit(n_clicks_list, username):
     if not username or username not in _USER_DB:
-        return [dash.no_update] * 14
+        return [dash.no_update] * 8
 
     if not callback_context.triggered:
-        return [dash.no_update] * 14
+        return [dash.no_update] * 8
 
     trigger_id = callback_context.triggered[0]['prop_id']
     if 'edit-meal-plan-btn' not in trigger_id:
-        return [dash.no_update] * 14
+        return [dash.no_update] * 8
 
     try:
         trigger_data = json.loads(trigger_id.split('.')[0])
         idx = trigger_data['index']
         meal_plans = _USER_DB.get(username, {}).get('meal_plans', [])
         if not isinstance(idx, int) or idx < 0 or idx >= len(meal_plans):
-            return [dash.no_update] * 14
+            return [dash.no_update] * 8
 
         plan = meal_plans[idx] if isinstance(meal_plans[idx], dict) else {}
         generated_meta = {
-            'generation_logic': plan.get('generation_logic', 'template'),
+            'generation_logic': plan.get('generation_logic', 'goal_based'),
             'generated_macros': plan.get('generated_macros', {}),
             'target_body_fat': plan.get('target_body_fat'),
             'supplement_use': plan.get('supplement_use', ''),
-            'dietary_constraints': plan.get('dietary_constraints', ''),
-            'food_preferences': plan.get('food_preferences', ''),
-            'meals_per_day': plan.get('meals_per_day', 5),
             'edit_index': idx,
+            'edit_plan_id': plan.get('plan_id'),
         }
         feedback = html.Div(
             f"✏️ Editando {plan.get('name', 'plan de comida')}. Haz cambios y pulsa Guardar para reemplazarlo.",
@@ -7601,15 +7730,8 @@ def load_meal_plan_for_edit(n_clicks_list, username):
 
         return (
             plan.get('name', ''),
-            plan.get('generation_logic', 'template'),
-            plan.get('weight_change', 'none'),
             plan.get('target_weight'),
             plan.get('duration', 30),
-            plan.get('status', 'active'),
-            plan.get('dietary_constraints', ''),
-            plan.get('food_preferences', ''),
-            plan.get('meals_per_day', 5),
-            plan.get('description', ''),
             plan.get('notes', ''),
             generated_meta,
             idx,
@@ -7617,26 +7739,26 @@ def load_meal_plan_for_edit(n_clicks_list, username):
         )
     except Exception as e:
         print(f"Error loading meal plan for edit: {e}")
-        return [dash.no_update] * 14
-
-
+        return [dash.no_update] * 8
 @app.callback(
     [Output('meal-plans-list', 'children', allow_duplicate=True),
-     Output('meal-plan-feedback', 'children')],
-    Input({'type': 'toggle-meal-plan-status-btn', 'index': ALL}, 'n_clicks'),
+     Output('archived-meal-plans-list', 'children', allow_duplicate=True),
+     Output('meal-plan-feedback', 'children', allow_duplicate=True)],
+    [Input({'type': 'archive-meal-plan-btn', 'index': ALL}, 'n_clicks'),
+     Input({'type': 'restore-meal-plan-btn', 'index': ALL}, 'n_clicks')],
     State('current-patient-username', 'data'),
     prevent_initial_call=True
 )
-def toggle_meal_plan_status(n_clicks_list, username):
+def handle_meal_plan_state_actions(archive_clicks, restore_clicks, username):
     if not username or username not in _USER_DB:
-        return dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update
 
     if not callback_context.triggered:
-        return dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update
 
     trigger_id = callback_context.triggered[0]['prop_id']
-    if 'toggle-meal-plan-status-btn' not in trigger_id:
-        return dash.no_update, dash.no_update
+    if 'archive-meal-plan-btn' not in trigger_id and 'restore-meal-plan-btn' not in trigger_id:
+        return dash.no_update, dash.no_update, dash.no_update
 
     try:
         import json
@@ -7645,14 +7767,13 @@ def toggle_meal_plan_status(n_clicks_list, username):
 
         user_record = _USER_DB[username]
         meal_plans = user_record.get('meal_plans', [])
-        if not isinstance(idx, int) or idx < 0 or idx >= len(meal_plans):
-            return dash.no_update, dash.no_update
+        target_index = _find_meal_plan_index(meal_plans, idx)
+        if target_index is None:
+            return dash.no_update, dash.no_update, dash.no_update
 
-        current_plan = meal_plans[idx] if isinstance(meal_plans[idx], dict) else {}
-        current_status = str(current_plan.get('status', 'inactive')).lower()
-        new_status = 'inactive' if current_status == 'active' else 'active'
+        new_status = 'archived' if 'archive-meal-plan-btn' in trigger_id else 'active'
 
-        updated_meal_plans, changed_plan_name = _set_meal_plan_status_by_index(meal_plans, idx, new_status)
+        updated_meal_plans, changed_plan_name = _set_meal_plan_status_by_index(meal_plans, target_index, new_status)
         user_record['meal_plans'] = updated_meal_plans
         db.save_data()
 
@@ -7663,14 +7784,18 @@ def toggle_meal_plan_status(n_clicks_list, username):
             )
         else:
             feedback = html.Div(
-                f"🟡 {changed_plan_name or 'El plan'} quedó inactivo.",
+                f"📦 {changed_plan_name or 'El plan'} quedó archivado.",
                 style={'color': '#ffd166', 'fontWeight': 'bold'}
             )
 
-        return render_meal_plans_cards(updated_meal_plans), feedback
+        return (
+            render_meal_plans_cards(updated_meal_plans),
+            render_meal_plans_cards(updated_meal_plans, archived=True),
+            feedback,
+        )
     except Exception as e:
-        print(f"Error toggling meal plan status: {e}")
-        return dash.no_update, html.Div("❌ No se pudo cambiar el estado del plan.", style={'color': 'red'})
+        print(f"Error updating meal plan status: {e}")
+        return dash.no_update, dash.no_update, html.Div("❌ No se pudo cambiar el estado del plan.", style={'color': 'red'})
 
 
 @app.callback(
@@ -7689,39 +7814,41 @@ def refresh_meal_plans_list(pathname, username):
 
 
 @app.callback(
-    Output('meal-plans-list', 'children', allow_duplicate=True),
-    Input({'type': 'delete-meal-plan-btn', 'index': ALL}, 'n_clicks'),
+    [Output('meal-plans-list', 'children', allow_duplicate=True),
+     Output('archived-meal-plans-list', 'children', allow_duplicate=True)],
+    Input('save-meal-plan-btn', 'n_clicks'),
     State('current-patient-username', 'data'),
     prevent_initial_call=True
 )
-def delete_meal_plan(n_clicks_list, username):
-    if not username or username not in _USER_DB:
-        return dash.no_update
-    
-    if not callback_context.triggered:
-        return dash.no_update
-    
-    trigger_id = callback_context.triggered[0]['prop_id']
-    if 'delete-meal-plan-btn' not in trigger_id:
-        return dash.no_update
-    
-    try:
-        # Extraer el índice del botón clickeado
-        import json
-        trigger_data = json.loads(trigger_id.split('.')[0])
-        idx = trigger_data['index']
-        
-        user_record = _USER_DB[username]
-        meal_plans = user_record.get('meal_plans', [])
-        updated_meal_plans = MealPlanService.delete_plan_by_index(meal_plans, idx)
-        user_record['meal_plans'] = updated_meal_plans
-        db.save_data()
-    except Exception as e:
-        print(f"Error deleting meal plan: {e}")
-        return dash.no_update
+def refresh_meal_plans_after_save(n_clicks, username):
+    if not n_clicks or not username or username not in _USER_DB:
+        return dash.no_update, dash.no_update
 
     meal_plans_data = _USER_DB.get(username, {}).get('meal_plans', [])
-    return render_meal_plans_cards(meal_plans_data)
+    return render_meal_plans_cards(meal_plans_data), render_meal_plans_cards(meal_plans_data, archived=True)
+
+
+@app.callback(
+    [Output('archived-meal-plans-modal', 'is_open'),
+     Output('archived-meal-plans-list', 'children', allow_duplicate=True)],
+    [Input('open-archived-meal-plans-modal-btn', 'n_clicks'),
+     Input('close-archived-meal-plans-modal-btn', 'n_clicks')],
+    [State('archived-meal-plans-modal', 'is_open'),
+     State('current-patient-username', 'data')],
+    prevent_initial_call=True
+)
+def toggle_archived_meal_plans_modal(open_clicks, close_clicks, is_open, username):
+    trigger_id = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else None
+    if trigger_id == 'open-archived-meal-plans-modal-btn':
+        if not username or username not in _USER_DB:
+            return dash.no_update, dash.no_update
+        meal_plans_data = _USER_DB.get(username, {}).get('meal_plans', [])
+        return True, render_meal_plans_cards(meal_plans_data, archived=True)
+
+    if trigger_id == 'close-archived-meal-plans-modal-btn':
+        return False, dash.no_update
+
+    return is_open, dash.no_update
 
 
 @app.callback(
@@ -7809,65 +7936,32 @@ def get_meal_plans_layout(username, full_name, current_search=""):
                     dcc.Store(id='meal-plan-generated-meta', data={}),
                     dcc.Store(id='meal-plan-edit-index', data=None),
                     html.Label("Nombre del Plan", style={'fontWeight': 'bold', 'color': '#ffffff'}),
-                    dcc.Input(id='meal-plan-name', type='text', placeholder='Ej: Plan Pre-Combate', style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
+                    dcc.Input(id='meal-plan-name', type='text', placeholder='Ej: Plan de Corte para Marzo', style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
 
-                    html.Label("Lógica de Generación", style={'fontWeight': 'bold', 'color': '#ffffff'}),
-                    dcc.Dropdown(
-                        id='meal-plan-generation-logic',
-                        options=[
-                            {'label': '🧩 Plantilla Base', 'value': 'template'},
-                            {'label': '🎯 Por Objetivo de Peso', 'value': 'goal_based'},
-                            {'label': '🥊 Campamento de Pelea', 'value': 'fight_camp'},
-                            {'label': '✍️ Híbrido Manual', 'value': 'manual_hybrid'},
-                        ],
-                        value='template',
-                        style={'marginBottom': '10px'}
+                    html.Div(
+                        f"El plan se generará a partir del peso actual ({athlete_weight if athlete_weight != 'N/A' else 'no registrado'}) y del peso objetivo.",
+                        style={'color': '#9ca3af', 'marginBottom': '10px', 'fontSize': '0.92rem'}
                     ),
-                    
+
                     dbc.Row([
                         dbc.Col([
-                            html.Label("Tipo de Cambio", style={'fontWeight': 'bold', 'color': '#ffffff'}),
-                            dcc.Dropdown(id='meal-plan-weight-change', options=[{'label': '⬆️ Subir de Peso', 'value': 'gain'}, {'label': '⬇️ Bajar de Peso', 'value': 'cut'}, {'label': '➡️ Mantener', 'value': 'maintain'}, {'label': '🤔 Sin Cambio', 'value': 'none'}], value='none', style={'marginBottom': '10px'}),
-                        ], width=6),
-                        dbc.Col([
-                            html.Label("Objetivo (kg)", style={'fontWeight': 'bold', 'color': '#ffffff'}),
+                            html.Label("Peso Objetivo (kg)", style={'fontWeight': 'bold', 'color': '#ffffff'}),
                             dcc.Input(id='meal-plan-target-weight', type='number', step=0.1, placeholder='Ej: 75.5', style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
-                        ], width=6)
-                    ]),
-                    
-                    dbc.Row([
+                        ], width=6),
                         dbc.Col([
                             html.Label("Duración (días)", style={'fontWeight': 'bold', 'color': '#ffffff'}),
                             dcc.Input(id='meal-plan-duration', type='number', min=1, max=365, value=30, style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
-                        ], width=6),
-                        dbc.Col([
-                            html.Label("Estado", style={'fontWeight': 'bold', 'color': '#ffffff'}),
-                            dcc.Dropdown(id='meal-plan-status', options=[{'label': '🟢 Activo', 'value': 'active'}, {'label': '🔴 Inactivo', 'value': 'inactive'}], value='active', style={'marginBottom': '10px'}),
                         ], width=6)
                     ]),
 
-                    dbc.Row([
-                        dbc.Col([
-                            html.Label("Restricciones Dietéticas", style={'fontWeight': 'bold', 'color': '#ffffff'}),
-                            dcc.Input(id='meal-plan-dietary-constraints', type='text', placeholder='Ej: sin lactosa, alergia a frutos secos', style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
-                        ], width=6),
-                        dbc.Col([
-                            html.Label("Preferencias Alimentarias", style={'fontWeight': 'bold', 'color': '#ffffff'}),
-                            dcc.Input(id='meal-plan-food-preferences', type='text', placeholder='Ej: mediterránea, alta en carbohidratos', style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
-                        ], width=6)
-                    ]),
-
-                    html.Label("Comidas por Día", style={'fontWeight': 'bold', 'color': '#ffffff'}),
-                    dcc.Input(id='meal-plan-meals-per-day', type='number', min=3, max=7, value=5, style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
-
-                    dbc.Button("⚙️ Auto-generar borrador", id='generate-meal-plan-btn', n_clicks=0, color='primary', className='w-100', size='md', style={'marginBottom': '10px'}),
+                    dbc.Button("⚙️ Generar borrador", id='generate-meal-plan-btn', n_clicks=0, color='primary', className='w-100', size='md', style={'marginBottom': '10px'}),
                     html.Div(id='meal-plan-generation-feedback', style={'marginBottom': '10px'}),
-                    
-                    html.Label("Distribución de macronutrientes (sin alimentos concretos)", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '10px'}),
-                    dcc.Textarea(id='meal-plan-description', placeholder='• Objetivo diario:\n• Proteínas totales (g):\n• Carbohidratos totales (g):\n• Grasas totales (g):\n• Reparto por comida:\n  - Desayuno: P / C / G\n  - Comida: P / C / G\n  - Cena: P / C / G', style={'width': '100%', 'height': '150px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
-                    
-                    html.Label("Notas Adicionales", style={'fontWeight': 'bold', 'color': '#ffffff'}),
-                    dcc.Textarea(id='meal-plan-notes', placeholder='Restricciones, alergias, preferencias...', style={'width': '100%', 'height': '80px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
+
+                    html.Label("Plan generado", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '10px'}),
+                    dcc.Textarea(id='meal-plan-description', placeholder='El borrador aparecerá aquí con macros y distribución sugerida.', style={'width': '100%', 'height': '170px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
+
+                    html.Label("Notas opcionales", style={'fontWeight': 'bold', 'color': '#ffffff'}),
+                    dcc.Textarea(id='meal-plan-notes', placeholder='Observaciones extra del plan...', style={'width': '100%', 'height': '80px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
                     
                     dbc.Button("📝 Guardar Plan", id='save-meal-plan-btn', n_clicks=0, color='success', className='w-100', size='lg'),
                     html.Div(id='meal-plan-feedback', style={'marginTop': '15px'})
@@ -7879,8 +7973,21 @@ def get_meal_plans_layout(username, full_name, current_search=""):
                     html.Span("📋 ", style={'fontSize': '1.2em'}),
                     "Planes Guardados"
                 ], style=STYLES['card_header_tactical']), style={'backgroundColor': '#000', 'border': '1px solid #333'}),
-                dbc.CardBody(meal_plans_html, style={'backgroundColor': '#1a1a1a'})
+                dbc.CardBody([
+                    html.Div([
+                        dbc.Button("📦 Ver archivados", id='open-archived-meal-plans-modal-btn', color='secondary', size='sm')
+                    ], style={'display': 'flex', 'justifyContent': 'flex-end', 'marginBottom': '10px'}),
+                    html.Div(id='meal-plans-list', children=meal_plans_html)
+                ], style={'backgroundColor': '#1a1a1a'})
             ], style={'border': '1px solid #333'})
+
+            ,dbc.Modal([
+                dbc.ModalHeader(dbc.ModalTitle("Planes de Comida Archivados")),
+                dbc.ModalBody(html.Div(id='archived-meal-plans-list', children=render_meal_plans_cards(meal_plans_data, archived=True))),
+                dbc.ModalFooter(
+                    dbc.Button("Cerrar", id='close-archived-meal-plans-modal-btn', color='secondary')
+                )
+            ], id='archived-meal-plans-modal', is_open=False, size='lg', scrollable=True)
             
         ], style={'padding': '10px 24px', 'maxWidth': '1200px', 'margin': '0 auto'})
         
