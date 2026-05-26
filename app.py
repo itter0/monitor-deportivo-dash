@@ -10,6 +10,7 @@ import json
 import pandas as pd
 from datetime import datetime, date, timedelta
 import numpy as np
+from scipy.signal import find_peaks
 import logging
 import flask.cli as flask_cli
 import builtins as _builtins
@@ -33,23 +34,8 @@ def _json_default_serializer(obj):
     return str(obj)
 import signal
 import base64
-import io
 import uuid
-from scipy.signal import find_peaks
 
-QUIET_CONSOLE = os.environ.get("QUIET_CONSOLE", "true").lower() == "true"
-
-def print(*args, **kwargs):
-    """Silencia mensajes de depuración en modo normal sin ocultar errores reales."""
-    if not QUIET_CONSOLE:
-        return _builtins.print(*args, **kwargs)
-
-    message = " ".join(str(arg) for arg in args)
-    suppressed_prefixes = ("DEBUG:", "[DEBUG]", "🚀 Servidor RehabiDesk levantando")
-    if message.startswith(suppressed_prefixes):
-        return None
-
-    return _builtins.print(*args, **kwargs)
 
 from tactical_system import (
     TacticalPlanningService,
@@ -57,6 +43,7 @@ from tactical_system import (
 
 from meal_plan_system import (
     MealPlanService,
+    _build_meal_macro_breakdown,
 )
 from questionnaires import QuestionnaireService
 from app_services import AppointmentService, ExerciseService, FightService
@@ -1695,12 +1682,50 @@ def _extract_meal_plan_details(meal_plan):
         except:
             pass
     
+    # Mantener también datos totales y breakdown si existen en generated_macros
+    meal_breakdown = macros.get('meal_breakdown') if isinstance(macros, dict) else None
+    # Si no hay breakdown, intentar reconstruirlo a partir de valores g/kg y peso de referencia
+    if not isinstance(meal_breakdown, list):
+        try:
+            prot_per_kg = macros.get('protein_g_per_kg')
+            carbs_per_kg = macros.get('carbs_g_per_kg')
+            fats_per_kg = macros.get('fats_g_per_kg')
+            weight_ref = macros.get('weight_reference_kg') or meal_plan.get('current_weight') or meal_plan.get('target_weight')
+            meals_cnt = macros.get('meals_per_day') or meal_plan.get('meals_per_day') or 5
+            if prot_per_kg and carbs_per_kg and fats_per_kg and weight_ref:
+                try:
+                    weight_val = float(weight_ref)
+                    p_tot = int(round(float(prot_per_kg) * weight_val))
+                    c_tot = int(round(float(carbs_per_kg) * weight_val))
+                    f_tot = int(round(float(fats_per_kg) * weight_val))
+                    temp_macros = {
+                        'protein_total_g': p_tot,
+                        'carbs_total_g': c_tot,
+                        'fats_total_g': f_tot,
+                    }
+                    # Construir breakdown usando helper del módulo meal_plan_system
+                    meal_breakdown = _build_meal_macro_breakdown(temp_macros, int(max(3, min(7, int(meals_cnt)))))
+                    # actualizar totales en macros para visualización
+                    macros['protein_total_g'] = p_tot
+                    macros['carbs_total_g'] = c_tot
+                    macros['fats_total_g'] = f_tot
+                    macros['weight_reference_kg'] = round(weight_val, 1)
+                except Exception:
+                    meal_breakdown = None
+        except Exception:
+            meal_breakdown = None
     return {
         'macros': {
             'kcal': macros.get('daily_kcal', 'N/A'),
             'protein': macros.get('protein_g_per_kg', 'N/A'),
             'carbs': macros.get('carbs_g_per_kg', 'N/A'),
             'fats': macros.get('fats_g_per_kg', 'N/A'),
+            'protein_total_g': macros.get('protein_total_g'),
+            'carbs_total_g': macros.get('carbs_total_g'),
+            'fats_total_g': macros.get('fats_total_g'),
+            'weight_reference_kg': macros.get('weight_reference_kg'),
+            'meal_breakdown': meal_breakdown,
+            'meals_per_day': macros.get('meals_per_day'),
         },
         'weight_change': meal_plan.get('weight_change', 'none'),
         'days_remaining': days_remaining,
@@ -1983,6 +2008,14 @@ def _pick_latest_active_plan(plans, fallback_to_any=True):
     return _pick_latest_record(pool, ['created_date', 'created_at'])
 
 
+def _pick_primary_plan(plans):
+    # Return the plan explicitly marked as primary. If multiple, return the latest by created date.
+    candidates = [p for p in (plans or []) if isinstance(p, dict) and p.get('is_primary')]
+    if not candidates:
+        return None
+    return _pick_latest_record(candidates, ['created_date', 'created_at'])
+
+
 def build_daily_continuity_context(username):
     try:
         patient_data = db.get_complete_user_data(username) or {}
@@ -2002,7 +2035,8 @@ def build_daily_continuity_context(username):
     current_weight = profile.get('current_weight')
 
     next_fight = _pick_next_fight(fights)
-    active_meal_plan = _pick_latest_active_plan(meal_plans, fallback_to_any=False)
+    # Prefer a user-marked primary plan, otherwise pick latest active
+    active_meal_plan = _pick_primary_plan(meal_plans) or _pick_latest_active_plan(meal_plans, fallback_to_any=False)
     active_tactical_plan = _pick_latest_active_plan(tactical_plans)
     latest_questionnaire = _pick_latest_record(questionnaires, ['timestamp'])
     latest_exercise = _pick_latest_record(exercises, ['timestamp'])
@@ -2033,6 +2067,15 @@ def build_daily_continuity_context(username):
             active_meal_plan.get('generated_macros', {}),
             today_briefing['phase']
         )
+        # Preservar el meal_breakdown y totales del plan original si existen
+        original_macros = active_meal_plan.get('generated_macros', {}) or {}
+        if isinstance(original_macros, dict):
+            if isinstance(original_macros.get('meal_breakdown'), list):
+                adapted_macros['meal_breakdown'] = original_macros.get('meal_breakdown')
+            for key in ('protein_total_g', 'carbs_total_g', 'fats_total_g', 'weight_reference_kg', 'meals_per_day'):
+                if key in original_macros:
+                    adapted_macros.setdefault(key, original_macros.get(key))
+
         meal_details['macros'] = adapted_macros
         meal_details['adapted'] = True
 
@@ -2093,6 +2136,8 @@ def build_daily_continuity_context(username):
         'next_fight': next_fight,
         'days_to_fight': days_to_fight,
         'meal_plan': active_meal_plan,
+        'meal_plan_name': active_meal_plan.get('name') if isinstance(active_meal_plan, dict) else None,
+        'meal_plan_is_primary': bool(active_meal_plan.get('is_primary')) if isinstance(active_meal_plan, dict) else False,
         'meal_details': meal_details,
         'tactical_plan': active_tactical_plan,
         'tactical_details': tactical_details,
@@ -2117,6 +2162,8 @@ def render_daily_continuity_panel(username, current_search="", compact=False):
     tactical_plan = context.get('tactical_plan') or {}
     tactical_details = context.get('tactical_details') or {}
     meal_plan = context.get('meal_plan') or {}
+    meal_plan_name = context.get('meal_plan_name') or (meal_plan.get('name') if isinstance(meal_plan, dict) else None)
+    meal_plan_is_primary = context.get('meal_plan_is_primary', False)
     meal_details = context.get('meal_details') or {}
     next_appointment = context.get('next_appointment') or {}
     latest_questionnaire = context.get('latest_questionnaire') or {}
@@ -2150,9 +2197,79 @@ def render_daily_continuity_panel(username, current_search="", compact=False):
         subtitle_parts = [plan_name]
         if days_remaining is not None:
             subtitle_parts.append(f"{days_remaining} días restantes")
-        subtitle_parts.append(f"🥩 P: {protein}g | 🍚 C: {carbs}g | 🥑 G: {fats}g" if kcal != 'N/A' else 'Revisa tu plan detallado')
+        subtitle_parts.append(f"🥩 P: {protein}g/kg | 🍚 C: {carbs}g/kg | 🥑 G: {fats}g/kg" if kcal != 'N/A' else 'Revisa tu plan detallado')
+        # Si tenemos breakdown por comida, añadir info de la siguiente comida según hora actual
+        meal_breakdown = macros.get('meal_breakdown')
+        if isinstance(meal_breakdown, list) and meal_breakdown:
+            next_info = _get_next_meal_info(meal_breakdown)
+            if next_info:
+                m_name, m_time_str, m_prot, m_carbs, m_fats, m_kcal = next_info
+                subtitle_parts.append(f"Próxima: {m_name} ({m_time_str}) — P {m_prot}g | C {m_carbs}g | G {m_fats}g | {m_kcal} kcal")
+        else:
+            # Si no hay breakdown, intentar mostrar totales diarios si están disponibles
+            p_tot = macros.get('protein_total_g')
+            c_tot = macros.get('carbs_total_g')
+            f_tot = macros.get('fats_total_g')
+            if any(v is not None for v in (p_tot, c_tot, f_tot)):
+                parts = []
+                if p_tot is not None:
+                    parts.append(f"P {int(p_tot)} g")
+                if c_tot is not None:
+                    parts.append(f"C {int(c_tot)} g")
+                if f_tot is not None:
+                    parts.append(f"G {int(f_tot)} g")
+                if parts:
+                    subtitle_parts.append('Totales diarios: ' + ' · '.join(parts))
         subtitle = ' · '.join(subtitle_parts)
         return value, subtitle
+
+
+    def _get_next_meal_info(breakdown):
+        """Dado el breakdown (lista de comidas), devuelve la tupla
+        (meal_name, time_str, protein_g, carbs_g, fats_g, kcal) para la próxima comida según hora actual.
+        Usa horarios predefinidos según cantidad de comidas para aproximar la siguiente comida.
+        """
+        try:
+            now = datetime.now()
+            count = len(breakdown)
+            # Horarios aproximados por número de comidas (horas en 24h)
+            times_map = {
+                3: [9, 14, 20],
+                4: [8, 12, 17, 20],
+                5: [8, 11, 14, 17, 20],
+                6: [7, 10, 13, 16, 19, 21],
+                7: [7, 9, 11, 14, 16, 18, 20],
+            }
+            hours = times_map.get(count)
+            if not hours:
+                # distribuir entre 7 y 21 si count fuera distinto
+                start, end = 7, 21
+                span = end - start
+                hours = [int(round(start + i * span / max(1, count - 1))) for i in range(count)]
+
+            # encontrar el primer horario >= hora actual, si no hay, tomar el primero (día siguiente)
+            target_idx = None
+            for idx, h in enumerate(hours):
+                if h >= now.hour:
+                    target_idx = idx
+                    break
+            if target_idx is None:
+                target_idx = 0
+
+            meal = breakdown[target_idx]
+            meal_name = meal.get('meal', f'Comida {target_idx+1}')
+            hour = hours[target_idx]
+            time_str = f"{hour:02d}:00"
+            return (
+                meal_name,
+                time_str,
+                meal.get('protein_g', 0),
+                meal.get('carbs_g', 0),
+                meal.get('fats_g', 0),
+                meal.get('kcal', 0),
+            )
+        except Exception:
+            return None
 
     def _format_tactica(today_briefing):
         exercises = today_briefing.get('exercises', [])
@@ -2221,6 +2338,12 @@ def render_daily_continuity_panel(username, current_search="", compact=False):
 
     tac_val, tac_sub = _format_tactica(today_briefing)
     nut_val, nut_sub = _format_nutricion(meal_plan, meal_details)
+    if nut_sub:
+        prefix = '⭐ Predeterminado' if meal_plan_is_primary else '🟢 Activo'
+        if meal_plan_name:
+            nut_sub = f"{prefix} · {meal_plan_name} · {nut_sub}"
+        else:
+            nut_sub = f"{prefix} · {nut_sub}"
 
     # Estado de cuestionarios
     q_status = questionnaire_status.get('total_completed_today', 0)
@@ -7486,6 +7609,13 @@ def render_meal_plans_cards(meal_plans_data, archived=False):
                     dbc.Button("✏️ Editar", id={'type': 'edit-meal-plan-btn', 'index': _get_meal_plan_identifier(plan, idx)}, color='warning', size='sm')
                 ])
 
+                # Añadir control para marcar como predeterminado
+                if plan.get('is_primary'):
+                    actions.insert(0, html.Span('⭐ Predeterminado', style={'color': '#ffd700', 'marginRight': '8px'}))
+                    actions.append(dbc.Button("☆ Quitar predeterminado", id={'type': 'set-primary-meal-plan-btn', 'index': _get_meal_plan_identifier(plan, idx)}, color='secondary', size='sm', style={'marginLeft': '6px'}))
+                else:
+                    actions.append(dbc.Button("☆ Establecer predeterminado", id={'type': 'set-primary-meal-plan-btn', 'index': _get_meal_plan_identifier(plan, idx)}, color='info', size='sm', style={'marginLeft': '6px'}))
+
             meal_plans_html.append(
                 dbc.Card([
                     dbc.CardBody([
@@ -7574,6 +7704,30 @@ def _set_meal_plan_status_by_index(meal_plans, idx, new_status):
     return updated_plans, changed_plan_name
 
 
+def _set_meal_plan_primary_by_index(meal_plans, idx):
+    updated_plans = []
+    changed_plan_name = None
+    for current_idx, plan in enumerate(meal_plans or []):
+        if not isinstance(plan, dict):
+            updated_plans.append(plan)
+            continue
+
+        plan_copy = dict(plan)
+        plan_identifier = plan_copy.get('plan_id')
+        matches_identifier = plan_identifier not in [None, ''] and plan_identifier == idx
+        matches_index = isinstance(idx, int) and current_idx == idx
+        if matches_identifier or matches_index:
+            # set this plan as primary
+            plan_copy['is_primary'] = True
+            changed_plan_name = plan_copy.get('name', 'Plan de comida')
+        else:
+            # unset others
+            plan_copy['is_primary'] = False
+        updated_plans.append(plan_copy)
+
+    return updated_plans, changed_plan_name
+
+
 @app.callback(
     [Output('meal-plan-description', 'value'),
      Output('meal-plan-notes', 'value'),
@@ -7583,11 +7737,12 @@ def _set_meal_plan_status_by_index(meal_plans, idx, new_status):
     [State('meal-plan-name', 'value'),
      State('meal-plan-target-weight', 'value'),
      State('meal-plan-duration', 'value'),
+     State('meal-plan-meals-per-day', 'value'),
      State('current-patient-username', 'data')],
     prevent_initial_call=True
 )
 def generate_meal_plan_draft(
-    n_clicks, name, target_weight, duration, username
+    n_clicks, name, target_weight, duration, meals_per_day, username
 ):
     if not n_clicks:
         return dash.no_update, dash.no_update, dash.no_update, dash.no_update
@@ -7621,7 +7776,7 @@ def generate_meal_plan_draft(
         '',
         '',
         '',
-        5,
+        meals_per_day or 5,
         fight_context,
     )
 
@@ -7635,6 +7790,15 @@ def generate_meal_plan_draft(
             ], style={'marginBottom': 0})
         )
 
+    # Guardar la descripción/note generadas dentro del meta para fallback al guardar
+    try:
+        if isinstance(generated_meta, dict):
+            generated_meta = dict(generated_meta)
+            generated_meta['generated_description'] = generated.get('description', '')
+            generated_meta['generated_notes'] = generated.get('notes', '')
+    except Exception:
+        pass
+
     return generated.get('description', ''), generated.get('notes', ''), html.Div(feedback_children), generated_meta
 
 
@@ -7646,6 +7810,8 @@ def generate_meal_plan_draft(
     [State('meal-plan-name', 'value'),
      State('meal-plan-target-weight', 'value'),
      State('meal-plan-duration', 'value'),
+     State('meal-plan-meals-per-day', 'value'),
+     State('meal-plan-is-primary', 'value'),
      State('meal-plan-description', 'value'),
      State('meal-plan-notes', 'value'),
      State('meal-plan-generated-meta', 'data'),
@@ -7653,7 +7819,7 @@ def generate_meal_plan_draft(
     prevent_initial_call=True
 )
 def save_meal_plan(
-    n_clicks, name, target_weight, duration, description, notes, generated_meta, username
+    n_clicks, name, target_weight, duration, meals_per_day, is_primary_value, description, notes, generated_meta, username
 ):
     if not n_clicks or n_clicks == 0:
         return dash.no_update, dash.no_update, dash.no_update
@@ -7671,6 +7837,24 @@ def save_meal_plan(
     edit_plan_id = generated_meta.get('edit_plan_id') if isinstance(generated_meta, dict) else None
     edit_index = generated_meta.get('edit_index') if isinstance(generated_meta, dict) else None
 
+    # normalize is_primary from checklist (value is list)
+    is_primary = False
+    try:
+        if isinstance(is_primary_value, (list, tuple)) and 'primary' in is_primary_value:
+            is_primary = True
+        elif isinstance(is_primary_value, bool):
+            is_primary = is_primary_value
+    except Exception:
+        is_primary = False
+
+    # Si la descripción está vacía, usar la descripción generada previamente como fallback
+    description_to_save = description
+    try:
+        if (not description_to_save or not str(description_to_save).strip()) and isinstance(generated_meta, dict):
+            description_to_save = generated_meta.get('generated_description', description_to_save)
+    except Exception:
+        pass
+
     meal_plan, review = MealPlanService.build_plan_for_save(
         name,
         None,
@@ -7682,8 +7866,9 @@ def save_meal_plan(
         '',
         '',
         supplement_use,
-        5,
-        description,
+        meals_per_day or 5,
+        is_primary,
+        description_to_save,
         notes,
         generated_meta,
         current_weight,
@@ -7705,8 +7890,17 @@ def save_meal_plan(
 
     target_index = _find_meal_plan_index(meal_plans, existing_plan_id if existing_plan_id not in [None, ''] else edit_index)
     if target_index is not None:
+        # if marking as primary, unset other plans' is_primary
+        if meal_plan.get('is_primary'):
+            for p in meal_plans:
+                if isinstance(p, dict):
+                    p['is_primary'] = False
         meal_plans[target_index] = meal_plan
     else:
+        if meal_plan.get('is_primary'):
+            for p in meal_plans:
+                if isinstance(p, dict):
+                    p['is_primary'] = False
         meal_plans.append(meal_plan)
     user_record['meal_plans'] = meal_plans
     db.save_data()
@@ -7724,6 +7918,8 @@ def save_meal_plan(
     [Output('meal-plan-name', 'value'),
      Output('meal-plan-target-weight', 'value'),
      Output('meal-plan-duration', 'value'),
+     Output('meal-plan-meals-per-day', 'value'),
+     Output('meal-plan-is-primary', 'value'),
      Output('meal-plan-description', 'value'),
      Output('meal-plan-notes', 'value'),
      Output('meal-plan-generated-meta', 'data'),
@@ -7735,14 +7931,14 @@ def save_meal_plan(
 )
 def load_meal_plan_for_edit(n_clicks_list, username):
     if not username or username not in _USER_DB:
-        return [dash.no_update] * 8
+        return [dash.no_update] * 10
 
     if not callback_context.triggered:
-        return [dash.no_update] * 8
+        return [dash.no_update] * 10
 
     trigger_id = callback_context.triggered[0]['prop_id']
     if 'edit-meal-plan-btn' not in trigger_id:
-        return [dash.no_update] * 8
+        return [dash.no_update] * 10
 
     try:
         trigger_data = json.loads(trigger_id.split('.')[0])
@@ -7750,7 +7946,7 @@ def load_meal_plan_for_edit(n_clicks_list, username):
         meal_plans = _USER_DB.get(username, {}).get('meal_plans', [])
         target_index = _find_meal_plan_index(meal_plans, idx)
         if target_index is None:
-            return [dash.no_update] * 8
+            return [dash.no_update] * 10
 
         plan = meal_plans[target_index] if isinstance(meal_plans[target_index], dict) else {}
         generated_meta = {
@@ -7770,6 +7966,8 @@ def load_meal_plan_for_edit(n_clicks_list, username):
             plan.get('name', ''),
             plan.get('target_weight'),
             plan.get('duration', 30),
+            plan.get('meals_per_day', 5),
+            ['primary'] if plan.get('is_primary') else [],
             plan.get('description', ''),
             plan.get('notes', ''),
             generated_meta,
@@ -7778,17 +7976,18 @@ def load_meal_plan_for_edit(n_clicks_list, username):
         )
     except Exception as e:
         print(f"Error loading meal plan for edit: {e}")
-        return [dash.no_update] * 8
+        return [dash.no_update] * 10
 @app.callback(
     [Output('meal-plans-list', 'children', allow_duplicate=True),
      Output('archived-meal-plans-list', 'children', allow_duplicate=True),
      Output('meal-plan-feedback', 'children', allow_duplicate=True)],
     [Input({'type': 'archive-meal-plan-btn', 'index': ALL}, 'n_clicks'),
-     Input({'type': 'restore-meal-plan-btn', 'index': ALL}, 'n_clicks')],
+     Input({'type': 'restore-meal-plan-btn', 'index': ALL}, 'n_clicks'),
+     Input({'type': 'set-primary-meal-plan-btn', 'index': ALL}, 'n_clicks')],
     State('current-patient-username', 'data'),
     prevent_initial_call=True
 )
-def handle_meal_plan_state_actions(archive_clicks, restore_clicks, username):
+def handle_meal_plan_state_actions(archive_clicks, restore_clicks, set_primary_clicks, username):
     if not username or username not in _USER_DB:
         return dash.no_update, dash.no_update, dash.no_update
 
@@ -7796,7 +7995,7 @@ def handle_meal_plan_state_actions(archive_clicks, restore_clicks, username):
         return dash.no_update, dash.no_update, dash.no_update
 
     trigger_id = callback_context.triggered[0]['prop_id']
-    if 'archive-meal-plan-btn' not in trigger_id and 'restore-meal-plan-btn' not in trigger_id:
+    if 'archive-meal-plan-btn' not in trigger_id and 'restore-meal-plan-btn' not in trigger_id and 'set-primary-meal-plan-btn' not in trigger_id:
         return dash.no_update, dash.no_update, dash.no_update
 
     try:
@@ -7810,21 +8009,32 @@ def handle_meal_plan_state_actions(archive_clicks, restore_clicks, username):
         if target_index is None:
             return dash.no_update, dash.no_update, dash.no_update
 
-        new_status = 'archived' if 'archive-meal-plan-btn' in trigger_id else 'active'
-
-        updated_meal_plans, changed_plan_name = _set_meal_plan_status_by_index(meal_plans, target_index, new_status)
+        # If action is archive/restore, change status accordingly
+        if 'archive-meal-plan-btn' in trigger_id or 'restore-meal-plan-btn' in trigger_id:
+            new_status = 'archived' if 'archive-meal-plan-btn' in trigger_id else 'active'
+            updated_meal_plans, changed_plan_name = _set_meal_plan_status_by_index(meal_plans, target_index, new_status)
+        else:
+            # set as primary and unset others
+            updated_meal_plans, changed_plan_name = _set_meal_plan_primary_by_index(meal_plans, target_index)
         user_record['meal_plans'] = updated_meal_plans
         db.save_data()
 
-        if new_status == 'active':
-            feedback = html.Div(
-                f"✅ {changed_plan_name or 'El plan'} quedó activo y será el usado por Continuidad.",
-                style={'color': '#00ff88', 'fontWeight': 'bold'}
-            )
+        # feedback message
+        if 'archive-meal-plan-btn' in trigger_id or 'restore-meal-plan-btn' in trigger_id:
+            if new_status == 'active':
+                feedback = html.Div(
+                    f"✅ {changed_plan_name or 'El plan'} quedó activo y será el usado por Continuidad.",
+                    style={'color': '#00ff88', 'fontWeight': 'bold'}
+                )
+            else:
+                feedback = html.Div(
+                    f"📦 {changed_plan_name or 'El plan'} quedó archivado.",
+                    style={'color': '#ffd166', 'fontWeight': 'bold'}
+                )
         else:
             feedback = html.Div(
-                f"📦 {changed_plan_name or 'El plan'} quedó archivado.",
-                style={'color': '#ffd166', 'fontWeight': 'bold'}
+                f"⭐ {changed_plan_name or 'El plan'} ahora es el predeterminado.",
+                style={'color': '#ffd700', 'fontWeight': 'bold'}
             )
 
         return (
@@ -7942,6 +8152,16 @@ def get_meal_plans_layout(username, full_name, current_search=""):
         dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-meal-plans", href=f"/{current_search}", color="primary", style={'margin': '15px 24px 0'}),
         
         html.Div([
+            html.Div([
+                html.Span('⭐ Plan activo actualmente: ', style={'color': '#fbbf24', 'fontWeight': '700'}),
+                html.Span(
+                    _pick_primary_plan(meal_plans_data).get('name') if _pick_primary_plan(meal_plans_data) else (
+                        _pick_latest_active_plan(meal_plans_data, fallback_to_any=False).get('name') if _pick_latest_active_plan(meal_plans_data, fallback_to_any=False) else 'Sin plan activo'
+                    ),
+                    style={'color': '#ffffff', 'fontWeight': '600'}
+                ),
+            ], style={'padding': '12px 24px 0', 'maxWidth': '1200px', 'margin': '0 auto'}),
+
             dbc.Card([
                 dbc.CardHeader(html.Div([
                     html.Span("👤 ", style={'fontSize': '1.2em'}),
@@ -7993,6 +8213,9 @@ def get_meal_plans_layout(username, full_name, current_search=""):
                         ], width=6)
                     ]),
 
+                    html.Label("Número de comidas diarias", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '8px'}),
+                    dcc.Input(id='meal-plan-meals-per-day', type='number', min=3, max=7, value=5, style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
+
                     dbc.Button("⚙️ Generar borrador", id='generate-meal-plan-btn', n_clicks=0, color='primary', className='w-100', size='md', style={'marginBottom': '10px'}),
                     html.Div(id='meal-plan-generation-feedback', style={'marginBottom': '10px'}),
 
@@ -8001,6 +8224,8 @@ def get_meal_plans_layout(username, full_name, current_search=""):
 
                     html.Label("Notas opcionales", style={'fontWeight': 'bold', 'color': '#ffffff'}),
                     dcc.Textarea(id='meal-plan-notes', placeholder='Observaciones extra del plan...', style={'width': '100%', 'height': '80px', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
+                    html.Label("Usar como plan predeterminado", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '8px'}),
+                    dcc.Checklist(id='meal-plan-is-primary', options=[{'label': 'Marcar como predeterminado', 'value': 'primary'}], value=[], style={'marginBottom': '10px'}),
                     
                     dbc.Button("📝 Guardar Plan", id='save-meal-plan-btn', n_clicks=0, color='success', className='w-100', size='lg'),
                     html.Div(id='meal-plan-feedback', style={'marginTop': '15px'})

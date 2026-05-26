@@ -123,6 +123,12 @@ def get_meal_plans_layout(username, full_name, _USER_DB, html, dbc, dcc, ALL, ST
                     dcc.Input(id='meal-plan-duration', type='number', min=1, max=365, value=30,
                              style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
                     
+                                    html.Label("Número de comidas diarias", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '15px'}),
+                                    dcc.Input(id='meal-plan-meals-per-day', type='number', min=3, max=7, value=5,
+                                             style={'width': '100%', 'marginBottom': '10px', 'padding': '8px', 'backgroundColor': '#2a2a2a', 'color': '#fff', 'border': '1px solid #444'}),
+                    html.Label("Usar como plan predeterminado", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '10px'}),
+                    dcc.Checklist(id='meal-plan-is-primary', options=[{'label': 'Marcar como predeterminado', 'value': 'primary'}], value=[], style={'marginBottom': '10px'}),
+                    
                                         html.Label("Distribución de macronutrientes (sin alimentos concretos)", style={'fontWeight': 'bold', 'color': '#ffffff', 'marginTop': '15px'}),
                                         dcc.Textarea(id='meal-plan-description', placeholder='''Describe la distribución de tus macros:
 • Objetivo diario:

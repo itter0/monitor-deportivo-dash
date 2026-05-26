@@ -774,21 +774,26 @@
                     "status": "active",
                     "description": "",
                     "notes": "",
-                    "created_date": "2026-04-08T10:01:05.798241"
+                    "created_date": "2026-04-08T10:01:05.798241",
+                    "is_primary": false
                 },
                 {
                     "name": "1",
                     "weight_change": "cut",
                     "target_weight": 73.0,
                     "duration": 30,
-                    "status": "inactive",
+                    "status": "active",
                     "generation_logic": "template",
                     "generated_macros": {
                         "daily_kcal": 2000,
                         "protein_g_per_kg": 2.1,
                         "carbs_g_per_kg": 3,
                         "fats_g_per_kg": 0.8,
-                        "meals_per_day": 5
+                        "meals_per_day": 5,
+                        "protein_total_g": 158,
+                        "carbs_total_g": 225,
+                        "fats_total_g": 60,
+                        "weight_reference_kg": 75.0
                     },
                     "dietary_constraints": "",
                     "food_preferences": "",
@@ -796,7 +801,8 @@
                     "current_weight": 75.0,
                     "description": "Desayuno: avena + fruta + claras de huevo\nMedia manana: yogurt griego + frutos secos\nAlmuerzo: arroz + pechuga + ensalada\nMerienda: sandwich integral + pavo\nCena: pescado + vegetales + papa cocida\n\nMacros objetivo: 2000 kcal | P 2.1 g/kg | C 3.0 g/kg | G 0.8 g/kg\nRestricciones a considerar: Ninguna",
                     "notes": "Logica: template | Restricciones: Ninguna | Preferencias: No especificadas",
-                    "created_date": "2026-05-06T17:02:28.476682"
+                    "created_date": "2026-05-06T17:02:28.476682",
+                    "is_primary": true
                 }
             ]
         },
