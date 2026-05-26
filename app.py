@@ -3835,7 +3835,7 @@ def get_user_navbar(role_symbol, full_name, role_name, current_search="", userna
     if is_doctor:
         user_menu_items.extend([
             dbc.DropdownMenuItem("Datos del Paciente", id="nav-patient-viewer-btn", href=get_full_href("/patient-data-viewer")),
-            dbc.DropdownMenuItem("Agendar Cita", id="schedule-appointment-btn-modal-trigger"),
+            dbc.DropdownMenuItem("AGENDAR CITA", id="schedule-appointment-btn-modal-trigger"),
             dbc.DropdownMenuItem("Ver Mis Citas", id="nav-view-appointments-btn", href=get_full_href("/view-appointments")),
         ])
     
@@ -7007,8 +7007,11 @@ def toggle_appointment_modal(n_dash, n_nav, n_cancel, n_confirm, is_open):
     # Obtener el ID del componente que disparó el callback
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    # Botones que abren el modal
-    if trigger_id in ['schedule-appointment-btn', 'schedule-appointment-btn-modal-trigger']:
+    # Botones que abren el modal solo tras clic explícito.
+    # Evita aperturas involuntarias cuando el layout se monta dinámicamente.
+    if trigger_id == 'schedule-appointment-btn' and n_dash and n_dash > 0:
+        return True
+    if trigger_id == 'schedule-appointment-btn-modal-trigger' and n_nav and n_nav > 0:
         return True
     
     # Botones que cierran el modal
