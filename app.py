@@ -1572,6 +1572,76 @@ def render_tactical_plans_section(username):
     return html.Div(cards)
 
 
+def render_patient_appointments_summary(username):
+    try:
+        appointments = db.get_patient_appointments(username)
+        now = datetime.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        def parse_appointment_datetime(dt_value):
+            dt_text = str(dt_value).strip()
+            try:
+                return datetime.fromisoformat(dt_text)
+            except ValueError:
+                for fmt in ('%d/%m/%Y %H:%M', '%d/%m/%Y', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
+                    try:
+                        return datetime.strptime(dt_text, fmt)
+                    except ValueError:
+                        continue
+            raise ValueError(f'Formato de fecha no reconocido: {dt_text}')
+
+        pending_appointments = []
+        confirmed_appointments = []
+        cancelled_appointments = []
+
+        for app in appointments:
+            try:
+                appointment_datetime = parse_appointment_datetime(app['datetime'])
+            except Exception as exc:
+                print(f"Error al parsear cita {app.get('id')}: {exc}")
+                continue
+
+            status = app.get('status', 'scheduled')
+            if status == 'cancelled':
+                app['_parsed_datetime'] = appointment_datetime
+                cancelled_appointments.append(app)
+            elif appointment_datetime >= today_start and status == 'scheduled':
+                app['_parsed_datetime'] = appointment_datetime
+                pending_appointments.append(app)
+            elif appointment_datetime >= today_start and status == 'confirmed':
+                app['_parsed_datetime'] = appointment_datetime
+                confirmed_appointments.append(app)
+
+        pending_appointments.sort(key=lambda x: x['_parsed_datetime'])
+        confirmed_appointments.sort(key=lambda x: x['_parsed_datetime'])
+        cancelled_appointments.sort(key=lambda x: x['_parsed_datetime'], reverse=True)
+
+        def build_list_section(title, items, empty_text, title_color):
+            return html.Div([
+                html.H6(title, style={'color': title_color, 'marginTop': '8px', 'marginBottom': '10px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
+                html.Div([
+                    html.Div([
+                        html.Strong(f"{app['professional_name']} - ", style={'color': '#ffffff'}),
+                        html.Span(f"{app['_parsed_datetime'].strftime('%d/%m/%Y %H:%M')}", style={'color': '#ffffff'}),
+                        html.Br(),
+                        html.Span(f"🏥 {app['hospital']} - {app['office']} ({app.get('status', 'Scheduled').capitalize()})", style={'fontSize': '0.9em', 'color': COLORS['muted']}),
+                        html.Br(),
+                        html.Span(f"📝 {app['comments']}", style={'fontSize': '0.9em', 'color': COLORS['muted']})
+                    ], style={'marginBottom': '10px', 'padding': '10px', 'background': '#111111', 'borderRadius': '5px', 'border': f'1px solid {COLORS["border_soft"]}'})
+                    for app in items[:5]
+                ]) if items else html.P(empty_text, style={'textAlign': 'center', 'color': COLORS['muted'], 'padding': '12px'})
+            ])
+
+        return html.Div([
+            build_list_section("🚨 Pendientes de confirmación", pending_appointments, "📭 No tienes citas pendientes.", COLORS['primary']),
+            build_list_section("✅ Confirmadas", confirmed_appointments, "📭 No tienes citas confirmadas.", '#10b981'),
+            build_list_section("📭 Canceladas", cancelled_appointments, "📭 No tienes citas canceladas.", '#ef4444')
+        ])
+    except Exception as e:
+        print(f"Error al construir resumen de citas del paciente: {e}")
+        return html.P(f"Error: {e}", style={'color': 'red'})
+
+
 def _extract_tactical_plan_details(tactical_plan):
     """Extrae detalles clave del plan táctico para mostrar alertas informativas."""
     if not isinstance(tactical_plan, dict) or not tactical_plan:
@@ -4149,9 +4219,9 @@ def get_patient_dashboard(username, full_name, current_search=""):
     appointments_card = html.Div([
         html.Div([
             html.Span("📅 ", style={'fontSize': '1.2em'}),
-            "Mis Citas Pendientes"
+            "Mis Citas"
         ], style=STYLES['card_header_tactical']),
-        html.Div(id='patient-appointments-list', style={'textAlign': 'center', 'padding': '10px'}) 
+        html.Div(id='patient-appointments-list', children=render_patient_appointments_summary(username), style={'textAlign': 'center', 'padding': '10px'}) 
     ], style=STYLES['card'])
 
     fights_section = html.Div([
@@ -4844,6 +4914,12 @@ def get_user_data_layout(username, full_name, role, current_search=""):
                             ]) for ex in user_data.get('exercises', [])[:4]
                         ]) if user_data.get('exercises') else html.P("SIN REGISTROS", style={'color': '#555'})
                     ], style=STYLES['card']),
+
+                    # Citas del paciente
+                    html.Div([
+                        html.H4("📅 CITAS", style=STYLES['card_header_tactical']),
+                        html.Div(id='patient-appointments-list', children=render_patient_appointments_summary(username), style={'textAlign': 'center', 'padding': '10px'})
+                    ], style=STYLES['card']) if role == 'paciente' else None,
                     
                 ], style={'flex': 1, 'minWidth': '400px'}) if role == 'paciente' else None,
                 
@@ -4923,12 +4999,20 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
     pending_apps = [app for dt, app in parsed_items if dt > now and app.get('status', 'scheduled') == 'scheduled']
     pending_apps.sort(key=lambda x: _parse_datetime_safe(x.get('datetime')))
 
-    # 2. Próximas Citas (Estado: confirmed, fecha futura)
-    upcoming_apps = [app for dt, app in parsed_items if dt > now and app.get('status') == 'confirmed']
-    upcoming_apps.sort(key=lambda x: _parse_datetime_safe(x.get('datetime')))
+    # 2. Citas Confirmadas (Estado: confirmed, fecha futura)
+    confirmed_apps = [app for dt, app in parsed_items if dt > now and app.get('status') == 'confirmed']
+    confirmed_apps.sort(key=lambda x: _parse_datetime_safe(x.get('datetime')))
 
-    # 3. Citas Anteriores (Fecha pasada o Cancelada/Atendida)
-    past_apps = [app for dt, app in parsed_items if dt <= now or app.get('status') in ['cancelled', 'attended']]
+    # 3. Citas Canceladas
+    cancelled_apps = [app for dt, app in parsed_items if app.get('status') == 'cancelled']
+    cancelled_apps = sorted(
+        {app['id']: app for app in cancelled_apps}.values(),
+        key=lambda x: _parse_datetime_safe(x.get('datetime')) or datetime.min,
+        reverse=True,
+    )
+
+    # 4. Citas Anteriores (Fecha pasada o Atendida, pero nunca canceladas)
+    past_apps = [app for dt, app in parsed_items if (dt <= now or app.get('status') == 'attended') and app.get('status') != 'cancelled']
     # Eliminar duplicados por id y ordenar por fecha descendente
     unique_past_apps = {app['id']: app for app in past_apps}.values()
     past_apps = sorted(list(unique_past_apps), key=lambda x: _parse_datetime_safe(x.get('datetime')) or datetime.min, reverse=True)
@@ -4947,14 +5031,19 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
             actions = [
                 dbc.Button("❌ Cancelar Cita", id={'type': 'cancel-appt-patient-btn', 'index': app['id']}, color="warning", size="sm"),
             ]
+        elif category == 'cancelled':
+            actions = [
+                dbc.Button("🔁 Reprogramar Cita", id={'type': 'reschedule-appt-patient-btn', 'index': app['id']}, color="info", size="sm"),
+            ]
         
-        status_text = app.get('status', 'Finalizada').capitalize()
-        status_color = 'success' if app.get('status') in ['confirmed', 'attended'] else ('danger' if app.get('status') == 'cancelled' else 'warning')
+        status_info = AppointmentService.STATUS_MAP.get(app.get('status', 'default'), AppointmentService.STATUS_MAP['default'])
+        status_text = status_info['text']
+        status_color = status_info['color']
         
         # Mostrar notas del doctor solo en citas pasadas
         doctor_notes = app.get('doctor_notes', 'No hay notas registradas.')
         notes_display = html.Div()
-        if category == 'past':
+        if category in ['past', 'cancelled']:
             notes_display = html.Div([
                 html.P([html.Strong("Notas del Médico: ", style={'color': '#ffffff'}), html.Span(doctor_notes, style={'color': COLORS['muted']})], style={'color': '#ffffff'}),
                 html.P([html.Strong("Estado: ", style={'color': '#ffffff'}), html.Span(status_text, className=f"text-{status_color}")], style={'color': '#ffffff'})
@@ -4987,12 +5076,20 @@ def get_view_appointments_layout_patient(username, full_name, current_search="")
                 ) if pending_apps else html.P("✅ No tienes citas pendientes de acción.", style={'padding': '20px', 'backgroundColor': '#1a1b1e', 'borderRadius': '5px', 'color': COLORS['muted']})
             ], style=STYLES['card']),
 
-            # --- Próximas Citas Confirmadas ---
+            # --- Citas Confirmadas ---
             html.Div([
-                html.H4("✅ Próximas Citas", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
+                html.H4("✅ Citas Confirmadas", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
                 html.Div(
-                    [build_appointment_card(app, 'upcoming') for app in upcoming_apps]
-                ) if upcoming_apps else html.P("📅 No hay citas confirmadas próximas.", style={'padding': '20px', 'backgroundColor': '#1a1b1e', 'borderRadius': '5px', 'color': COLORS['muted']})
+                    [build_appointment_card(app, 'upcoming') for app in confirmed_apps]
+                ) if confirmed_apps else html.P("📅 No hay citas confirmadas.", style={'padding': '20px', 'backgroundColor': '#1a1b1e', 'borderRadius': '5px', 'color': COLORS['muted']})
+            ], style=STYLES['card']),
+
+            # --- Citas Canceladas ---
+            html.Div([
+                html.H4("📭 Citas Canceladas", style={'color': COLORS['primary'], 'marginBottom': '15px'}),
+                html.Div(
+                    [build_appointment_card(app, 'cancelled') for app in cancelled_apps]
+                ) if cancelled_apps else html.P("No tienes citas canceladas.", style={'padding': '20px', 'backgroundColor': '#1a1b1e', 'borderRadius': '5px', 'color': COLORS['muted']})
             ], style=STYLES['card']),
 
             # --- Citas Anteriores (Historial) ---
@@ -6214,16 +6311,18 @@ def update_dynamic_questionnaire_graphs(selected_questionnaire, reload_trigger, 
 # NUEVO CALLBACK: Refresca la lista de citas pendientes del paciente (cada 30s)
 @app.callback(
     Output('patient-appointments-list', 'children'),
-    Input('patient-appointments-refresh-interval', 'n_intervals'),
+    [Input('patient-appointments-refresh-interval', 'n_intervals'),
+     Input('appointments-reload-trigger', 'data')],
     State('current-patient-username', 'data')
 )
-def refresh_patient_appointments_list(n_intervals, username):
+def refresh_patient_appointments_list(n_intervals, appointments_reload_trigger, username):
     if not username:
         return html.P("Inicia sesión para ver tus citas.", style={'textAlign': 'center', 'color': COLORS['muted'], 'padding': '20px'})
 
     try:
         appointments = db.get_patient_appointments(username)
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = datetime.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
         def parse_appointment_datetime(dt_value):
             dt_text = str(dt_value).strip()
@@ -6237,7 +6336,9 @@ def refresh_patient_appointments_list(n_intervals, username):
                         continue
             raise ValueError(f'Formato de fecha no reconocido: {dt_text}')
 
-        upcoming_appointments = []
+        pending_appointments = []
+        confirmed_appointments = []
+        cancelled_appointments = []
         for app in appointments:
             try:
                 appointment_datetime = parse_appointment_datetime(app['datetime'])
@@ -6245,28 +6346,42 @@ def refresh_patient_appointments_list(n_intervals, username):
                 print(f"Error al parsear cita {app.get('id')}: {exc}")
                 continue
 
-            if appointment_datetime >= today_start and app.get('status', 'scheduled') not in ['cancelled', 'attended']:
+            status = app.get('status', 'scheduled')
+            if status == 'cancelled':
                 app['_parsed_datetime'] = appointment_datetime
-                upcoming_appointments.append(app)
+                cancelled_appointments.append(app)
+            elif appointment_datetime >= today_start and status == 'scheduled':
+                app['_parsed_datetime'] = appointment_datetime
+                pending_appointments.append(app)
+            elif appointment_datetime >= today_start and status == 'confirmed':
+                app['_parsed_datetime'] = appointment_datetime
+                confirmed_appointments.append(app)
 
-        upcoming_appointments.sort(key=lambda x: x['_parsed_datetime'])
+        pending_appointments.sort(key=lambda x: x['_parsed_datetime'])
+        confirmed_appointments.sort(key=lambda x: x['_parsed_datetime'])
+        cancelled_appointments.sort(key=lambda x: x['_parsed_datetime'], reverse=True)
+
+        def build_list_section(title, items, empty_text, title_color):
+            return html.Div([
+                html.H6(title, style={'color': title_color, 'marginTop': '8px', 'marginBottom': '10px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
+                html.Div([
+                    html.Div([
+                        html.Strong(f"{app['professional_name']} - ", style={'color': '#ffffff'}),
+                        html.Span(f"{app['_parsed_datetime'].strftime('%d/%m/%Y %H:%M')}", style={'color': '#ffffff'}),
+                        html.Br(),
+                        html.Span(f"🏥 {app['hospital']} - {app['office']} ({app.get('status', 'Scheduled').capitalize()})", style={'fontSize': '0.9em', 'color': COLORS['muted']}),
+                        html.Br(),
+                        html.Span(f"📝 {app['comments']}", style={'fontSize': '0.9em', 'color': COLORS['muted']})
+                    ], style={'marginBottom': '10px', 'padding': '10px', 'background': '#111111', 'borderRadius': '5px', 'border': f'1px solid {COLORS["border_soft"]}'})
+                    for app in items[:5]
+                ]) if items else html.P(empty_text, style={'textAlign': 'center', 'color': COLORS['muted'], 'padding': '12px'})
+            ])
         
-        content = html.Ul([
-            html.Li([
-                html.Strong(f"{app['professional_name']} - ", style={'color': '#ffffff'}),
-                html.Span(f"{app['_parsed_datetime'].strftime('%d/%m/%Y %H:%M')}", style={'color': '#ffffff'}),
-                html.Br(),
-                html.Span(f"🏥 {app['hospital']} - {app['office']} ({app.get('status', 'Scheduled').capitalize()})", style={'fontSize': '0.9em', 'color': COLORS['muted']}),
-                html.Br(),
-                html.Span(f"📝 {app['comments']}", style={'fontSize': '0.9em', 'color': COLORS['muted']})
-            ], style={'marginBottom': '10px', 'padding': '10px', 'background': '#111111', 'borderRadius': '5px', 'border': f'1px solid {COLORS["border_soft"]}'})
-            for app in upcoming_appointments[:5]
-        ], style={'paddingLeft': '20px'})
-        
-        if not upcoming_appointments:
-             return html.P("📭 No tienes citas pendientes", style={'textAlign': 'center', 'color': COLORS['muted'], 'padding': '20px'})
-        
-        return content
+        return html.Div([
+            build_list_section("🚨 Pendientes de confirmación", pending_appointments, "📭 No tienes citas pendientes.", COLORS['primary']),
+            build_list_section("✅ Confirmadas", confirmed_appointments, "📭 No tienes citas confirmadas.", '#10b981'),
+            build_list_section("📭 Canceladas", cancelled_appointments, "📭 No tienes citas canceladas.", '#ef4444')
+        ])
         
     except Exception as e:
         print(f"Error al recargar citas del paciente: {e}")
@@ -6306,8 +6421,8 @@ def reload_appointments_table_on_trigger(trigger_value, user_data, pathname):
     State('user-session-state', 'data')
 )
 def control_patient_refresh_interval(pathname, user_data):
-    # Solo si estamos en el Dashboard raíz (/) Y el usuario es 'paciente'
-    is_patient_dashboard = pathname == '/' and user_data.get('role') == 'paciente'
+    # Activo en el dashboard del paciente y en "Mis Datos" para mostrar el mismo estado de citas.
+    is_patient_dashboard = pathname in ['/', '/my-data'] and user_data.get('role') == 'paciente'
     
     # Si es el dashboard del paciente, deshabilitado = False (está activo)
     # En cualquier otro caso, deshabilitado = True (está inactivo)
@@ -6994,10 +7109,13 @@ def schedule_appointment(n_clicks, patient_username, date, time, hospital, offic
      Output('patient-appt-action-feedback', 'children')],
     [Input({'type': 'confirm-appt-patient-btn', 'index': dash.ALL}, 'n_clicks'),
      Input({'type': 'cancel-appt-patient-btn', 'index': dash.ALL}, 'n_clicks')],
-    State('appointments-reload-trigger', 'data'),
+    [State('appointments-reload-trigger', 'data'),
+     State('user-session-state', 'data'),
+     State('url', 'pathname'),
+     State('url', 'search')],
     prevent_initial_call=True
 )
-def handle_patient_appointment_actions(confirm_clicks, cancel_clicks, reload_trigger):
+def handle_patient_appointment_actions(confirm_clicks, cancel_clicks, reload_trigger, user_session, pathname, search):
     ctx = dash.callback_context
     if not ctx.triggered:
         return dash.no_update, dash.no_update
@@ -7019,8 +7137,6 @@ def handle_patient_appointment_actions(confirm_clicks, cancel_clicks, reload_tri
         
         db.update_appointment(appointment_id, {'status': new_status, 'patient_notes': 'Acción del paciente: Cambio de estado.'})
 
-        
-        # Forzar el re-renderizado de la vista de citas (ya que no es un output directo)
         new_reload_trigger = reload_trigger + 1 if reload_trigger is not None else 1
         return new_reload_trigger, html.Div(feedback_msg, className="alert alert-success")
 
@@ -7920,11 +8036,12 @@ def get_meal_plans_layout(username, full_name, current_search=""):
      Output('user-session-state', 'data', allow_duplicate=True),
      Output('url', 'pathname', allow_duplicate=True)],
     Input('url','pathname'), 
+    Input('appointments-reload-trigger', 'data'),
     State('url', 'search'), 
     State('user-session-state', 'data'),
     prevent_initial_call='initial_duplicate'
 )
-def display_page(pathname, search, current_session):
+def display_page(pathname, _appointments_reload_trigger, search, current_session):
     
     query_params = parse_qs(urlparse(search).query)
     username_url = query_params.get('user', [None])[0]

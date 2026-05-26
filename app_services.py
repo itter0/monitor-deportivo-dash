@@ -208,4 +208,6 @@ class AppointmentService:
             return "confirmed", "✅ Cita confirmada con éxito."
         if "cancel-appt-patient-btn" in str(action_type):
             return "cancelled", "❌ Cita cancelada. Historial actualizado."
+        if "reschedule-appt-patient-btn" in str(action_type):
+            return "scheduled", "🔁 Cita reprogramada. La cita vuelve a quedar pendiente de confirmación."
         return None, ""
