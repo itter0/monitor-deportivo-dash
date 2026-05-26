@@ -5250,7 +5250,7 @@ def get_view_appointments_layout(username, full_name, role, current_search=""):
     # Si es médico, mostrar citas filtradas en diferentes secciones
     if role == 'medico':
         return html.Div([
-            get_user_navbar(role_symbol, full_name, "Gestión de Citas", current_search), 
+            get_user_navbar(role_symbol, full_name, "Gestión de Citas", current_search, username, role), 
             
             html.Div([
                 dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-4", href=f"/{current_search}", color="primary", 
@@ -5284,7 +5284,7 @@ def get_view_appointments_layout(username, full_name, role, current_search=""):
     else:
         # Para otros roles, mostrar la vista anterior
         return html.Div([
-            get_user_navbar(role_symbol, full_name, "Gestión de Citas", current_search), 
+            get_user_navbar(role_symbol, full_name, "Gestión de Citas", current_search, username, role), 
             
             html.Div([
                 dbc.Button("← Volver al Dashboard", id="nav-dashboard-btn-4", href=f"/{current_search}", color="primary", 
